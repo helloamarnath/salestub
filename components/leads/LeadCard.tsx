@@ -6,14 +6,16 @@ import { router } from 'expo-router';
 import type { Lead } from '@/types/lead';
 import { LeadStatusBadge, ScoreIndicator } from './LeadStatusBadge';
 import { getContactFullName, getContactInitials, getAvatarColor } from '@/types/contact';
+import { Colors } from '@/constants/theme';
 
 interface LeadCardProps {
   lead: Lead;
   onPress?: () => void;
   onLongPress?: () => void;
+  isDark?: boolean;
 }
 
-export function LeadCard({ lead, onPress, onLongPress }: LeadCardProps) {
+export function LeadCard({ lead, onPress, onLongPress, isDark = true }: LeadCardProps) {
   const contactName = lead.contact
     ? getContactFullName(lead.contact)
     : 'No contact';
@@ -23,6 +25,15 @@ export function LeadCard({ lead, onPress, onLongPress }: LeadCardProps) {
     : lead.title.substring(0, 2).toUpperCase();
 
   const avatarColor = getAvatarColor(contactName);
+
+  // Theme-aware colors
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+  const mutedColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const valueColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+  const actionBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -82,8 +93,8 @@ export function LeadCard({ lead, onPress, onLongPress }: LeadCardProps) {
       onPress={handlePress}
       onLongPress={handleLongPress}
     >
-      <View style={styles.container}>
-        <BlurView intensity={15} tint="dark" style={styles.blur}>
+      <View style={[styles.container, { borderColor }]}>
+        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={[styles.blur, { backgroundColor: bgColor }]}>
           <View style={styles.content}>
             {/* Left: Avatar */}
             <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
@@ -94,25 +105,25 @@ export function LeadCard({ lead, onPress, onLongPress }: LeadCardProps) {
             <View style={styles.info}>
               {/* Title Row */}
               <View style={styles.titleRow}>
-                <Text style={styles.displayId}>{lead.displayId}</Text>
+                <Text style={[styles.displayId, { color: mutedColor }]}>{lead.displayId}</Text>
                 {lead.score !== undefined && (
                   <ScoreIndicator score={lead.score} size={6} />
                 )}
               </View>
 
-              <Text style={styles.title} numberOfLines={1}>
+              <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
                 {lead.title}
               </Text>
 
-              <Text style={styles.contactName} numberOfLines={1}>
+              <Text style={[styles.contactName, { color: subtitleColor }]} numberOfLines={1}>
                 {contactName}
               </Text>
 
               {/* Bottom Row: Stage & Value */}
               <View style={styles.bottomRow}>
-                <LeadStatusBadge stage={lead.stage} size="small" />
+                <LeadStatusBadge stage={lead.stage} size="small" isDark={isDark} />
                 {lead.value !== undefined && lead.value > 0 && (
-                  <Text style={styles.value}>{formatValue(lead.value)}</Text>
+                  <Text style={[styles.value, { color: valueColor }]}>{formatValue(lead.value)}</Text>
                 )}
               </View>
             </View>
@@ -121,7 +132,7 @@ export function LeadCard({ lead, onPress, onLongPress }: LeadCardProps) {
             <View style={styles.actions}>
               {lead.contact?.phone && (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: actionBg }]}
                   onPress={handleCall}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
@@ -130,7 +141,7 @@ export function LeadCard({ lead, onPress, onLongPress }: LeadCardProps) {
               )}
               {lead.contact?.phone && (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: actionBg }]}
                   onPress={handleWhatsApp}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
@@ -139,7 +150,7 @@ export function LeadCard({ lead, onPress, onLongPress }: LeadCardProps) {
               )}
               {lead.contact?.email && (
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: actionBg }]}
                   onPress={handleEmail}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
@@ -159,12 +170,20 @@ interface LeadKanbanCardProps {
   lead: Lead;
   onPress?: () => void;
   onLongPress?: () => void;
+  isDark?: boolean;
 }
 
-export function LeadKanbanCard({ lead, onPress, onLongPress }: LeadKanbanCardProps) {
+export function LeadKanbanCard({ lead, onPress, onLongPress, isDark = true }: LeadKanbanCardProps) {
   const contactName = lead.contact
     ? getContactFullName(lead.contact)
     : null;
+
+  // Theme-aware colors
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const bgColor = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const valueColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -193,12 +212,12 @@ export function LeadKanbanCard({ lead, onPress, onLongPress }: LeadKanbanCardPro
       onPress={handlePress}
       onLongPress={onLongPress}
     >
-      <View style={styles.kanbanContainer}>
-        <BlurView intensity={15} tint="dark" style={styles.kanbanBlur}>
+      <View style={[styles.kanbanContainer, { borderColor }]}>
+        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={[styles.kanbanBlur, { backgroundColor: bgColor }]}>
           <View style={styles.kanbanContent}>
             {/* Title with score */}
             <View style={styles.kanbanTitleRow}>
-              <Text style={styles.kanbanTitle} numberOfLines={1}>
+              <Text style={[styles.kanbanTitle, { color: textColor }]} numberOfLines={1}>
                 {lead.title}
               </Text>
               {lead.score !== undefined && (
@@ -208,14 +227,14 @@ export function LeadKanbanCard({ lead, onPress, onLongPress }: LeadKanbanCardPro
 
             {/* Contact name */}
             {contactName && (
-              <Text style={styles.kanbanContact} numberOfLines={1}>
+              <Text style={[styles.kanbanContact, { color: subtitleColor }]} numberOfLines={1}>
                 {contactName}
               </Text>
             )}
 
             {/* Value */}
             {lead.value !== undefined && lead.value > 0 && (
-              <Text style={styles.kanbanValue}>{formatValue(lead.value)}</Text>
+              <Text style={[styles.kanbanValue, { color: valueColor }]}>{formatValue(lead.value)}</Text>
             )}
           </View>
         </BlurView>
@@ -230,11 +249,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
-  blur: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
+  blur: {},
   content: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -263,18 +279,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   displayId: {
-    color: 'rgba(255,255,255,0.4)',
     fontSize: 11,
     fontWeight: '500',
   },
   title: {
-    color: 'white',
     fontSize: 15,
     fontWeight: '600',
     marginTop: 2,
   },
   contactName: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 13,
     marginTop: 2,
   },
@@ -285,7 +298,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   value: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -297,7 +309,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -307,11 +318,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
-  kanbanBlur: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
+  kanbanBlur: {},
   kanbanContent: {
     padding: 12,
   },
@@ -321,19 +329,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   kanbanTitle: {
-    color: 'white',
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
     marginRight: 8,
   },
   kanbanContact: {
-    color: 'rgba(255,255,255,0.5)',
     fontSize: 12,
     marginTop: 4,
   },
   kanbanValue: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
     fontWeight: '700',
     marginTop: 8,

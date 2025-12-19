@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme as useDeviceColorScheme } from 'react-native';
 import { useColorScheme } from 'nativewind';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark' | 'system';
+
+const THEME_STORAGE_KEY = '@salestub_theme';
 
 interface ThemeContextType {
   theme: Theme;
   resolvedTheme: 'light' | 'dark';
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  isLoading: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -20,30 +24,54 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(defaultTheme);
+  const [isLoading, setIsLoading] = useState(true);
   const deviceColorScheme = useDeviceColorScheme();
   const { setColorScheme } = useColorScheme();
 
   const resolvedTheme: 'light' | 'dark' =
     theme === 'system' ? (deviceColorScheme ?? 'light') : theme;
 
+  // Load saved theme on mount
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system')) {
+          setThemeState(savedTheme as Theme);
+        }
+      } catch (error) {
+        console.error('Failed to load theme:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  // Apply color scheme when resolved theme changes
   useEffect(() => {
     setColorScheme(resolvedTheme);
   }, [resolvedTheme, setColorScheme]);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = async (newTheme: Theme) => {
     setThemeState(newTheme);
+    try {
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
+    } catch (error) {
+      console.error('Failed to save theme:', error);
+    }
   };
 
   const toggleTheme = () => {
     if (theme === 'system') {
-      setThemeState(resolvedTheme === 'light' ? 'dark' : 'light');
+      setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
     } else {
-      setThemeState(theme === 'light' ? 'dark' : 'light');
+      setTheme(theme === 'light' ? 'dark' : 'light');
     }
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme, isLoading }}>
       {children}
     </ThemeContext.Provider>
   );

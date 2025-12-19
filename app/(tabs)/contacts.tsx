@@ -13,6 +13,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 
 // Contact item component
 function ContactItem({
@@ -20,11 +22,13 @@ function ContactItem({
   company,
   email,
   phone,
+  isDark,
 }: {
   name: string;
   company: string;
   email: string;
   phone: string;
+  isDark: boolean;
 }) {
   const initials = name
     .split(' ')
@@ -33,26 +37,31 @@ function ContactItem({
     .toUpperCase()
     .slice(0, 2);
 
-  const colors = ['#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4'];
-  const colorIndex = name.charCodeAt(0) % colors.length;
+  const avatarColors = ['#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4'];
+  const colorIndex = name.charCodeAt(0) % avatarColors.length;
+
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const actionBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
 
   return (
     <TouchableOpacity activeOpacity={0.7}>
-      <View className="flex-row items-center py-3 px-5 border-b border-white/5">
+      <View style={[styles.contactItem, { borderBottomColor: borderColor }]}>
         <View
-          style={[styles.avatar, { backgroundColor: colors[colorIndex] }]}
+          style={[styles.avatar, { backgroundColor: avatarColors[colorIndex] }]}
         >
-          <Text className="text-white font-semibold text-sm">{initials}</Text>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <View className="flex-1 ml-3">
-          <Text className="text-white font-medium text-base">{name}</Text>
-          <Text className="text-white/50 text-sm">{company}</Text>
+        <View style={styles.contactInfo}>
+          <Text style={[styles.contactName, { color: textColor }]}>{name}</Text>
+          <Text style={[styles.contactCompany, { color: subtitleColor }]}>{company}</Text>
         </View>
-        <View className="flex-row">
-          <TouchableOpacity style={styles.actionButton} className="mr-2">
+        <View style={styles.contactActions}>
+          <TouchableOpacity style={[styles.actionButton, { backgroundColor: actionBg }]}>
             <Ionicons name="call-outline" size={18} color="#22c55e" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={[styles.actionButton, { backgroundColor: actionBg }]}>
             <Ionicons name="mail-outline" size={18} color="#3b82f6" />
           </TouchableOpacity>
         </View>
@@ -65,11 +74,28 @@ export default function ContactsScreen() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { resolvedTheme } = useTheme();
+
+  const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1500);
   };
+
+  // Theme-aware colors
+  const gradientColors: [string, string, string] = isDark
+    ? ['#0f172a', '#1e293b', '#0f172a']
+    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+
+  const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const textColor = isDark ? 'white' : colors.foreground;
+  const sectionHeaderBg = isDark ? '#0f172a' : '#f8fafc';
+  const sectionHeaderColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)';
+  const searchBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
+  const searchBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
   // Sample contacts data grouped by letter
   const contactsData = [
@@ -124,35 +150,35 @@ export default function ContactsScreen() {
   ];
 
   return (
-    <View className="flex-1">
+    <View style={styles.container}>
       <LinearGradient
-        colors={['#0f172a', '#1e293b', '#0f172a']}
+        colors={gradientColors}
         style={StyleSheet.absoluteFill}
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View className="px-5 pb-4">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-white text-2xl font-bold">Contacts</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: headerBorderColor }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <Text style={[styles.title, { color: textColor }]}>Contacts</Text>
             <TouchableOpacity style={styles.addButton}>
               <Ionicons name="add" size={24} color="white" />
             </TouchableOpacity>
           </View>
 
           {/* Search bar */}
-          <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={20} color="rgba(255,255,255,0.4)" />
+          <View style={[styles.searchContainer, { backgroundColor: searchBg, borderColor: searchBorder }]}>
+            <Ionicons name="search-outline" size={20} color={placeholderColor} />
             <TextInput
-              className="flex-1 ml-3 text-white text-base"
+              style={[styles.searchInput, { color: textColor }]}
               placeholder="Search contacts..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={placeholderColor}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="close-circle" size={20} color={placeholderColor} />
               </TouchableOpacity>
             )}
           </View>
@@ -163,10 +189,10 @@ export default function ContactsScreen() {
       <SectionList
         sections={contactsData}
         keyExtractor={(item, index) => item.email + index}
-        renderItem={({ item }) => <ContactItem {...item} />}
+        renderItem={({ item }) => <ContactItem {...item} isDark={isDark} />}
         renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.sectionHeader}>
-            <Text className="text-white/40 text-sm font-semibold">{title}</Text>
+          <View style={[styles.sectionHeader, { backgroundColor: sectionHeaderBg }]}>
+            <Text style={[styles.sectionHeaderText, { color: sectionHeaderColor }]}>{title}</Text>
           </View>
         )}
         showsVerticalScrollIndicator={false}
@@ -176,7 +202,7 @@ export default function ContactsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#3b82f6"
+            tintColor={colors.primary}
           />
         }
       />
@@ -185,9 +211,25 @@ export default function ContactsScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   header: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   addButton: {
     width: 40,
@@ -200,12 +242,15 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
   },
   avatar: {
     width: 44,
@@ -214,17 +259,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  contactInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  contactName: {
+    fontWeight: '500',
+    fontSize: 16,
+  },
+  contactCompany: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  contactActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   actionButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionHeader: {
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: '#0f172a',
+  },
+  sectionHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

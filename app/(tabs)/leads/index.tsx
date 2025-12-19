@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 import { getLeads, getKanbanView } from '@/lib/api/leads';
 import { LeadCard } from '@/components/leads/LeadCard';
 import type { Lead, LeadFilters, KanbanStage } from '@/types/lead';
@@ -55,20 +57,26 @@ function FilterTabButton({
   count,
   active,
   onPress,
+  isDark,
 }: {
   filter: FilterTab;
   count: number;
   active: boolean;
   onPress: () => void;
+  isDark: boolean;
 }) {
   const tabColor = filter.color || '#6b7280';
+  const inactiveBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const inactiveBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const inactiveTextColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
+  const countBg = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)';
+  const countBgActive = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.3)';
 
   return (
     <TouchableOpacity
       style={[
         styles.filterTab,
-        active && styles.filterTabActive,
-        active && { backgroundColor: tabColor, borderColor: tabColor },
+        { backgroundColor: active ? tabColor : inactiveBg, borderColor: active ? tabColor : inactiveBorder },
       ]}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -80,11 +88,11 @@ function FilterTabButton({
       {!active && (
         <View style={[styles.filterTabDot, { backgroundColor: tabColor }]} />
       )}
-      <Text style={[styles.filterTabLabel, active && styles.filterTabLabelActive]}>
+      <Text style={[styles.filterTabLabel, { color: active ? 'white' : inactiveTextColor }]}>
         {filter.label}
       </Text>
-      <View style={[styles.filterTabCount, active && styles.filterTabCountActive]}>
-        <Text style={[styles.filterTabCountText, active && styles.filterTabCountTextActive]}>
+      <View style={[styles.filterTabCount, { backgroundColor: active ? countBgActive : countBg }]}>
+        <Text style={[styles.filterTabCountText, { color: active ? 'white' : inactiveTextColor }]}>
           {count}
         </Text>
       </View>
@@ -93,8 +101,10 @@ function FilterTabButton({
 }
 
 // Loading skeleton
-function LeadSkeleton() {
+function LeadSkeleton({ isDark }: { isDark: boolean }) {
   const opacity = useRef(new Animated.Value(0.3)).current;
+  const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const itemBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -116,29 +126,33 @@ function LeadSkeleton() {
   }, []);
 
   return (
-    <Animated.View style={[styles.skeleton, { opacity }]}>
-      <View style={styles.skeletonAvatar} />
+    <Animated.View style={[styles.skeleton, { opacity, backgroundColor: bgColor }]}>
+      <View style={[styles.skeletonAvatar, { backgroundColor: itemBg }]} />
       <View style={styles.skeletonContent}>
-        <View style={styles.skeletonLine} />
-        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+        <View style={[styles.skeletonLine, { backgroundColor: itemBg }]} />
+        <View style={[styles.skeletonLine, styles.skeletonLineShort, { backgroundColor: itemBg }]} />
       </View>
     </Animated.View>
   );
 }
 
 // Empty state component
-function EmptyState({ searchQuery, filterLabel }: { searchQuery: string; filterLabel: string }) {
+function EmptyState({ searchQuery, filterLabel, isDark }: { searchQuery: string; filterLabel: string; isDark: boolean }) {
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const iconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+
   return (
     <View style={styles.emptyState}>
       <Ionicons
         name={searchQuery ? 'search-outline' : 'people-outline'}
         size={64}
-        color="rgba(255,255,255,0.2)"
+        color={iconColor}
       />
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: textColor }]}>
         {searchQuery ? 'No leads found' : `No ${filterLabel.toLowerCase()}`}
       </Text>
-      <Text style={styles.emptySubtitle}>
+      <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>
         {searchQuery
           ? 'Try adjusting your search or filters'
           : 'Create your first lead to get started'}
@@ -157,12 +171,15 @@ function EmptyState({ searchQuery, filterLabel }: { searchQuery: string; filterL
 }
 
 // Error state component
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorState({ message, onRetry, isDark }: { message: string; onRetry: () => void; isDark: boolean }) {
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+
   return (
     <View style={styles.errorState}>
       <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
-      <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.errorMessage}>{message}</Text>
+      <Text style={[styles.errorTitle, { color: textColor }]}>Something went wrong</Text>
+      <Text style={[styles.errorMessage, { color: subtitleColor }]}>{message}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
         <Ionicons name="refresh" size={18} color="white" />
         <Text style={styles.retryButtonText}>Try Again</Text>
@@ -174,6 +191,10 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 export default function LeadsScreen() {
   const insets = useSafeAreaInsets();
   const { accessToken } = useAuth();
+  const { resolvedTheme } = useTheme();
+
+  const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   // State
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -190,6 +211,19 @@ export default function LeadsScreen() {
 
   // Debounce search
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Theme-aware colors
+  const gradientColors: [string, string, string] = isDark
+    ? ['#0f172a', '#1e293b', '#0f172a']
+    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+
+  const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const textColor = isDark ? 'white' : colors.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const searchBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
+  const searchBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const iconButtonBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
   // Default stage colors by type
   const getStageColor = (stage: KanbanStage): string => {
@@ -440,8 +474,8 @@ export default function LeadsScreen() {
 
   // Render lead item
   const renderLead = useCallback(
-    ({ item }: { item: Lead }) => <LeadCard lead={item} />,
-    []
+    ({ item }: { item: Lead }) => <LeadCard lead={item} isDark={isDark} />,
+    [isDark]
   );
 
   // List footer
@@ -449,7 +483,7 @@ export default function LeadsScreen() {
     if (loadingMore) {
       return (
         <View style={styles.loadingMore}>
-          <ActivityIndicator size="small" color="#3b82f6" />
+          <ActivityIndicator size="small" color={colors.primary} />
         </View>
       );
     }
@@ -459,19 +493,19 @@ export default function LeadsScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0f172a', '#1e293b', '#0f172a']}
+        colors={gradientColors}
         style={StyleSheet.absoluteFill}
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: headerBorderColor }]}>
         <View style={styles.headerContent}>
           {/* Title Row */}
           <View style={styles.titleRow}>
             <View>
-              <Text style={styles.title}>Leads</Text>
+              <Text style={[styles.title, { color: textColor }]}>Leads</Text>
               {!loading && (
-                <Text style={styles.subtitle}>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
                   {activeFilter === 'all'
                     ? `${totalLeadsCount} lead${totalLeadsCount !== 1 ? 's' : ''}`
                     : `${filteredLeads.length} of ${totalLeadsCount} lead${totalLeadsCount !== 1 ? 's' : ''}`
@@ -481,10 +515,10 @@ export default function LeadsScreen() {
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity
-                style={styles.iconButton}
+                style={[styles.iconButton, { backgroundColor: iconButtonBg }]}
                 onPress={handleKanbanPress}
               >
-                <Ionicons name="grid-outline" size={20} color="white" />
+                <Ionicons name="grid-outline" size={20} color={textColor} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.addButton}
@@ -496,16 +530,16 @@ export default function LeadsScreen() {
           </View>
 
           {/* Search bar */}
-          <View style={styles.searchContainer}>
+          <View style={[styles.searchContainer, { backgroundColor: searchBg, borderColor: searchBorder }]}>
             <Ionicons
               name="search-outline"
               size={20}
-              color="rgba(255,255,255,0.4)"
+              color={placeholderColor}
             />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: textColor }]}
               placeholder="Search leads..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={placeholderColor}
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
@@ -515,7 +549,7 @@ export default function LeadsScreen() {
                 <Ionicons
                   name="close-circle"
                   size={20}
-                  color="rgba(255,255,255,0.4)"
+                  color={placeholderColor}
                 />
               </TouchableOpacity>
             )}
@@ -536,6 +570,7 @@ export default function LeadsScreen() {
               count={filterCounts[filter.id] || 0}
               active={activeFilter === filter.id}
               onPress={() => setActiveFilter(filter.id)}
+              isDark={isDark}
             />
           ))}
         </ScrollView>
@@ -545,13 +580,13 @@ export default function LeadsScreen() {
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <LeadSkeleton key={i} />
+            <LeadSkeleton key={i} isDark={isDark} />
           ))}
         </View>
       ) : error ? (
-        <ErrorState message={error} onRetry={() => fetchLeads(1)} />
+        <ErrorState message={error} onRetry={() => fetchLeads(1)} isDark={isDark} />
       ) : filteredLeads.length === 0 ? (
-        <EmptyState searchQuery={searchQuery} filterLabel={currentFilterLabel} />
+        <EmptyState searchQuery={searchQuery} filterLabel={currentFilterLabel} isDark={isDark} />
       ) : (
         <FlatList
           data={filteredLeads}
@@ -563,7 +598,7 @@ export default function LeadsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor="#3b82f6"
+              tintColor={colors.primary}
             />
           }
           onEndReached={handleLoadMore}
@@ -581,7 +616,6 @@ const styles = StyleSheet.create({
   },
   header: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   headerContent: {
     paddingHorizontal: 20,
@@ -596,11 +630,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
     marginTop: 2,
   },
   headerActions: {
@@ -612,7 +644,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -627,18 +658,15 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   searchInput: {
     flex: 1,
     marginLeft: 10,
     fontSize: 16,
-    color: 'white',
   },
   filterTabsScroll: {
     marginTop: 12,
@@ -654,41 +682,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
     gap: 8,
   },
-  filterTabActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
   filterTabLabel: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     fontWeight: '500',
   },
-  filterTabLabelActive: {
-    color: 'white',
-  },
   filterTabCount: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
     minWidth: 24,
     alignItems: 'center',
   },
-  filterTabCountActive: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
   filterTabCountText: {
-    color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
     fontWeight: '600',
-  },
-  filterTabCountTextActive: {
-    color: 'white',
   },
   filterTabDot: {
     width: 8,
@@ -706,7 +716,6 @@ const styles = StyleSheet.create({
   skeleton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
@@ -715,7 +724,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   skeletonContent: {
     flex: 1,
@@ -724,7 +732,6 @@ const styles = StyleSheet.create({
   },
   skeletonLine: {
     height: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 4,
   },
   skeletonLineShort: {
@@ -742,13 +749,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyTitle: {
-    color: 'white',
     fontSize: 20,
     fontWeight: '600',
     marginTop: 20,
   },
   emptySubtitle: {
-    color: 'rgba(255,255,255,0.5)',
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
@@ -775,13 +780,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   errorTitle: {
-    color: 'white',
     fontSize: 20,
     fontWeight: '600',
     marginTop: 20,
   },
   errorMessage: {
-    color: 'rgba(255,255,255,0.5)',
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,

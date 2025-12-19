@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -20,11 +19,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Device from 'expo-device';
 import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const { login, isAuthenticated } = useAuth();
+  const { resolvedTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
@@ -33,10 +35,27 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [showMfa, setShowMfa] = useState(false);
 
+  const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const orb1Anim = useRef(new Animated.ValueXY({ x: -80, y: 100 })).current;
   const orb2Anim = useRef(new Animated.ValueXY({ x: width - 100, y: height - 200 })).current;
+
+  // Theme-aware colors
+  const gradientColors: [string, string, string] = isDark
+    ? ['#0f172a', '#1e293b', '#0f172a']
+    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+
+  const textColor = isDark ? 'white' : colors.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+  const mutedColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
+  const inputBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.35)';
+  const cardBorderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -148,10 +167,10 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1">
+    <View style={styles.container}>
       {/* Gradient background */}
       <LinearGradient
-        colors={['#0f172a', '#1e293b', '#0f172a']}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -164,6 +183,7 @@ export default function LoginScreen() {
           {
             width: 280,
             height: 280,
+            opacity: isDark ? 0.4 : 0.2,
             transform: [
               { translateX: orb1Anim.x },
               { translateY: orb1Anim.y },
@@ -183,6 +203,7 @@ export default function LoginScreen() {
           {
             width: 220,
             height: 220,
+            opacity: isDark ? 0.4 : 0.2,
             transform: [
               { translateX: orb2Anim.x },
               { translateY: orb2Anim.y },
@@ -198,57 +219,59 @@ export default function LoginScreen() {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Animated.View
-            className="flex-1 px-6 pt-20 pb-8"
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }}
+            style={[
+              styles.content,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
           >
             {/* Header */}
-            <View className="items-center mb-10">
-              <View className="w-20 h-20 rounded-2xl bg-white/10 items-center justify-center mb-4">
+            <View style={styles.header}>
+              <View style={[styles.logoContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(59,130,246,0.1)' }]}>
                 <Image
                   source={require('@/assets/images/splash-icon.png')}
-                  style={{ width: 48, height: 48 }}
+                  style={styles.logoImage}
                   contentFit="contain"
                 />
               </View>
-              <Text className="text-3xl font-bold text-white mb-2">
+              <Text style={[styles.title, { color: textColor }]}>
                 Welcome Back
               </Text>
-              <Text className="text-base text-white/60">
+              <Text style={[styles.subtitle, { color: subtitleColor }]}>
                 Sign in to continue to SalesTub
               </Text>
             </View>
 
             {/* Login form - Glass card */}
-            <View style={styles.glassCard}>
-              <BlurView intensity={25} tint="dark" style={styles.blurView}>
-                <View className="p-6">
+            <View style={[styles.glassCard, { borderColor: cardBorderColor }]}>
+              <BlurView intensity={25} tint={isDark ? 'dark' : 'light'} style={[styles.blurView, { backgroundColor: cardBg }]}>
+                <View style={styles.formContent}>
                   {/* Email input */}
-                  <View className="mb-5">
-                    <Text className="text-sm text-white/70 mb-2 ml-1">
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: subtitleColor }]}>
                       Email Address
                     </Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[styles.inputContainer, { backgroundColor: inputBg, borderColor: inputBorder }]}>
                       <Ionicons
                         name="mail-outline"
                         size={20}
-                        color="rgba(255,255,255,0.5)"
-                        style={{ marginRight: 12 }}
+                        color={mutedColor}
+                        style={styles.inputIcon}
                       />
                       <TextInput
-                        className="flex-1 text-white text-base"
+                        style={[styles.input, { color: textColor }]}
                         placeholder="Enter your email"
-                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        placeholderTextColor={placeholderColor}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -259,21 +282,21 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Password input */}
-                  <View className="mb-6">
-                    <Text className="text-sm text-white/70 mb-2 ml-1">
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: subtitleColor }]}>
                       Password
                     </Text>
-                    <View style={styles.inputContainer}>
+                    <View style={[styles.inputContainer, { backgroundColor: inputBg, borderColor: inputBorder }]}>
                       <Ionicons
                         name="lock-closed-outline"
                         size={20}
-                        color="rgba(255,255,255,0.5)"
-                        style={{ marginRight: 12 }}
+                        color={mutedColor}
+                        style={styles.inputIcon}
                       />
                       <TextInput
-                        className="flex-1 text-white text-base"
+                        style={[styles.input, { color: textColor }]}
                         placeholder="Enter your password"
-                        placeholderTextColor="rgba(255,255,255,0.3)"
+                        placeholderTextColor={placeholderColor}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry={!showPassword}
@@ -286,7 +309,7 @@ export default function LoginScreen() {
                         <Ionicons
                           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                           size={20}
-                          color="rgba(255,255,255,0.5)"
+                          color={mutedColor}
                         />
                       </TouchableOpacity>
                     </View>
@@ -294,21 +317,21 @@ export default function LoginScreen() {
 
                   {/* MFA Code input (shown when required) */}
                   {showMfa && (
-                    <View className="mb-5">
-                      <Text className="text-sm text-white/70 mb-2 ml-1">
+                    <View style={styles.inputGroup}>
+                      <Text style={[styles.label, { color: subtitleColor }]}>
                         2FA Code
                       </Text>
-                      <View style={styles.inputContainer}>
+                      <View style={[styles.inputContainer, { backgroundColor: inputBg, borderColor: inputBorder }]}>
                         <Ionicons
                           name="keypad-outline"
                           size={20}
-                          color="rgba(255,255,255,0.5)"
-                          style={{ marginRight: 12 }}
+                          color={mutedColor}
+                          style={styles.inputIcon}
                         />
                         <TextInput
-                          className="flex-1 text-white text-base"
+                          style={[styles.input, { color: textColor }]}
                           placeholder="Enter 6-digit code"
-                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          placeholderTextColor={placeholderColor}
                           value={mfaCode}
                           onChangeText={setMfaCode}
                           keyboardType="number-pad"
@@ -321,16 +344,14 @@ export default function LoginScreen() {
 
                   {/* Error message */}
                   {error ? (
-                    <View className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/30">
-                      <Text className="text-red-400 text-sm text-center">
-                        {error}
-                      </Text>
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>{error}</Text>
                     </View>
                   ) : null}
 
                   {/* Forgot password */}
-                  <TouchableOpacity className="self-end mb-6">
-                    <Text className="text-primary text-sm font-medium">
+                  <TouchableOpacity style={styles.forgotPassword}>
+                    <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
                       Forgot Password?
                     </Text>
                   </TouchableOpacity>
@@ -348,14 +369,14 @@ export default function LoginScreen() {
                       style={styles.loginButton}
                     >
                       {isLoading ? (
-                        <View className="flex-row items-center">
+                        <View style={styles.loadingRow}>
                           <Animated.View style={styles.loadingDot} />
-                          <Text className="text-white text-base font-semibold ml-2">
+                          <Text style={styles.loginButtonText}>
                             Signing in...
                           </Text>
                         </View>
                       ) : (
-                        <Text className="text-white text-base font-semibold">
+                        <Text style={styles.loginButtonText}>
                           Sign In
                         </Text>
                       )}
@@ -366,12 +387,12 @@ export default function LoginScreen() {
             </View>
 
             {/* Sign up link */}
-            <View className="flex-row justify-center mt-8">
-              <Text className="text-white/60 text-base">
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: subtitleColor }]}>
                 Don't have an account?{' '}
               </Text>
               <TouchableOpacity onPress={handleSignUp}>
-                <Text className="text-primary text-base font-semibold">
+                <Text style={[styles.footerLink, { color: colors.primary }]}>
                   Sign Up
                 </Text>
               </TouchableOpacity>
@@ -384,34 +405,106 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 80,
+    paddingBottom: 32,
+  },
   orb: {
     position: 'absolute',
     borderRadius: 999,
-    opacity: 0.4,
   },
   orbGradient: {
     width: '100%',
     height: '100%',
     borderRadius: 999,
   },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  logoImage: {
+    width: 48,
+    height: 48,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+  },
   glassCard: {
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  blurView: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  blurView: {},
+  formContent: {
+    padding: 24,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+  },
+  errorContainer: {
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   loginButton: {
     borderRadius: 14,
@@ -419,10 +512,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  loginButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   loadingDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: 'white',
+    marginRight: 8,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 32,
+  },
+  footerText: {
+    fontSize: 16,
+  },
+  footerLink: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
