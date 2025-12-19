@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -17,19 +18,32 @@ import { router, Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
+import * as Device from 'expo-device';
+import { useAuth } from '@/contexts/auth-context';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
+  const { login, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showMfa, setShowMfa] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const orb1Anim = useRef(new Animated.ValueXY({ x: -80, y: 100 })).current;
   const orb2Anim = useRef(new Animated.ValueXY({ x: width - 100, y: height - 200 })).current;
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(tabs)' as Href);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     // Entry animations
@@ -78,12 +92,55 @@ export default function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
+    // Validate inputs
+    if (!email.trim()) {
+      setError('Please enter your email');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate login - replace with actual auth logic
-    setTimeout(() => {
+    setError('');
+
+    try {
+      // Get device info for session tracking
+      const deviceId = Device.deviceName || Device.modelName || 'Unknown Device';
+      const deviceName = `${Device.brand || ''} ${Device.modelName || ''}`.trim() || 'Mobile Device';
+
+      const result = await login({
+        email: email.trim().toLowerCase(),
+        password,
+        mfaCode: showMfa ? mfaCode : undefined,
+        deviceId,
+        deviceName,
+      });
+
+      if (result.success) {
+        // Navigation handled by isAuthenticated effect
+        return;
+      }
+
+      if (result.requiresMfa) {
+        setShowMfa(true);
+        setError('');
+        setIsLoading(false);
+        return;
+      }
+
+      // Show error
+      setError(result.error || 'Login failed. Please try again.');
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
-      router.replace('/(tabs)' as Href);
-    }, 1500);
+    }
   };
 
   const handleSignUp = async () => {
@@ -235,6 +292,42 @@ export default function LoginScreen() {
                     </View>
                   </View>
 
+                  {/* MFA Code input (shown when required) */}
+                  {showMfa && (
+                    <View className="mb-5">
+                      <Text className="text-sm text-white/70 mb-2 ml-1">
+                        2FA Code
+                      </Text>
+                      <View style={styles.inputContainer}>
+                        <Ionicons
+                          name="keypad-outline"
+                          size={20}
+                          color="rgba(255,255,255,0.5)"
+                          style={{ marginRight: 12 }}
+                        />
+                        <TextInput
+                          className="flex-1 text-white text-base"
+                          placeholder="Enter 6-digit code"
+                          placeholderTextColor="rgba(255,255,255,0.3)"
+                          value={mfaCode}
+                          onChangeText={setMfaCode}
+                          keyboardType="number-pad"
+                          maxLength={6}
+                          autoComplete="one-time-code"
+                        />
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Error message */}
+                  {error ? (
+                    <View className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/30">
+                      <Text className="text-red-400 text-sm text-center">
+                        {error}
+                      </Text>
+                    </View>
+                  ) : null}
+
                   {/* Forgot password */}
                   <TouchableOpacity className="self-end mb-6">
                     <Text className="text-primary text-sm font-medium">
@@ -270,34 +363,6 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                 </View>
               </BlurView>
-            </View>
-
-            {/* Divider */}
-            <View className="flex-row items-center my-8">
-              <View className="flex-1 h-px bg-white/10" />
-              <Text className="text-white/40 mx-4 text-sm">or continue with</Text>
-              <View className="flex-1 h-px bg-white/10" />
-            </View>
-
-            {/* Social login buttons */}
-            <View className="flex-row justify-center gap-4">
-              <TouchableOpacity style={styles.socialButton}>
-                <BlurView intensity={20} tint="dark" style={styles.socialBlur}>
-                  <Ionicons name="logo-google" size={24} color="white" />
-                </BlurView>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialButton}>
-                <BlurView intensity={20} tint="dark" style={styles.socialBlur}>
-                  <Ionicons name="logo-apple" size={24} color="white" />
-                </BlurView>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialButton}>
-                <BlurView intensity={20} tint="dark" style={styles.socialBlur}>
-                  <Ionicons name="logo-microsoft" size={24} color="white" />
-                </BlurView>
-              </TouchableOpacity>
             </View>
 
             {/* Sign up link */}
@@ -359,15 +424,5 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: 'white',
-  },
-  socialButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  socialBlur: {
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
 });

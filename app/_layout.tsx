@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { ThemeProvider, useTheme } from '@/contexts/theme-context';
+import { AuthProvider } from '@/contexts/auth-context';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -35,9 +36,11 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider defaultTheme="dark">
-        <RootLayoutNav />
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider defaultTheme="dark">
+          <RootLayoutNav />
+        </ThemeProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
