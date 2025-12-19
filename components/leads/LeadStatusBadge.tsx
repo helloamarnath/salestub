@@ -7,6 +7,7 @@ interface LeadStatusBadgeProps {
   stageName?: string;
   stageType?: 'OPEN' | 'CLOSED_WON' | 'CLOSED_LOST';
   size?: 'small' | 'medium' | 'large';
+  isDark?: boolean;
 }
 
 export function LeadStatusBadge({
@@ -14,6 +15,7 @@ export function LeadStatusBadge({
   stageName,
   stageType,
   size = 'medium',
+  isDark = true,
 }: LeadStatusBadgeProps) {
   const name = stage?.name || stageName || 'Unknown';
   const type = stage?.type || stageType || 'OPEN';

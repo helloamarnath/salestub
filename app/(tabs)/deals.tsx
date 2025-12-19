@@ -12,6 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +25,7 @@ function DealCard({
   stage,
   probability,
   daysInStage,
+  isDark,
 }: {
   title: string;
   company: string;
@@ -30,22 +33,29 @@ function DealCard({
   stage: string;
   probability: number;
   daysInStage: number;
+  isDark: boolean;
 }) {
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const mutedColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
+
   return (
-    <TouchableOpacity activeOpacity={0.7} style={styles.dealCard}>
-      <BlurView intensity={15} tint="dark" style={styles.dealCardBlur}>
-        <View className="p-4">
-          <Text className="text-white font-semibold text-base" numberOfLines={1}>
+    <TouchableOpacity activeOpacity={0.7} style={[styles.dealCard, { borderColor }]}>
+      <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={[styles.dealCardBlur, { backgroundColor: bgColor }]}>
+        <View style={styles.dealCardContent}>
+          <Text style={[styles.dealTitle, { color: textColor }]} numberOfLines={1}>
             {title}
           </Text>
-          <Text className="text-white/50 text-sm mt-1">{company}</Text>
-          <Text className="text-white font-bold text-lg mt-3">{value}</Text>
-          <View className="flex-row items-center justify-between mt-3">
-            <View className="flex-row items-center">
-              <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.4)" />
-              <Text className="text-white/40 text-xs ml-1">{daysInStage}d</Text>
+          <Text style={[styles.dealCompany, { color: subtitleColor }]}>{company}</Text>
+          <Text style={[styles.dealValue, { color: textColor }]}>{value}</Text>
+          <View style={styles.dealMeta}>
+            <View style={styles.dealMetaItem}>
+              <Ionicons name="time-outline" size={14} color={mutedColor} />
+              <Text style={[styles.dealMetaText, { color: mutedColor }]}>{daysInStage}d</Text>
             </View>
-            <Text className="text-white/50 text-xs">{probability}%</Text>
+            <Text style={[styles.dealProbability, { color: subtitleColor }]}>{probability}%</Text>
           </View>
         </View>
       </BlurView>
@@ -60,6 +70,7 @@ function PipelineStage({
   total,
   color,
   deals,
+  isDark,
 }: {
   title: string;
   count: number;
@@ -72,18 +83,24 @@ function PipelineStage({
     probability: number;
     daysInStage: number;
   }>;
+  isDark: boolean;
 }) {
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const headerBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const countBg = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)';
+
   return (
     <View style={styles.stageContainer}>
       {/* Stage header */}
-      <View style={[styles.stageHeader, { borderLeftColor: color }]}>
-        <View className="flex-row items-center">
-          <Text className="text-white font-semibold text-sm">{title}</Text>
-          <View style={styles.countBadge}>
-            <Text className="text-white text-xs font-medium">{count}</Text>
+      <View style={[styles.stageHeader, { borderLeftColor: color, backgroundColor: headerBg }]}>
+        <View style={styles.stageHeaderTop}>
+          <Text style={[styles.stageTitle, { color: textColor }]}>{title}</Text>
+          <View style={[styles.countBadge, { backgroundColor: countBg }]}>
+            <Text style={[styles.countText, { color: textColor }]}>{count}</Text>
           </View>
         </View>
-        <Text className="text-white/50 text-xs mt-1">{total}</Text>
+        <Text style={[styles.stageTotal, { color: subtitleColor }]}>{total}</Text>
       </View>
 
       {/* Deals */}
@@ -92,7 +109,7 @@ function PipelineStage({
         contentContainerStyle={{ paddingBottom: 20 }}
       >
         {deals.map((deal, index) => (
-          <DealCard key={index} {...deal} stage={title} />
+          <DealCard key={index} {...deal} stage={title} isDark={isDark} />
         ))}
       </ScrollView>
     </View>
@@ -102,11 +119,25 @@ function PipelineStage({
 export default function DealsScreen() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  const { resolvedTheme } = useTheme();
+
+  const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1500);
   };
+
+  // Theme-aware colors
+  const gradientColors: [string, string, string] = isDark
+    ? ['#0f172a', '#1e293b', '#0f172a']
+    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+
+  const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const textColor = isDark ? 'white' : colors.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const iconButtonBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
 
   // Sample pipeline data
   const stages = [
@@ -146,20 +177,20 @@ export default function DealsScreen() {
   ];
 
   return (
-    <View className="flex-1">
+    <View style={styles.container}>
       <LinearGradient
-        colors={['#0f172a', '#1e293b', '#0f172a']}
+        colors={gradientColors}
         style={StyleSheet.absoluteFill}
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View className="px-5 pb-4">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-white text-2xl font-bold">Pipeline</Text>
-            <View className="flex-row items-center">
-              <TouchableOpacity style={styles.iconButton} className="mr-2">
-                <Ionicons name="filter-outline" size={20} color="white" />
+      <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: headerBorderColor }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <Text style={[styles.title, { color: textColor }]}>Pipeline</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={[styles.iconButton, { backgroundColor: iconButtonBg }]}>
+                <Ionicons name="filter-outline" size={20} color={textColor} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.addButton}>
                 <Ionicons name="add" size={24} color="white" />
@@ -168,14 +199,14 @@ export default function DealsScreen() {
           </View>
 
           {/* Summary */}
-          <View className="flex-row items-center justify-between mt-2">
+          <View style={styles.summary}>
             <View>
-              <Text className="text-white/50 text-sm">Total Value</Text>
-              <Text className="text-white font-bold text-xl">$248,500</Text>
+              <Text style={[styles.summaryLabel, { color: subtitleColor }]}>Total Value</Text>
+              <Text style={[styles.summaryValue, { color: textColor }]}>$248,500</Text>
             </View>
-            <View className="items-end">
-              <Text className="text-white/50 text-sm">9 Deals</Text>
-              <Text className="text-green-500 text-sm">+12% this month</Text>
+            <View style={styles.summaryRight}>
+              <Text style={[styles.summaryLabel, { color: subtitleColor }]}>9 Deals</Text>
+              <Text style={styles.summaryTrend}>+12% this month</Text>
             </View>
           </View>
         </View>
@@ -190,12 +221,12 @@ export default function DealsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#3b82f6"
+            tintColor={colors.primary}
           />
         }
       >
         {stages.map((stage, index) => (
-          <PipelineStage key={index} {...stage} />
+          <PipelineStage key={index} {...stage} isDark={isDark} />
         ))}
       </ScrollView>
     </View>
@@ -203,15 +234,35 @@ export default function DealsScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   header: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   iconButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -223,33 +274,97 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  summary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+  },
+  summaryValue: {
+    fontWeight: 'bold',
+    fontSize: 20,
+  },
+  summaryRight: {
+    alignItems: 'flex-end',
+  },
+  summaryTrend: {
+    color: '#22c55e',
+    fontSize: 14,
+  },
   stageContainer: {
     width: width * 0.75,
     marginRight: 12,
     marginTop: 16,
   },
   stageHeader: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
     borderLeftWidth: 3,
   },
+  stageHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  stageTitle: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
   countBadge: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginLeft: 8,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  stageTotal: {
+    fontSize: 12,
+    marginTop: 4,
   },
   dealCard: {
     marginBottom: 10,
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
-  dealCardBlur: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+  dealCardBlur: {},
+  dealCardContent: {
+    padding: 16,
+  },
+  dealTitle: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  dealCompany: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  dealValue: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginTop: 12,
+  },
+  dealMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  dealMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dealMetaText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  dealProbability: {
+    fontSize: 12,
   },
 });
