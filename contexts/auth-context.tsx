@@ -4,19 +4,26 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 import { setAuthCallbacks } from '@/lib/api/client';
+import {
+  secureStorage,
+  STORAGE_KEYS,
+  isTokenExpired,
+  getTokenTimeRemaining,
+} from '@/lib/storage';
 
 // API URL - use environment variable or default
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
 
-// Storage keys
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
-const USER_KEY = 'user_core'; // Store only essential user data
+// Refresh buffer - refresh token 2 minutes before expiry
+const REFRESH_BUFFER_SECONDS = 120;
+
+// Minimum time between refresh attempts (prevent rapid retries)
+const MIN_REFRESH_INTERVAL_MS = 10000;
 
 // Types
 interface User {
@@ -32,7 +39,7 @@ interface User {
   mfaEnabled: boolean;
 }
 
-// Minimal user data for storage (under 2KB limit)
+// Minimal user data for storage
 interface StoredUser {
   id: string;
   email: string;
@@ -96,30 +103,6 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Secure storage helpers (with web fallback)
-async function setSecureItem(key: string, value: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, value);
-  } else {
-    await SecureStore.setItemAsync(key, value);
-  }
-}
-
-async function getSecureItem(key: string): Promise<string | null> {
-  if (Platform.OS === 'web') {
-    return localStorage.getItem(key);
-  }
-  return SecureStore.getItemAsync(key);
-}
-
-async function deleteSecureItem(key: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    localStorage.removeItem(key);
-  } else {
-    await SecureStore.deleteItemAsync(key);
-  }
-}
-
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -133,29 +116,76 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: false,
   });
 
+  // Refs for proactive refresh
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRefreshAttemptRef = useRef<number>(0);
+  const isRefreshingRef = useRef<boolean>(false);
+
   // Load stored auth state on mount
   useEffect(() => {
     loadStoredAuth();
   }, []);
 
+  // App state listener for session validation
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        // App came to foreground - validate session
+        validateSession();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Cleanup refresh timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+      }
+    };
+  }, []);
+
   const loadStoredAuth = async () => {
     try {
       const [accessToken, refreshToken, userStr] = await Promise.all([
-        getSecureItem(ACCESS_TOKEN_KEY),
-        getSecureItem(REFRESH_TOKEN_KEY),
-        getSecureItem(USER_KEY),
+        secureStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
+        secureStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN),
+        secureStorage.getItem(STORAGE_KEYS.USER),
       ]);
 
       if (accessToken && refreshToken && userStr) {
         const storedUser = JSON.parse(userStr) as StoredUser;
         const user = restoreUser(storedUser);
-        setState({
-          user,
-          accessToken,
-          refreshToken,
-          isLoading: false,
-          isAuthenticated: true,
-        });
+
+        // Check if access token is expired
+        if (isTokenExpired(accessToken, 0)) {
+          // Token is expired - try to refresh immediately
+          setState({
+            user,
+            accessToken,
+            refreshToken,
+            isLoading: true, // Keep loading while we refresh
+            isAuthenticated: false,
+          });
+          // Attempt refresh
+          performTokenRefresh(refreshToken);
+        } else {
+          setState({
+            user,
+            accessToken,
+            refreshToken,
+            isLoading: false,
+            isAuthenticated: true,
+          });
+          // Schedule proactive refresh
+          scheduleTokenRefresh(accessToken);
+        }
       } else {
         setState((prev) => ({ ...prev, isLoading: false }));
       }
@@ -163,6 +193,155 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Error loading stored auth:', error);
       setState((prev) => ({ ...prev, isLoading: false }));
     }
+  };
+
+  const validateSession = async () => {
+    try {
+      const [accessToken, refreshToken] = await Promise.all([
+        secureStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
+        secureStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN),
+      ]);
+
+      if (!accessToken || !refreshToken) {
+        // No tokens - not authenticated
+        if (state.isAuthenticated) {
+          await clearAuthState();
+        }
+        return;
+      }
+
+      // Check if access token is expired or about to expire
+      if (isTokenExpired(accessToken, REFRESH_BUFFER_SECONDS)) {
+        // Token expired or expiring soon - refresh
+        performTokenRefresh(refreshToken);
+      } else {
+        // Token is valid - reschedule refresh
+        scheduleTokenRefresh(accessToken);
+      }
+    } catch (error) {
+      console.error('Error validating session:', error);
+    }
+  };
+
+  const scheduleTokenRefresh = (accessToken: string) => {
+    // Clear any existing timer
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    const timeRemaining = getTokenTimeRemaining(accessToken);
+
+    // Schedule refresh 2 minutes before expiry
+    const refreshIn = Math.max(
+      (timeRemaining - REFRESH_BUFFER_SECONDS) * 1000,
+      MIN_REFRESH_INTERVAL_MS
+    );
+
+    console.log(`Token expires in ${timeRemaining}s, scheduling refresh in ${refreshIn / 1000}s`);
+
+    refreshTimerRef.current = setTimeout(async () => {
+      const currentRefreshToken = await secureStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      if (currentRefreshToken) {
+        performTokenRefresh(currentRefreshToken);
+      }
+    }, refreshIn);
+  };
+
+  const performTokenRefresh = async (currentRefreshToken: string): Promise<boolean> => {
+    // Prevent concurrent refresh attempts
+    if (isRefreshingRef.current) {
+      console.log('Token refresh already in progress, skipping');
+      return false;
+    }
+
+    // Rate limit refresh attempts
+    const now = Date.now();
+    if (now - lastRefreshAttemptRef.current < MIN_REFRESH_INTERVAL_MS) {
+      console.log('Token refresh attempted too recently, skipping');
+      return false;
+    }
+
+    isRefreshingRef.current = true;
+    lastRefreshAttemptRef.current = now;
+
+    try {
+      console.log('Performing token refresh...');
+
+      const response = await fetch(`${API_URL}/api/v1/auth/mobile/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          refreshToken: currentRefreshToken,
+        }),
+      });
+
+      if (!response.ok) {
+        // Refresh token is invalid - log out
+        console.log('Refresh token invalid, logging out');
+        await clearAuthState();
+        return false;
+      }
+
+      const data = await response.json();
+
+      // Store new tokens
+      await Promise.all([
+        secureStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken),
+        secureStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken),
+      ]);
+
+      setState((prev) => ({
+        ...prev,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        isLoading: false,
+        isAuthenticated: true,
+      }));
+
+      // Schedule next refresh
+      scheduleTokenRefresh(data.accessToken);
+
+      console.log('Token refresh successful');
+      return true;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      // On network error, don't log out - user might be offline
+      // Just set loading to false
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        isAuthenticated: prev.accessToken !== null,
+      }));
+      return false;
+    } finally {
+      isRefreshingRef.current = false;
+    }
+  };
+
+  const clearAuthState = async () => {
+    // Clear timer
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    // Clear storage
+    await Promise.all([
+      secureStorage.deleteItem(STORAGE_KEYS.ACCESS_TOKEN),
+      secureStorage.deleteItem(STORAGE_KEYS.REFRESH_TOKEN),
+      secureStorage.deleteItem(STORAGE_KEYS.USER),
+    ]);
+
+    setState({
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      isLoading: false,
+      isAuthenticated: false,
+    });
   };
 
   const login = useCallback(
@@ -200,12 +379,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           };
         }
 
-        // Store tokens and minimal user data securely (avoid 2KB limit)
+        // Store tokens and minimal user data
         const storableUser = getStorableUser(data.user);
         await Promise.all([
-          setSecureItem(ACCESS_TOKEN_KEY, data.accessToken),
-          setSecureItem(REFRESH_TOKEN_KEY, data.refreshToken),
-          setSecureItem(USER_KEY, JSON.stringify(storableUser)),
+          secureStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken),
+          secureStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken),
+          secureStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(storableUser)),
         ]);
 
         setState({
@@ -215,6 +394,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isLoading: false,
           isAuthenticated: true,
         });
+
+        // Schedule proactive refresh
+        scheduleTokenRefresh(data.accessToken);
 
         return { success: true };
       } catch (error) {
@@ -230,76 +412,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = useCallback(async () => {
     try {
-      // Clear stored tokens
-      await Promise.all([
-        deleteSecureItem(ACCESS_TOKEN_KEY),
-        deleteSecureItem(REFRESH_TOKEN_KEY),
-        deleteSecureItem(USER_KEY),
-      ]);
-
-      setState({
-        user: null,
-        accessToken: null,
-        refreshToken: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
+      await clearAuthState();
     } catch (error) {
       console.error('Logout error:', error);
     }
   }, []);
 
   const refreshTokens = useCallback(async (): Promise<boolean> => {
-    try {
-      const currentRefreshToken = await getSecureItem(REFRESH_TOKEN_KEY);
-
-      if (!currentRefreshToken) {
-        return false;
-      }
-
-      const response = await fetch(`${API_URL}/api/v1/auth/mobile/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          refreshToken: currentRefreshToken,
-        }),
-      });
-
-      if (!response.ok) {
-        // Refresh token is invalid - log out
-        await logout();
-        return false;
-      }
-
-      const data = await response.json();
-
-      // Store new tokens
-      await Promise.all([
-        setSecureItem(ACCESS_TOKEN_KEY, data.accessToken),
-        setSecureItem(REFRESH_TOKEN_KEY, data.refreshToken),
-      ]);
-
-      setState((prev) => ({
-        ...prev,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-      }));
-
-      return true;
-    } catch (error) {
-      console.error('Token refresh error:', error);
+    const currentRefreshToken = await secureStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    if (!currentRefreshToken) {
       return false;
     }
-  }, [logout]);
+    return performTokenRefresh(currentRefreshToken);
+  }, []);
 
   // Create a wrapper that returns the new access token for the API client
   const refreshTokensForApi = useCallback(async (): Promise<string | null> => {
     const success = await refreshTokens();
     if (success) {
-      // Get the new access token from storage
-      return getSecureItem(ACCESS_TOKEN_KEY);
+      return secureStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     }
     return null;
   }, [refreshTokens]);

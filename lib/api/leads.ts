@@ -91,6 +91,7 @@ export async function getKanbanView(
     limit?: number;
     search?: string;
     source?: string;
+    stageId?: string;
     ownerMembershipId?: string;
   } = {}
 ): Promise<ApiResponse<KanbanViewResponse>> {
@@ -99,6 +100,7 @@ export async function getKanbanView(
     limit: options.limit || 20,
     search: options.search,
     source: options.source,
+    stageId: options.stageId,
     ownerMembershipId: options.ownerMembershipId,
   };
 

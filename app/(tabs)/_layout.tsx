@@ -1,5 +1,6 @@
-import { Platform } from 'react-native';
-import { Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Platform, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import {
   NativeTabs,
   Icon,
@@ -9,15 +10,26 @@ import { useAuth } from '@/contexts/auth-context';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Show nothing while loading auth state
-  if (isLoading) {
-    return null;
-  }
+  // Handle redirect in useEffect to avoid render loops
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !isRedirecting) {
+      setIsRedirecting(true);
+      // Use setTimeout to ensure we're not in a render cycle
+      setTimeout(() => {
+        router.replace('/');
+      }, 0);
+    }
+  }, [isLoading, isAuthenticated, isRedirecting]);
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Redirect href="/" />;
+  // Show loading spinner while checking auth or redirecting
+  if (isLoading || !isAuthenticated) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
   }
 
   return (
@@ -66,3 +78,12 @@ export default function TabLayout() {
     </NativeTabs>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f172a',
+  },
+});

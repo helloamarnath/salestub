@@ -6,12 +6,14 @@ import type {
   ContactFilters,
   PaginatedContactsResponse,
   CreateContactDto,
+  UpdateContactDto,
+  ContactStats,
 } from '@/types/contact';
 
 const CONTACTS_BASE = '/api/v1/contacts';
 
 /**
- * Get paginated list of contacts with search
+ * Get paginated list of contacts with filters
  */
 export async function getContacts(
   token: string | null,
@@ -21,6 +23,9 @@ export async function getContacts(
     page: filters.page || 1,
     limit: filters.limit || 20,
     search: filters.search,
+    status: filters.status,
+    companyId: filters.companyId,
+    ownerMembershipId: filters.ownerMembershipId,
   };
 
   return api.get<PaginatedContactsResponse>(CONTACTS_BASE, token, params);
@@ -73,7 +78,7 @@ export async function createContact(
 export async function updateContact(
   token: string | null,
   id: string,
-  data: Partial<CreateContactDto>
+  data: UpdateContactDto
 ): Promise<ApiResponse<Contact>> {
   return api.patch<Contact>(`${CONTACTS_BASE}/${id}`, token, data);
 }
@@ -86,4 +91,71 @@ export async function deleteContact(
   id: string
 ): Promise<ApiResponse<void>> {
   return api.delete<void>(`${CONTACTS_BASE}/${id}`, token);
+}
+
+/**
+ * Get contact statistics
+ */
+export async function getContactStats(
+  token: string | null
+): Promise<ApiResponse<ContactStats>> {
+  return api.get<ContactStats>(`${CONTACTS_BASE}/stats/counts`, token);
+}
+
+/**
+ * Bulk delete contacts
+ */
+export async function bulkDeleteContacts(
+  token: string | null,
+  ids: string[]
+): Promise<ApiResponse<{ success: boolean; deleted: number }>> {
+  return api.post<{ success: boolean; deleted: number }>(
+    `${CONTACTS_BASE}/bulk-delete`,
+    token,
+    { ids }
+  );
+}
+
+/**
+ * Get contact with full relations (leads, deals, activities)
+ */
+export async function getContactFull(
+  token: string | null,
+  id: string
+): Promise<ApiResponse<Contact & {
+  leads?: Array<{
+    id: string;
+    displayId: string;
+    title: string;
+    value?: number;
+    score?: number;
+    source?: string;
+    stage?: {
+      id: string;
+      name: string;
+      type: string;
+      color?: string;
+    };
+    createdAt: string;
+  }>;
+  deals?: Array<{
+    id: string;
+    title: string;
+    value: number;
+    stage: string;
+    status: string;
+    expectedCloseDate?: string;
+    createdAt: string;
+  }>;
+  activities?: Array<{
+    id: string;
+    title: string;
+    type: string;
+    status: string;
+    dueDate?: string;
+    completedDate?: string;
+    createdAt: string;
+  }>;
+}>> {
+  return api.get(`${CONTACTS_BASE}/${id}/full`, token);
 }

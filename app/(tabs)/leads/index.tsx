@@ -20,7 +20,9 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
 import { getLeads, getKanbanView } from '@/lib/api/leads';
+import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import { LeadCard } from '@/components/leads/LeadCard';
+import { LeadFilterModal, type LeadFilterState } from '@/components/filters';
 import type { Lead, LeadFilters, KanbanStage } from '@/types/lead';
 
 // Filter tab definition
@@ -209,6 +211,17 @@ export default function LeadsScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  // Filter modal state
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<LeadFilterState>({});
+  const [userRoleKey, setUserRoleKey] = useState<string | undefined>();
+
+  // Count active advanced filters (count total selected items across all filter types)
+  const activeAdvancedFilterCount =
+    (advancedFilters.sources?.length || 0) +
+    (advancedFilters.stageIds?.length || 0) +
+    (advancedFilters.ownerMembershipIds?.length || 0);
+
   // Debounce search
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -349,17 +362,37 @@ export default function LeadsScreen() {
     return filter?.label || 'leads';
   }, [activeFilter, filterTabs]);
 
+  // Fetch user role info
+  const fetchUserRoleInfo = useCallback(async () => {
+    if (!accessToken) return;
+
+    try {
+      const response = await getRoleInfo(accessToken);
+      if (response.success && response.data) {
+        setUserRoleKey(response.data.role?.key);
+      }
+    } catch (error) {
+      console.error('Failed to fetch role info:', error);
+    }
+  }, [accessToken]);
+
   // Fetch pipeline stages with counts from kanban API
   const fetchStages = useCallback(async () => {
     if (!accessToken) return;
 
-    const response = await getKanbanView(accessToken, { limit: 1 }); // Minimal leads, just need stage counts
+    // Convert array filters to comma-separated strings for API
+    const response = await getKanbanView(accessToken, {
+      limit: 1,
+      source: advancedFilters.sources?.join(','),
+      stageId: advancedFilters.stageIds?.join(','),
+      ownerMembershipId: advancedFilters.ownerMembershipIds?.join(','),
+    });
 
     if (response.success && response.data) {
       setPipelineStages(response.data.stages);
       setTotalLeadsCount(response.data.totalLeads);
     }
-  }, [accessToken]);
+  }, [accessToken, advancedFilters]);
 
   // Fetch leads
   const fetchLeads = useCallback(
@@ -373,10 +406,14 @@ export default function LeadsScreen() {
       }
       setError(null);
 
+      // Convert array filters to comma-separated strings for API
       const filterParams: LeadFilters = {
         page: pageNum,
         limit: 20,
         search: searchQuery || undefined,
+        source: advancedFilters.sources?.join(','),
+        stageId: advancedFilters.stageIds?.join(','),
+        ownerMembershipId: advancedFilters.ownerMembershipIds?.join(','),
       };
 
       const response = await getLeads(accessToken, filterParams);
@@ -417,14 +454,27 @@ export default function LeadsScreen() {
       setRefreshing(false);
       setLoadingMore(false);
     },
-    [accessToken, searchQuery]
+    [accessToken, searchQuery, advancedFilters]
   );
 
-  // Initial load - fetch both stages and leads
+  // Initial load - fetch role info, stages, and leads
   useEffect(() => {
+    fetchUserRoleInfo();
     fetchStages();
     fetchLeads(1);
   }, []);
+
+  // Refetch when advanced filters change
+  useEffect(() => {
+    setPage(1);
+    fetchStages();
+    fetchLeads(1);
+  }, [advancedFilters]);
+
+  // Handle applying filters
+  const handleApplyFilters = (newFilters: LeadFilterState) => {
+    setAdvancedFilters(newFilters);
+  };
 
   // Search effect with debounce
   useEffect(() => {
@@ -514,30 +564,54 @@ export default function LeadsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Search bar */}
-          <View style={[styles.searchContainer, { backgroundColor: searchBg, borderColor: searchBorder }]}>
-            <Ionicons
-              name="search-outline"
-              size={20}
-              color={placeholderColor}
-            />
-            <TextInput
-              style={[styles.searchInput, { color: textColor }]}
-              placeholder="Search leads..."
-              placeholderTextColor={placeholderColor}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={placeholderColor}
-                />
-              </TouchableOpacity>
-            )}
+          {/* Search bar with filter */}
+          <View style={styles.searchRow}>
+            <View style={[styles.searchContainer, { backgroundColor: searchBg, borderColor: searchBorder, flex: 1 }]}>
+              <Ionicons
+                name="search-outline"
+                size={20}
+                color={placeholderColor}
+              />
+              <TextInput
+                style={[styles.searchInput, { color: textColor }]}
+                placeholder="Search leads..."
+                placeholderTextColor={placeholderColor}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color={placeholderColor}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                { backgroundColor: searchBg, borderColor: searchBorder },
+                activeAdvancedFilterCount > 0 && styles.filterButtonActive,
+              ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setFilterModalVisible(true);
+              }}
+            >
+              <Ionicons
+                name="options-outline"
+                size={20}
+                color={activeAdvancedFilterCount > 0 ? 'white' : placeholderColor}
+              />
+              {activeAdvancedFilterCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{activeAdvancedFilterCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -591,6 +665,22 @@ export default function LeadsScreen() {
           ListFooterComponent={renderFooter}
         />
       )}
+
+      {/* Filter Modal */}
+      <LeadFilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        onApply={handleApplyFilters}
+        currentFilters={advancedFilters}
+        stages={pipelineStages.map((stage) => ({
+          id: stage.id,
+          name: stage.name,
+          color: getStageColor(stage),
+          order: stage.displayOrder || 0,
+        }))}
+        showOwnerFilter={isSuperAdmin(userRoleKey)}
+        userRoleKey={userRoleKey}
+      />
     </View>
   );
 }
@@ -628,6 +718,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -640,6 +735,34 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     fontSize: 16,
+  },
+  filterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  filterButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#ef4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '700',
   },
   filterTabsScroll: {
     marginTop: 12,
