@@ -1,11 +1,27 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useColorScheme as useDeviceColorScheme } from 'react-native';
+import { useColorScheme as useDeviceColorScheme, Platform } from 'react-native';
 import { useColorScheme } from 'nativewind';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 export type Theme = 'light' | 'dark' | 'system';
 
-const THEME_STORAGE_KEY = '@salestub_theme';
+const THEME_STORAGE_KEY = 'salestub_theme';
+
+// Storage helpers with web fallback
+async function getStorageItem(key: string): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(key);
+  }
+  return SecureStore.getItemAsync(key);
+}
+
+async function setStorageItem(key: string, value: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    localStorage.setItem(key, value);
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
 
 interface ThemeContextType {
   theme: Theme;
@@ -35,7 +51,7 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
   useEffect(() => {
     const loadTheme = async () => {
       try {
-        const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        const savedTheme = await getStorageItem(THEME_STORAGE_KEY);
         if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system')) {
           setThemeState(savedTheme as Theme);
         }
@@ -56,7 +72,7 @@ export function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProvid
   const setTheme = async (newTheme: Theme) => {
     setThemeState(newTheme);
     try {
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
+      await setStorageItem(THEME_STORAGE_KEY, newTheme);
     } catch (error) {
       console.error('Failed to save theme:', error);
     }

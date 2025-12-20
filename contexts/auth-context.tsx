@@ -8,6 +8,7 @@ import {
 } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { setAuthCallbacks } from '@/lib/api/client';
 
 // API URL - use environment variable or default
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
@@ -15,7 +16,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
 // Storage keys
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
-const USER_KEY = 'user';
+const USER_KEY = 'user_core'; // Store only essential user data
 
 // Types
 interface User {
@@ -29,6 +30,39 @@ interface User {
   orgId?: string;
   membershipId?: string;
   mfaEnabled: boolean;
+}
+
+// Minimal user data for storage (under 2KB limit)
+interface StoredUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  orgId?: string;
+  membershipId?: string;
+}
+
+// Extract minimal user data for secure storage
+function getStorableUser(user: User): StoredUser {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    orgId: user.orgId,
+    membershipId: user.membershipId,
+  };
+}
+
+// Restore full user from stored data (with defaults for missing fields)
+function restoreUser(stored: StoredUser): User {
+  return {
+    ...stored,
+    isInternal: false,
+    roles: [],
+    permissions: [],
+    mfaEnabled: false,
+  };
 }
 
 interface AuthState {
@@ -113,7 +147,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       ]);
 
       if (accessToken && refreshToken && userStr) {
-        const user = JSON.parse(userStr) as User;
+        const storedUser = JSON.parse(userStr) as StoredUser;
+        const user = restoreUser(storedUser);
         setState({
           user,
           accessToken,
@@ -165,11 +200,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           };
         }
 
-        // Store tokens and user data securely
+        // Store tokens and minimal user data securely (avoid 2KB limit)
+        const storableUser = getStorableUser(data.user);
         await Promise.all([
           setSecureItem(ACCESS_TOKEN_KEY, data.accessToken),
           setSecureItem(REFRESH_TOKEN_KEY, data.refreshToken),
-          setSecureItem(USER_KEY, JSON.stringify(data.user)),
+          setSecureItem(USER_KEY, JSON.stringify(storableUser)),
         ]);
 
         setState({
@@ -257,6 +293,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return false;
     }
   }, [logout]);
+
+  // Create a wrapper that returns the new access token for the API client
+  const refreshTokensForApi = useCallback(async (): Promise<string | null> => {
+    const success = await refreshTokens();
+    if (success) {
+      // Get the new access token from storage
+      return getSecureItem(ACCESS_TOKEN_KEY);
+    }
+    return null;
+  }, [refreshTokens]);
+
+  // Register auth callbacks with API client for automatic token refresh on 401
+  useEffect(() => {
+    setAuthCallbacks(refreshTokensForApi, logout);
+  }, [refreshTokensForApi, logout]);
 
   return (
     <AuthContext.Provider

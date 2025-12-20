@@ -222,7 +222,6 @@ export default function LeadsScreen() {
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const searchBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const searchBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const iconButtonBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
   const placeholderColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
   // Default stage colors by type
@@ -460,12 +459,6 @@ export default function LeadsScreen() {
     }
   }, [loadingMore, hasMore, loading, page, fetchLeads]);
 
-  // Navigate to kanban
-  const handleKanbanPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push('/(tabs)/leads/kanban');
-  };
-
   // Navigate to create
   const handleCreatePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -513,20 +506,12 @@ export default function LeadsScreen() {
                 </Text>
               )}
             </View>
-            <View style={styles.headerActions}>
-              <TouchableOpacity
-                style={[styles.iconButton, { backgroundColor: iconButtonBg }]}
-                onPress={handleKanbanPress}
-              >
-                <Ionicons name="grid-outline" size={20} color={textColor} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={handleCreatePress}
-              >
-                <Ionicons name="add" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={handleCreatePress}
+            >
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
           </View>
 
           {/* Search bar */}
@@ -634,18 +619,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     marginTop: 2,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   addButton: {
     width: 40,

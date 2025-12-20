@@ -1,15 +1,30 @@
-import { Tabs } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { Tabs, router, Href } from 'expo-router';
+import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { HapticTab } from '@/components/haptic-tab';
 import { useTheme } from '@/contexts/theme-context';
+import { useAuth } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
 
 export default function TabLayout() {
   const { resolvedTheme } = useTheme();
+  const { isAuthenticated, isLoading } = useAuth();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/' as Href);
+    }
+  }, [isLoading, isAuthenticated]);
+
+  // Don't render tabs if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <Tabs

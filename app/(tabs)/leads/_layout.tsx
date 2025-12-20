@@ -10,7 +10,6 @@ export default function LeadsLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="kanban" />
       <Stack.Screen
         name="[id]"
         options={{

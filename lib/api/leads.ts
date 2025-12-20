@@ -105,22 +105,6 @@ export async function getKanbanView(
   return api.get<KanbanViewResponse>(`${LEADS_BASE}/kanban`, token, params);
 }
 
-/**
- * Load more leads for a specific stage
- */
-export async function getKanbanStageLeads(
-  token: string | null,
-  stageId: string,
-  page: number = 1,
-  limit: number = 20
-): Promise<ApiResponse<{ leads: Lead[]; hasMore: boolean }>> {
-  return api.get<{ leads: Lead[]; hasMore: boolean }>(
-    `${LEADS_BASE}/kanban/stage/${stageId}`,
-    token,
-    { page, limit }
-  );
-}
-
 // ============ Activities ============
 
 /**

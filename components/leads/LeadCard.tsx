@@ -165,84 +165,6 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true }: LeadCard
   );
 }
 
-// Compact card for Kanban view
-interface LeadKanbanCardProps {
-  lead: Lead;
-  onPress?: () => void;
-  onLongPress?: () => void;
-  isDark?: boolean;
-}
-
-export function LeadKanbanCard({ lead, onPress, onLongPress, isDark = true }: LeadKanbanCardProps) {
-  const contactName = lead.contact
-    ? getContactFullName(lead.contact)
-    : null;
-
-  // Theme-aware colors
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const bgColor = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
-  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const valueColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
-
-  const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (onPress) {
-      onPress();
-    } else {
-      router.push(`/(tabs)/leads/${lead.id}`);
-    }
-  };
-
-  const formatValue = (value?: number): string => {
-    if (!value) return '';
-    const symbol = lead.currency?.symbol || '₹';
-    if (value >= 100000) {
-      return `${symbol}${(value / 100000).toFixed(1)}L`;
-    }
-    if (value >= 1000) {
-      return `${symbol}${(value / 1000).toFixed(1)}K`;
-    }
-    return `${symbol}${value.toLocaleString()}`;
-  };
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={handlePress}
-      onLongPress={onLongPress}
-    >
-      <View style={[styles.kanbanContainer, { borderColor }]}>
-        <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={[styles.kanbanBlur, { backgroundColor: bgColor }]}>
-          <View style={styles.kanbanContent}>
-            {/* Title with score */}
-            <View style={styles.kanbanTitleRow}>
-              <Text style={[styles.kanbanTitle, { color: textColor }]} numberOfLines={1}>
-                {lead.title}
-              </Text>
-              {lead.score !== undefined && (
-                <ScoreIndicator score={lead.score} size={6} />
-              )}
-            </View>
-
-            {/* Contact name */}
-            {contactName && (
-              <Text style={[styles.kanbanContact, { color: subtitleColor }]} numberOfLines={1}>
-                {contactName}
-              </Text>
-            )}
-
-            {/* Value */}
-            {lead.value !== undefined && lead.value > 0 && (
-              <Text style={[styles.kanbanValue, { color: valueColor }]}>{formatValue(lead.value)}</Text>
-            )}
-          </View>
-        </BlurView>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     marginBottom: 10,
@@ -311,36 +233,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  // Kanban card styles
-  kanbanContainer: {
-    marginBottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-  },
-  kanbanBlur: {},
-  kanbanContent: {
-    padding: 12,
-  },
-  kanbanTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  kanbanTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-    marginRight: 8,
-  },
-  kanbanContact: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  kanbanValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 8,
   },
 });
