@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
-import { createLead, updateLead, getLead } from '@/lib/api/leads';
+import { createLead, updateLead, getLead, getLeadSources } from '@/lib/api/leads';
 import { searchContacts } from '@/lib/api/contacts';
 import { LEAD_SOURCES, SOURCE_COLORS } from '@/types/lead';
 import type { CreateLeadDto, UpdateLeadDto, Lead } from '@/types/lead';
@@ -131,9 +131,13 @@ function ScoreSlider({
 function SourcePicker({
   value,
   onChange,
+  sources,
+  loading,
 }: {
   value: string;
   onChange: (source: string) => void;
+  sources: string[];
+  loading?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -169,38 +173,44 @@ function SourcePicker({
 
       {expanded && (
         <View style={styles.sourceList}>
-          {LEAD_SOURCES.map((source) => (
-            <TouchableOpacity
-              key={source}
-              style={[
-                styles.sourceOption,
-                value === source && styles.sourceOptionSelected,
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onChange(source);
-                setExpanded(false);
-              }}
-            >
-              <View
+          {loading ? (
+            <View style={styles.sourceLoading}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+            </View>
+          ) : (
+            sources.map((source) => (
+              <TouchableOpacity
+                key={source}
                 style={[
-                  styles.sourceChipDot,
-                  { backgroundColor: SOURCE_COLORS[source] || '#6b7280' },
+                  styles.sourceOption,
+                  value === source && styles.sourceOptionSelected,
                 ]}
-              />
-              <Text
-                style={[
-                  styles.sourceOptionText,
-                  value === source && styles.sourceOptionTextSelected,
-                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onChange(source);
+                  setExpanded(false);
+                }}
               >
-                {source}
-              </Text>
-              {value === source && (
-                <Ionicons name="checkmark" size={18} color="#3b82f6" />
-              )}
-            </TouchableOpacity>
-          ))}
+                <View
+                  style={[
+                    styles.sourceChipDot,
+                    { backgroundColor: SOURCE_COLORS[source] || '#6b7280' },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.sourceOptionText,
+                    value === source && styles.sourceOptionTextSelected,
+                  ]}
+                >
+                  {source}
+                </Text>
+                {value === source && (
+                  <Ionicons name="checkmark" size={18} color="#3b82f6" />
+                )}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       )}
     </View>
@@ -570,6 +580,29 @@ export default function CreateLeadScreen() {
   const [loadingLead, setLoadingLead] = useState(isEditing);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Lead sources state
+  const [leadSources, setLeadSources] = useState<string[]>([...LEAD_SOURCES]);
+  const [loadingSources, setLoadingSources] = useState(false);
+
+  // Fetch lead sources on mount
+  useEffect(() => {
+    const fetchSources = async () => {
+      if (!accessToken) return;
+      setLoadingSources(true);
+      try {
+        const response = await getLeadSources(accessToken);
+        if (response.success && response.data?.labels) {
+          setLeadSources(response.data.labels);
+        }
+      } catch (error) {
+        console.error('Failed to fetch lead sources:', error);
+        // Keep fallback LEAD_SOURCES on error
+      }
+      setLoadingSources(false);
+    };
+    fetchSources();
+  }, [accessToken]);
+
   // Load existing lead for editing
   useEffect(() => {
     if (!isEditing || !accessToken || !editId) return;
@@ -794,7 +827,7 @@ export default function CreateLeadScreen() {
 
           {/* Pipeline Section */}
           <SectionHeader title="Pipeline" />
-          <SourcePicker value={source} onChange={setSource} />
+          <SourcePicker value={source} onChange={setSource} sources={leadSources} loading={loadingSources} />
 
           {/* Contact Section */}
           <ContactPicker
@@ -982,6 +1015,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  sourceLoading: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
   sourceOption: {
     flexDirection: 'row',

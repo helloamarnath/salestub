@@ -23,7 +23,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
-import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity } from '@/lib/api/leads';
+import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources } from '@/lib/api/leads';
 import { getOrganizationMembers, getMemberDisplayName, type OrgMember } from '@/lib/api/organization';
 import { LeadStatusBadge, ScoreIndicator, SourceBadge } from '@/components/leads/LeadStatusBadge';
 import type { Lead, LeadActivity, KanbanStage, UpdateLeadDto, CreateActivityDto } from '@/types/lead';
@@ -674,6 +674,7 @@ function DetailsTab({
   isDark,
   stages,
   members,
+  leadSources,
   onUpdateField,
   updating,
 }: {
@@ -681,6 +682,7 @@ function DetailsTab({
   isDark: boolean;
   stages: KanbanStage[];
   members: OrgMember[];
+  leadSources: string[];
   onUpdateField: (field: keyof UpdateLeadDto, value: unknown) => void;
   updating: boolean;
 }) {
@@ -725,7 +727,7 @@ function DetailsTab({
     color: s.color,
   }));
 
-  const sourceOptions = SOURCES.map((s) => ({
+  const sourceOptions = leadSources.map((s) => ({
     label: s,
     value: s,
   }));
@@ -986,6 +988,25 @@ export default function LeadDetailScreen() {
 
   // Organization members for owner assignment
   const [members, setMembers] = useState<OrgMember[]>([]);
+
+  // Lead sources
+  const [leadSources, setLeadSources] = useState<string[]>([...SOURCES]);
+
+  // Fetch lead sources
+  useEffect(() => {
+    const fetchSources = async () => {
+      if (!accessToken) return;
+      try {
+        const response = await getLeadSources(accessToken);
+        if (response.success && response.data?.labels) {
+          setLeadSources(response.data.labels);
+        }
+      } catch (error) {
+        console.error('Failed to fetch lead sources:', error);
+      }
+    };
+    fetchSources();
+  }, [accessToken]);
 
   // Fetch lead
   const fetchLead = useCallback(async () => {
@@ -1321,6 +1342,7 @@ export default function LeadDetailScreen() {
           isDark={isDark}
           stages={stages}
           members={members}
+          leadSources={leadSources}
           onUpdateField={handleUpdateField}
           updating={updating}
         />

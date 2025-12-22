@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { LeadStage } from '@/types/lead';
-import { STAGE_TYPE_COLORS } from '@/types/lead';
+import { STAGE_TYPE_COLORS, SOURCE_COLORS } from '@/types/lead';
 
 interface LeadStatusBadgeProps {
   stage?: LeadStage;
@@ -103,22 +103,10 @@ interface SourceBadgeProps {
   size?: 'small' | 'medium';
 }
 
-const SOURCE_COLORS: Record<string, string> = {
-  Website: '#3b82f6',
-  Referral: '#8b5cf6',
-  'Cold Call': '#f59e0b',
-  LinkedIn: '#0077b5',
-  'Email Campaign': '#ec4899',
-  'Trade Show': '#06b6d4',
-  IndiaMART: '#ff6600',
-  JustDial: '#00a651',
-  Other: '#6b7280',
-};
-
 export function SourceBadge({ source, size = 'medium' }: SourceBadgeProps) {
   if (!source) return null;
 
-  const color = SOURCE_COLORS[source] || SOURCE_COLORS.Other;
+  const color = SOURCE_COLORS[source] || SOURCE_COLORS['Other'] || '#6b7280';
 
   const sizeStyles = {
     small: {

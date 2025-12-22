@@ -13,9 +13,22 @@ import type {
   LeadTag,
   LeadProduct,
   LeadDocument,
+  LeadSourceConfig,
+  LeadSourcesResponse,
 } from '@/types/lead';
 
 const LEADS_BASE = '/api/v1/leads';
+
+// ============ Lead Sources ============
+
+/**
+ * Get all lead sources from the backend (single source of truth)
+ */
+export async function getLeadSources(
+  token: string | null
+): Promise<ApiResponse<LeadSourcesResponse>> {
+  return api.get<LeadSourcesResponse>(`${LEADS_BASE}/sources`, token);
+}
 
 // ============ CRUD Operations ============
 

@@ -14,7 +14,8 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
-import { LEAD_SOURCES, SOURCE_COLORS } from '@/types/lead';
+import { LEAD_SOURCES, SOURCE_COLORS, type LeadSourceConfig } from '@/types/lead';
+import { getLeadSources } from '@/lib/api/leads';
 import {
   getOrganizationMembers,
   getMemberDisplayName,
@@ -60,6 +61,8 @@ export function LeadFilterModal({
   const [filters, setFilters] = useState<LeadFilterState>(currentFilters);
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [leadSources, setLeadSources] = useState<string[]>([...LEAD_SOURCES]);
+  const [loadingSources, setLoadingSources] = useState(false);
 
   // Theme colors
   const bgColor = isDark ? '#1e293b' : '#ffffff';
@@ -75,6 +78,27 @@ export function LeadFilterModal({
       fetchMembers();
     }
   }, [visible, showOwnerFilter]);
+
+  // Fetch lead sources when modal opens
+  useEffect(() => {
+    if (visible && leadSources.length === LEAD_SOURCES.length) {
+      fetchLeadSources();
+    }
+  }, [visible]);
+
+  const fetchLeadSources = async () => {
+    setLoadingSources(true);
+    try {
+      const response = await getLeadSources(accessToken);
+      if (response.success && response.data?.labels) {
+        setLeadSources(response.data.labels);
+      }
+    } catch (error) {
+      console.error('Failed to fetch lead sources:', error);
+      // Keep fallback LEAD_SOURCES on error
+    }
+    setLoadingSources(false);
+  };
 
   // Reset filters when modal opens
   useEffect(() => {
@@ -197,37 +221,41 @@ export function LeadFilterModal({
                   </Text>
                 )}
               </View>
-              <View style={styles.chipContainer}>
-                {LEAD_SOURCES.map((source) => {
-                  const isActive = filters.sources?.includes(source) || false;
-                  const sourceColor = SOURCE_COLORS[source] || '#6b7280';
-                  return (
-                    <TouchableOpacity
-                      key={source}
-                      style={[
-                        styles.chip,
-                        { backgroundColor: isActive ? sourceColor : chipBg },
-                      ]}
-                      onPress={() => toggleSource(source)}
-                    >
-                      {isActive && (
-                        <Ionicons name="checkmark" size={14} color="white" />
-                      )}
-                      {!isActive && (
-                        <View style={[styles.chipDot, { backgroundColor: sourceColor }]} />
-                      )}
-                      <Text
+              {loadingSources ? (
+                <ActivityIndicator size="small" color={Colors[resolvedTheme].primary} style={styles.loader} />
+              ) : (
+                <View style={styles.chipContainer}>
+                  {leadSources.map((source) => {
+                    const isActive = filters.sources?.includes(source) || false;
+                    const sourceColor = SOURCE_COLORS[source] || '#6b7280';
+                    return (
+                      <TouchableOpacity
+                        key={source}
                         style={[
-                          styles.chipText,
-                          { color: isActive ? 'white' : textColor },
+                          styles.chip,
+                          { backgroundColor: isActive ? sourceColor : chipBg },
                         ]}
+                        onPress={() => toggleSource(source)}
                       >
-                        {source}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                        {isActive && (
+                          <Ionicons name="checkmark" size={14} color="white" />
+                        )}
+                        {!isActive && (
+                          <View style={[styles.chipDot, { backgroundColor: sourceColor }]} />
+                        )}
+                        <Text
+                          style={[
+                            styles.chipText,
+                            { color: isActive ? 'white' : textColor },
+                          ]}
+                        >
+                          {source}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             {/* Stage Filter - Multi-select */}

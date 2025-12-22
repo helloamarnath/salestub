@@ -218,16 +218,44 @@ export interface KanbanViewResponse {
   stages: KanbanStage[];
 }
 
-// Lead Sources
+// Lead Source Config (from API)
+export interface LeadSourceConfig {
+  value: string;
+  label: string;
+  category: 'marketplace' | 'direct' | 'manual';
+  description?: string;
+}
+
+export interface LeadSourcesResponse {
+  sources: LeadSourceConfig[];
+  values: string[];
+  labels: string[];
+}
+
+// Lead Sources (fallback defaults - should fetch from API)
 export const LEAD_SOURCES = [
+  // Marketplace sources
+  'IndiaMART',
+  'TradeIndia',
+  'ExportersIndia',
+  'Alibaba',
+  'Udaan',
+  'Moglix',
+  'IndustryBuying',
+  'Fibre2Fashion',
+  'GlobalSources',
+  'Power2SME',
+  'InfraMarket',
+  'JustDial',
+  // Direct/Manual sources
   'Website',
+  'Email',
+  'WhatsApp',
   'Referral',
   'Cold Call',
   'LinkedIn',
   'Email Campaign',
   'Trade Show',
-  'IndiaMART',
-  'JustDial',
   'Other',
 ] as const;
 
@@ -241,14 +269,29 @@ export const STAGE_TYPE_COLORS = {
 } as const;
 
 export const SOURCE_COLORS: Record<string, string> = {
+  // Marketplace sources
+  IndiaMART: '#ff6600',
+  TradeIndia: '#0066cc',
+  ExportersIndia: '#e63946',
+  Alibaba: '#ff6a00',
+  Udaan: '#7952b3',
+  Moglix: '#00a8e8',
+  IndustryBuying: '#2d6a4f',
+  'Fibre2Fashion': '#d63384',
+  GlobalSources: '#1a73e8',
+  'Power2SME': '#ff5722',
+  InfraMarket: '#4caf50',
+  JustDial: '#00a651',
+  // Direct sources
   Website: '#3b82f6',
+  Email: '#10b981',
+  WhatsApp: '#25d366',
+  // Manual sources
   Referral: '#8b5cf6',
   'Cold Call': '#f59e0b',
   LinkedIn: '#0077b5',
   'Email Campaign': '#ec4899',
   'Trade Show': '#06b6d4',
-  IndiaMART: '#ff6600',
-  JustDial: '#00a651',
   Other: '#6b7280',
 };
 
