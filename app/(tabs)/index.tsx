@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
+import { useNotifications } from '@/contexts/notification-context';
 import { Colors } from '@/constants/theme';
-import { useState } from 'react';
 
 const { width } = Dimensions.get('window');
 
@@ -145,8 +146,10 @@ function ActivityItem({
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const { resolvedTheme } = useTheme();
+  const { unreadCount } = useNotifications();
   const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -206,10 +209,19 @@ export default function DashboardScreen() {
               <Text style={[styles.userName, { color: textColor }]}>{firstName}</Text>
             </View>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.notificationButton}>
+              <TouchableOpacity
+                style={styles.notificationButton}
+                onPress={() => router.push('/notifications' as any)}
+              >
                 <View style={styles.notificationBadge}>
                   <Ionicons name="notifications-outline" size={24} color={textColor} />
-                  <View style={styles.badge} />
+                  {unreadCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
               <TouchableOpacity onPress={logout}>
@@ -448,14 +460,20 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#ef4444',
-    borderWidth: 1,
-    borderColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   avatar: {
     width: 40,
