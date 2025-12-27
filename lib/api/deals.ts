@@ -185,6 +185,69 @@ export async function bulkDeleteDeals(
 }
 
 /**
+ * Bulk update deal stage
+ */
+export async function bulkUpdateStage(
+  token: string | null,
+  ids: string[],
+  stage: string
+): Promise<ApiResponse<{ updated: number }>> {
+  return api.post<{ updated: number }>(
+    `${DEALS_BASE}/bulk-update-stage`,
+    token,
+    { ids, stage }
+  );
+}
+
+/**
+ * Export deals to CSV
+ */
+export async function exportDealsToCSV(
+  token: string | null,
+  filters?: { stage?: string; status?: string; search?: string }
+): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
+
+  const url = new URL(`${API_URL}${DEALS_BASE}/export`);
+  if (filters?.stage) url.searchParams.append('stage', filters.stage);
+  if (filters?.status) url.searchParams.append('status', filters.status);
+  if (filters?.search) url.searchParams.append('search', filters.search);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.message || `Export failed with status ${response.status}`,
+      };
+    }
+
+    // Get filename from Content-Disposition header if available
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'deals-export.csv';
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+    }
+
+    const csv = await response.text();
+    return { success: true, csv, filename };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Export failed',
+    };
+  }
+}
+
+/**
  * Search deals (for pickers)
  */
 export async function searchDeals(

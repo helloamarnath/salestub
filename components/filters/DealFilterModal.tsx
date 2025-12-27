@@ -8,7 +8,10 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  TextInput,
+  Platform,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
@@ -34,6 +37,10 @@ export interface DealFilterState {
   stage?: DealStage;
   status?: DealStatus;
   ownerMembershipId?: string;
+  valueMin?: number;
+  valueMax?: number;
+  expectedCloseDateFrom?: string;
+  expectedCloseDateTo?: string;
 }
 
 interface DealFilterModalProps {
@@ -72,6 +79,14 @@ export function DealFilterModal({
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  // Value inputs as strings for TextInput
+  const [valueMinInput, setValueMinInput] = useState(currentFilters.valueMin?.toString() || '');
+  const [valueMaxInput, setValueMaxInput] = useState(currentFilters.valueMax?.toString() || '');
+
+  // Date picker state
+  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+
   // Theme colors
   const bgColor = isDark ? '#1e293b' : '#ffffff';
   const textColor = isDark ? 'white' : Colors.light.foreground;
@@ -94,6 +109,8 @@ export function DealFilterModal({
   useEffect(() => {
     if (visible) {
       setFilters(currentFilters);
+      setValueMinInput(currentFilters.valueMin?.toString() || '');
+      setValueMaxInput(currentFilters.valueMax?.toString() || '');
     }
   }, [visible, currentFilters]);
 
@@ -112,13 +129,58 @@ export function DealFilterModal({
 
   const handleApply = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onApply(filters);
+    // Parse value inputs to numbers
+    const finalFilters = {
+      ...filters,
+      valueMin: valueMinInput ? parseFloat(valueMinInput) : undefined,
+      valueMax: valueMaxInput ? parseFloat(valueMaxInput) : undefined,
+    };
+    onApply(finalFilters);
     onClose();
   };
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFilters({});
+    setValueMinInput('');
+    setValueMaxInput('');
+  };
+
+  // Format date for display
+  const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // Handle date changes
+  const handleFromDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowFromDatePicker(Platform.OS === 'ios');
+    if (event.type === 'set' && selectedDate) {
+      setFilters({
+        ...filters,
+        expectedCloseDateFrom: selectedDate.toISOString().split('T')[0],
+      });
+    }
+  };
+
+  const handleToDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowToDatePicker(Platform.OS === 'ios');
+    if (event.type === 'set' && selectedDate) {
+      setFilters({
+        ...filters,
+        expectedCloseDateTo: selectedDate.toISOString().split('T')[0],
+      });
+    }
+  };
+
+  const clearDateFilter = (field: 'from' | 'to') => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (field === 'from') {
+      setFilters({ ...filters, expectedCloseDateFrom: undefined });
+    } else {
+      setFilters({ ...filters, expectedCloseDateTo: undefined });
+    }
   };
 
   const toggleStage = (stage: DealStage) => {
@@ -145,7 +207,7 @@ export function DealFilterModal({
     });
   };
 
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  const hasActiveFilters = Object.values(filters).some(Boolean) || valueMinInput || valueMaxInput;
 
   return (
     <Modal
@@ -238,6 +300,125 @@ export function DealFilterModal({
                 );
               })}
             </View>
+          </View>
+
+          {/* Value Range Filter */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>Deal Value Range</Text>
+            <View style={styles.rangeInputContainer}>
+              <View style={styles.rangeInputWrapper}>
+                <Text style={[styles.rangeLabel, { color: subtitleColor }]}>Min</Text>
+                <TextInput
+                  style={[
+                    styles.rangeInput,
+                    {
+                      backgroundColor: chipBg,
+                      borderColor,
+                      color: textColor,
+                    },
+                  ]}
+                  value={valueMinInput}
+                  onChangeText={setValueMinInput}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={subtitleColor}
+                />
+              </View>
+              <Text style={[styles.rangeSeparator, { color: subtitleColor }]}>to</Text>
+              <View style={styles.rangeInputWrapper}>
+                <Text style={[styles.rangeLabel, { color: subtitleColor }]}>Max</Text>
+                <TextInput
+                  style={[
+                    styles.rangeInput,
+                    {
+                      backgroundColor: chipBg,
+                      borderColor,
+                      color: textColor,
+                    },
+                  ]}
+                  value={valueMaxInput}
+                  onChangeText={setValueMaxInput}
+                  keyboardType="numeric"
+                  placeholder="Any"
+                  placeholderTextColor={subtitleColor}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Expected Close Date Range Filter */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>Expected Close Date</Text>
+            <View style={styles.dateRangeContainer}>
+              <View style={styles.dateInputWrapper}>
+                <Text style={[styles.rangeLabel, { color: subtitleColor }]}>From</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.dateInput,
+                    {
+                      backgroundColor: chipBg,
+                      borderColor,
+                    },
+                  ]}
+                  onPress={() => setShowFromDatePicker(true)}
+                >
+                  <Text style={[styles.dateInputText, { color: filters.expectedCloseDateFrom ? textColor : subtitleColor }]}>
+                    {filters.expectedCloseDateFrom ? formatDate(filters.expectedCloseDateFrom) : 'Select date'}
+                  </Text>
+                  {filters.expectedCloseDateFrom ? (
+                    <TouchableOpacity onPress={() => clearDateFilter('from')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                      <Ionicons name="close-circle" size={18} color={subtitleColor} />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="calendar-outline" size={18} color={subtitleColor} />
+                  )}
+                </TouchableOpacity>
+              </View>
+              <View style={styles.dateInputWrapper}>
+                <Text style={[styles.rangeLabel, { color: subtitleColor }]}>To</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.dateInput,
+                    {
+                      backgroundColor: chipBg,
+                      borderColor,
+                    },
+                  ]}
+                  onPress={() => setShowToDatePicker(true)}
+                >
+                  <Text style={[styles.dateInputText, { color: filters.expectedCloseDateTo ? textColor : subtitleColor }]}>
+                    {filters.expectedCloseDateTo ? formatDate(filters.expectedCloseDateTo) : 'Select date'}
+                  </Text>
+                  {filters.expectedCloseDateTo ? (
+                    <TouchableOpacity onPress={() => clearDateFilter('to')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                      <Ionicons name="close-circle" size={18} color={subtitleColor} />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="calendar-outline" size={18} color={subtitleColor} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Date Pickers */}
+            {showFromDatePicker && (
+              <DateTimePicker
+                value={filters.expectedCloseDateFrom ? new Date(filters.expectedCloseDateFrom) : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleFromDateChange}
+                themeVariant={isDark ? 'dark' : 'light'}
+              />
+            )}
+            {showToDatePicker && (
+              <DateTimePicker
+                value={filters.expectedCloseDateTo ? new Date(filters.expectedCloseDateTo) : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleToDateChange}
+                themeVariant={isDark ? 'dark' : 'light'}
+              />
+            )}
           </View>
 
           {/* Owner Filter (for admins only) */}
@@ -356,5 +537,54 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Value range styles
+  rangeInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  rangeInputWrapper: {
+    flex: 1,
+  },
+  rangeLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 6,
+  },
+  rangeInput: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  rangeSeparator: {
+    fontSize: 14,
+    fontWeight: '500',
+    paddingBottom: 14,
+  },
+  // Date range styles
+  dateRangeContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateInputWrapper: {
+    flex: 1,
+  },
+  dateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  dateInputText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
   },
 });

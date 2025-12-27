@@ -9,19 +9,22 @@ import {
   FlatList,
   ActivityIndicator,
   Linking,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { Paths, File as ExpoFile } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
-import { getDeals, getDealCounts } from '@/lib/api/deals';
+import { getDeals, getDealCounts, bulkDeleteDeals, bulkUpdateStage, exportDealsToCSV } from '@/lib/api/deals';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import { DealFilterModal, type DealFilterState } from '@/components/filters';
-import type { Deal, DealFilters, DealStats } from '@/types/deal';
+import type { Deal, DealFilters, DealStats, DealStage } from '@/types/deal';
 import {
   DEAL_STAGE_LABELS,
   DEAL_STAGE_COLORS,
@@ -36,10 +39,18 @@ function DealItem({
   deal,
   isDark,
   onPress,
+  onLongPress,
+  selectionMode,
+  isSelected,
+  onToggleSelect,
 }: {
   deal: Deal;
   isDark: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const stageColor = DEAL_STAGE_COLORS[deal.stage] || '#3b82f6';
   const statusColor = DEAL_STATUS_COLORS[deal.status] || '#3b82f6';
@@ -60,9 +71,41 @@ function DealItem({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const handlePress = () => {
+    if (selectionMode && onToggleSelect) {
+      onToggleSelect();
+    } else {
+      onPress();
+    }
+  };
+
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-      <View style={[styles.dealCard, { backgroundColor: cardBg, borderColor }]}>
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={handlePress}
+      onLongPress={onLongPress}
+      delayLongPress={500}
+    >
+      <View style={[
+        styles.dealCard,
+        { backgroundColor: cardBg, borderColor },
+        isSelected && styles.dealCardSelected,
+      ]}>
+        {/* Selection checkbox */}
+        {selectionMode && (
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={onToggleSelect}
+          >
+            <View style={[
+              styles.checkbox,
+              { borderColor: isSelected ? '#3b82f6' : subtitleColor },
+              isSelected && styles.checkboxSelected,
+            ]}>
+              {isSelected && <Ionicons name="checkmark" size={14} color="white" />}
+            </View>
+          </TouchableOpacity>
+        )}
         {/* Stage indicator */}
         <View style={[styles.stageIndicator, { backgroundColor: stageColor }]} />
 
@@ -255,6 +298,13 @@ export default function DealsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [stats, setStats] = useState<DealStats | null>(null);
 
+  // Selection mode state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
   // Theme-aware colors
   const gradientColors: [string, string, string] = isDark
     ? ['#0f172a', '#1e293b', '#0f172a']
@@ -264,6 +314,7 @@ export default function DealsScreen() {
   const searchBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const searchBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
   const placeholderColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
 
   // Fetch user role info
   const fetchUserRoleInfo = useCallback(async () => {
@@ -291,6 +342,10 @@ export default function DealsScreen() {
         stage: filters.stage,
         status: filters.status,
         ownerMembershipId: filters.ownerMembershipId,
+        valueMin: filters.valueMin,
+        valueMax: filters.valueMax,
+        expectedCloseDateFrom: filters.expectedCloseDateFrom,
+        expectedCloseDateTo: filters.expectedCloseDateTo,
       };
 
       const response = await getDeals(accessToken, params);
@@ -380,6 +435,134 @@ export default function DealsScreen() {
     router.push(`/(tabs)/deals/${deal.id}` as any);
   };
 
+  // Selection mode handlers
+  const enterSelectionMode = (dealId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectionMode(true);
+    setSelectedIds(new Set([dealId]));
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (dealId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dealId)) {
+        newSet.delete(dealId);
+      } else {
+        newSet.add(dealId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedIds(new Set(deals.map(d => d.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Bulk delete handler
+  const handleBulkDelete = () => {
+    const count = selectedIds.size;
+    Alert.alert(
+      'Delete Deals',
+      `Are you sure you want to delete ${count} deal${count > 1 ? 's' : ''}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setBulkActionLoading(true);
+            const response = await bulkDeleteDeals(accessToken, Array.from(selectedIds));
+            if (response.success) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setDeals(prev => prev.filter(d => !selectedIds.has(d.id)));
+              exitSelectionMode();
+              fetchStats();
+            } else {
+              Alert.alert('Error', response.error?.message || 'Failed to delete deals');
+            }
+            setBulkActionLoading(false);
+          },
+        },
+      ]
+    );
+  };
+
+  // Bulk stage update handler
+  const handleBulkStageUpdate = () => {
+    const stages: DealStage[] = ['PROSPECTING', 'QUALIFICATION', 'PROPOSAL', 'NEGOTIATION', 'CLOSED_WON', 'CLOSED_LOST'];
+    const count = selectedIds.size;
+
+    Alert.alert(
+      'Change Stage',
+      `Update stage for ${count} deal${count > 1 ? 's' : ''}`,
+      [
+        ...stages.map(stage => ({
+          text: DEAL_STAGE_LABELS[stage],
+          onPress: async () => {
+            setBulkActionLoading(true);
+            const response = await bulkUpdateStage(accessToken, Array.from(selectedIds), stage);
+            if (response.success) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              // Update local state
+              setDeals(prev => prev.map(d =>
+                selectedIds.has(d.id)
+                  ? { ...d, stage, status: stage === 'CLOSED_WON' ? 'WON' : stage === 'CLOSED_LOST' ? 'LOST' : d.status }
+                  : d
+              ));
+              exitSelectionMode();
+              fetchStats();
+            } else {
+              Alert.alert('Error', response.error?.message || 'Failed to update deals');
+            }
+            setBulkActionLoading(false);
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]
+    );
+  };
+
+  // Export handler
+  const handleExport = async () => {
+    setExporting(true);
+    setShowMoreMenu(false);
+
+    try {
+      const result = await exportDealsToCSV(accessToken, {
+        stage: filters.stage,
+        status: filters.status,
+        search: searchQuery || undefined,
+      });
+
+      if (result.success && result.csv) {
+        const file = new ExpoFile(Paths.cache, result.filename || 'deals-export.csv');
+        await file.write(result.csv);
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export Deals',
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Alert.alert('Export Failed', result.error || 'Failed to export deals');
+      }
+    } catch (error) {
+      Alert.alert('Export Failed', 'An unexpected error occurred');
+    }
+
+    setExporting(false);
+  };
+
   // Render loading skeleton
   const renderSkeleton = () => (
     <View style={styles.skeletonContainer}>
@@ -415,56 +598,122 @@ export default function DealsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: headerBorderColor }]}>
         <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <Text style={[styles.title, { color: textColor }]}>Deals</Text>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Stats Summary */}
-          <StatsSummary stats={stats} isDark={isDark} />
-
-          {/* Search bar with filter */}
-          <View style={styles.searchRow}>
-            <View style={[styles.searchContainer, { backgroundColor: searchBg, borderColor: searchBorder, flex: 1 }]}>
-              <Ionicons name="search-outline" size={20} color={placeholderColor} />
-              <TextInput
-                style={[styles.searchInput, { color: textColor }]}
-                placeholder="Search deals..."
-                placeholderTextColor={placeholderColor}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={20} color={placeholderColor} />
-                </TouchableOpacity>
-              )}
+          {selectionMode ? (
+            // Selection mode header
+            <View style={styles.selectionHeader}>
+              <TouchableOpacity
+                style={styles.selectionCloseBtn}
+                onPress={exitSelectionMode}
+              >
+                <Ionicons name="close" size={24} color={textColor} />
+              </TouchableOpacity>
+              <Text style={[styles.selectionCount, { color: textColor }]}>
+                {selectedIds.size} selected
+              </Text>
+              <TouchableOpacity
+                style={styles.selectAllBtn}
+                onPress={selectedIds.size === deals.length ? deselectAll : selectAll}
+              >
+                <Text style={styles.selectAllText}>
+                  {selectedIds.size === deals.length ? 'Deselect All' : 'Select All'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                { backgroundColor: searchBg, borderColor: searchBorder },
-                activeFilterCount > 0 && styles.filterButtonActive,
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setFilterModalVisible(true);
-              }}
-            >
-              <Ionicons
-                name="options-outline"
-                size={20}
-                color={activeFilterCount > 0 ? 'white' : placeholderColor}
-              />
-              {activeFilterCount > 0 && (
-                <View style={styles.filterBadge}>
-                  <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+          ) : (
+            // Normal header
+            <>
+              <View style={styles.headerTop}>
+                <Text style={[styles.title, { color: textColor }]}>Deals</Text>
+                <View style={styles.headerActions}>
+                  <TouchableOpacity
+                    style={[styles.moreButton, { backgroundColor: searchBg }]}
+                    onPress={() => setShowMoreMenu(!showMoreMenu)}
+                  >
+                    <Ionicons name="ellipsis-horizontal" size={20} color={textColor} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
+                    <Ionicons name="add" size={24} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* More menu dropdown */}
+              {showMoreMenu && (
+                <View style={[styles.moreMenu, { backgroundColor: isDark ? '#1e293b' : 'white', borderColor }]}>
+                  <TouchableOpacity
+                    style={styles.moreMenuItem}
+                    onPress={handleExport}
+                    disabled={exporting}
+                  >
+                    {exporting ? (
+                      <ActivityIndicator size="small" color="#3b82f6" />
+                    ) : (
+                      <Ionicons name="download-outline" size={20} color={textColor} />
+                    )}
+                    <Text style={[styles.moreMenuText, { color: textColor }]}>
+                      {exporting ? 'Exporting...' : 'Export to CSV'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.moreMenuItem}
+                    onPress={() => {
+                      setShowMoreMenu(false);
+                      if (deals.length > 0) {
+                        enterSelectionMode(deals[0].id);
+                      }
+                    }}
+                  >
+                    <Ionicons name="checkbox-outline" size={20} color={textColor} />
+                    <Text style={[styles.moreMenuText, { color: textColor }]}>Select Deals</Text>
+                  </TouchableOpacity>
                 </View>
               )}
-            </TouchableOpacity>
-          </View>
+
+              {/* Stats Summary */}
+              <StatsSummary stats={stats} isDark={isDark} />
+
+              {/* Search bar with filter */}
+              <View style={styles.searchRow}>
+                <View style={[styles.searchContainer, { backgroundColor: searchBg, borderColor: searchBorder, flex: 1 }]}>
+                  <Ionicons name="search-outline" size={20} color={placeholderColor} />
+                  <TextInput
+                    style={[styles.searchInput, { color: textColor }]}
+                    placeholder="Search deals..."
+                    placeholderTextColor={placeholderColor}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                      <Ionicons name="close-circle" size={20} color={placeholderColor} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    { backgroundColor: searchBg, borderColor: searchBorder },
+                    activeFilterCount > 0 && styles.filterButtonActive,
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setFilterModalVisible(true);
+                  }}
+                >
+                  <Ionicons
+                    name="options-outline"
+                    size={20}
+                    color={activeFilterCount > 0 ? 'white' : placeholderColor}
+                  />
+                  {activeFilterCount > 0 && (
+                    <View style={styles.filterBadge}>
+                      <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </View>
 
@@ -482,13 +731,17 @@ export default function DealsScreen() {
               deal={item}
               isDark={isDark}
               onPress={() => handleDealPress(item)}
+              onLongPress={() => enterSelectionMode(item.id)}
+              selectionMode={selectionMode}
+              isSelected={selectedIds.has(item.id)}
+              onToggleSelect={() => toggleSelect(item.id)}
             />
           )}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16, paddingTop: 12 }}
+          contentContainerStyle={{ paddingBottom: selectionMode ? 160 : 100, paddingHorizontal: 16, paddingTop: 12 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -497,6 +750,35 @@ export default function DealsScreen() {
             />
           }
         />
+      )}
+
+      {/* Bulk Action Bar */}
+      {selectionMode && selectedIds.size > 0 && (
+        <View style={[styles.bulkActionBar, { paddingBottom: insets.bottom + 16, backgroundColor: isDark ? '#1e293b' : 'white', borderColor }]}>
+          {bulkActionLoading ? (
+            <View style={styles.bulkActionLoading}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+              <Text style={[styles.bulkActionLoadingText, { color: textColor }]}>Processing...</Text>
+            </View>
+          ) : (
+            <View style={styles.bulkActionButtons}>
+              <TouchableOpacity
+                style={[styles.bulkActionBtn, styles.bulkActionStageBtn]}
+                onPress={handleBulkStageUpdate}
+              >
+                <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
+                <Text style={styles.bulkActionStageBtnText}>Change Stage</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bulkActionBtn, styles.bulkActionDeleteBtn]}
+                onPress={handleBulkDelete}
+              >
+                <Ionicons name="trash-outline" size={20} color="white" />
+                <Text style={styles.bulkActionDeleteBtnText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       )}
 
       {/* Filter Modal */}
@@ -772,5 +1054,146 @@ const styles = StyleSheet.create({
   loadingFooter: {
     paddingVertical: 20,
     alignItems: 'center',
+  },
+  // Selection mode styles
+  selectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  selectionCloseBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectionCount: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  selectAllBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  selectAllText: {
+    color: '#3b82f6',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // Header actions
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  moreButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // More menu
+  moreMenu: {
+    position: 'absolute',
+    top: 50,
+    right: 0,
+    borderRadius: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 100,
+    minWidth: 180,
+  },
+  moreMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  moreMenuText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  // Checkbox
+  checkboxContainer: {
+    paddingLeft: 12,
+    paddingRight: 4,
+    paddingVertical: 16,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  dealCardSelected: {
+    borderColor: '#3b82f6',
+    borderWidth: 2,
+  },
+  // Bulk action bar
+  bulkActionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+  },
+  bulkActionLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 12,
+  },
+  bulkActionLoadingText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  bulkActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bulkActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  bulkActionStageBtn: {
+    backgroundColor: 'rgba(59,130,246,0.1)',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  bulkActionStageBtnText: {
+    color: '#3b82f6',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  bulkActionDeleteBtn: {
+    backgroundColor: '#ef4444',
+  },
+  bulkActionDeleteBtnText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
