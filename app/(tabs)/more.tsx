@@ -4,10 +4,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme, Theme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
 import { router, Href } from 'expo-router';
+
+// Support URLs from landing page
+const SUPPORT_URLS = {
+  helpCenter: 'https://www.salestub.com/help',
+  contactSupport: 'https://www.salestub.com/contact',
+  privacyPolicy: 'https://www.salestub.com/privacy-policy',
+  about: 'https://www.salestub.com/about',
+};
 
 // Menu item component
 function MenuItem({
@@ -260,6 +269,7 @@ export default function MoreScreen() {
             title="Import/Export"
             subtitle="CSV and data sync"
             color="#8b5cf6"
+            onPress={() => router.push('/export-import' as Href)}
             isDark={isDark}
           />
         </MenuSection>
@@ -290,18 +300,21 @@ export default function MoreScreen() {
             icon="help-circle-outline"
             title="Help Center"
             color="#3b82f6"
+            onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URLS.helpCenter)}
             isDark={isDark}
           />
           <MenuItem
             icon="chatbubble-outline"
             title="Contact Support"
             color="#8b5cf6"
+            onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URLS.contactSupport)}
             isDark={isDark}
           />
           <MenuItem
             icon="document-text-outline"
             title="Privacy Policy"
             color="#6b7280"
+            onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URLS.privacyPolicy)}
             isDark={isDark}
           />
           <MenuItem
@@ -309,6 +322,7 @@ export default function MoreScreen() {
             title="About"
             subtitle="Version 1.0.0"
             color="#6b7280"
+            onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URLS.about)}
             isDark={isDark}
           />
         </MenuSection>

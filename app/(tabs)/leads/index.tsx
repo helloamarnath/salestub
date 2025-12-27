@@ -19,12 +19,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
-import { getLeads, getKanbanView, exportLeadsToCSV, bulkDeleteLeads, bulkUpdateStage } from '@/lib/api/leads';
+import { getLeads, getKanbanView, bulkDeleteLeads, bulkUpdateStage } from '@/lib/api/leads';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import { LeadCard } from '@/components/leads/LeadCard';
 import { LeadFilterModal, type LeadFilterState } from '@/components/filters';
@@ -220,9 +218,6 @@ export default function LeadsScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<LeadFilterState>({});
   const [userRoleKey, setUserRoleKey] = useState<string | undefined>();
-
-  // Export state
-  const [exporting, setExporting] = useState(false);
 
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -530,62 +525,6 @@ export default function LeadsScreen() {
     router.push('/(tabs)/leads/create');
   };
 
-  // Export leads to CSV
-  const handleExport = async () => {
-    if (exporting || !accessToken) return;
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setExporting(true);
-
-    try {
-      // Build filters based on current active filter and advanced filters
-      const exportFilters: { stageId?: string; source?: string } = {};
-
-      // If a specific stage filter is active
-      if (advancedFilters.stageIds?.length === 1) {
-        exportFilters.stageId = advancedFilters.stageIds[0];
-      }
-
-      // If a specific source filter is active
-      if (advancedFilters.sources?.length === 1) {
-        exportFilters.source = advancedFilters.sources[0];
-      }
-
-      const result = await exportLeadsToCSV(accessToken, exportFilters);
-
-      if (result.success && result.csv) {
-        // Save to a temp file
-        const fileUri = FileSystem.documentDirectory + (result.filename || 'leads-export.csv');
-        await FileSystem.writeAsStringAsync(fileUri, result.csv, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
-
-        // Check if sharing is available
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'text/csv',
-            dialogTitle: 'Export Leads',
-            UTI: 'public.comma-separated-values-text',
-          });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else {
-          Alert.alert(
-            'Export Ready',
-            'CSV file has been saved. Sharing is not available on this device.'
-          );
-        }
-      } else {
-        Alert.alert('Export Failed', result.error || 'Failed to export leads');
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      Alert.alert('Export Failed', 'An error occurred while exporting leads');
-    } finally {
-      setExporting(false);
-    }
-  };
-
   // Selection mode handlers
   const enterSelectionMode = (leadId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -720,25 +659,12 @@ export default function LeadsScreen() {
                 </Text>
               )}
             </View>
-            <View style={styles.headerActions}>
-              <TouchableOpacity
-                style={[styles.exportButton, { backgroundColor: searchBg, borderColor: searchBorder }]}
-                onPress={handleExport}
-                disabled={exporting}
-              >
-                {exporting ? (
-                  <ActivityIndicator size="small" color="#3b82f6" />
-                ) : (
-                  <Ionicons name="download-outline" size={20} color="#3b82f6" />
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={handleCreatePress}
-              >
-                <Ionicons name="add" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={handleCreatePress}
+            >
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
           </View>
 
           {/* Search bar with filter */}
@@ -962,19 +888,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     marginTop: 2,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  exportButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   addButton: {
     width: 40,

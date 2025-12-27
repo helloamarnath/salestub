@@ -402,19 +402,32 @@ export async function convertLead(
 
 // ============ Export ============
 
+export interface LeadExportFilters {
+  stageId?: string;
+  source?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
+}
+
 /**
  * Export leads to CSV
  * Returns raw CSV string (not JSON wrapped)
  */
 export async function exportLeadsToCSV(
   token: string | null,
-  filters?: { stageId?: string; source?: string }
+  filters?: LeadExportFilters
 ): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
   const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
 
   const url = new URL(`${API_URL}${LEADS_BASE}/export`);
   if (filters?.stageId) url.searchParams.append('stageId', filters.stageId);
   if (filters?.source) url.searchParams.append('source', filters.source);
+  if (filters?.createdFrom) url.searchParams.append('createdFrom', filters.createdFrom);
+  if (filters?.createdTo) url.searchParams.append('createdTo', filters.createdTo);
+  if (filters?.updatedFrom) url.searchParams.append('updatedFrom', filters.updatedFrom);
+  if (filters?.updatedTo) url.searchParams.append('updatedTo', filters.updatedTo);
 
   try {
     const response = await fetch(url.toString(), {

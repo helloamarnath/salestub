@@ -159,3 +159,58 @@ export async function getContactFull(
 }>> {
   return api.get(`${CONTACTS_BASE}/${id}/full`, token);
 }
+
+// Export filter interface
+export interface ContactExportFilters {
+  status?: 'active' | 'inactive';
+  createdFrom?: string;
+  createdTo?: string;
+}
+
+/**
+ * Export contacts to CSV
+ */
+export async function exportContactsToCSV(
+  token: string | null,
+  filters?: ContactExportFilters
+): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
+
+  const url = new URL(`${API_URL}${CONTACTS_BASE}/export`);
+  if (filters?.status) url.searchParams.append('status', filters.status);
+  if (filters?.createdFrom) url.searchParams.append('createdFrom', filters.createdFrom);
+  if (filters?.createdTo) url.searchParams.append('createdTo', filters.createdTo);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.message || `Export failed with status ${response.status}`,
+      };
+    }
+
+    // Get filename from Content-Disposition header if available
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'contacts-export.csv';
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+    }
+
+    const csv = await response.text();
+    return { success: true, csv, filename };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Export failed',
+    };
+  }
+}

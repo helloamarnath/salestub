@@ -142,3 +142,56 @@ export async function setProductImagePrimary(
 ): Promise<ApiResponse<ProductImage>> {
   return api.patch<ProductImage>(`${PRODUCTS_BASE}/${productId}/images/${imageId}/primary`, token);
 }
+
+// Export filter interface
+export interface ProductExportFilters {
+  category?: string;
+  isActive?: boolean;
+}
+
+/**
+ * Export products to CSV
+ */
+export async function exportProductsToCSV(
+  token: string | null,
+  filters?: ProductExportFilters
+): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
+
+  const url = new URL(`${API_URL}${PRODUCTS_BASE}/export`);
+  if (filters?.category) url.searchParams.append('category', filters.category);
+  if (filters?.isActive !== undefined) url.searchParams.append('isActive', String(filters.isActive));
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.message || `Export failed with status ${response.status}`,
+      };
+    }
+
+    // Get filename from Content-Disposition header if available
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'products-export.csv';
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+    }
+
+    const csv = await response.text();
+    return { success: true, csv, filename };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Export failed',
+    };
+  }
+}

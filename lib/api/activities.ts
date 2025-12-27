@@ -190,3 +190,60 @@ export async function getMyActivities(
 ): Promise<ApiResponse<Activity[]>> {
   return api.get<Activity[]>(`${ACTIVITIES_BASE}/dashboard/my-activities`, token);
 }
+
+// Export filter interface
+export interface ActivityExportFilters {
+  type?: string;
+  status?: string;
+  dueDateFrom?: string;
+  dueDateTo?: string;
+}
+
+/**
+ * Export activities to CSV
+ */
+export async function exportActivitiesToCSV(
+  token: string | null,
+  filters?: ActivityExportFilters
+): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
+
+  const url = new URL(`${API_URL}${ACTIVITIES_BASE}/export`);
+  if (filters?.type) url.searchParams.append('type', filters.type);
+  if (filters?.status) url.searchParams.append('status', filters.status);
+  if (filters?.dueDateFrom) url.searchParams.append('dueDateFrom', filters.dueDateFrom);
+  if (filters?.dueDateTo) url.searchParams.append('dueDateTo', filters.dueDateTo);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.message || `Export failed with status ${response.status}`,
+      };
+    }
+
+    // Get filename from Content-Disposition header if available
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'activities-export.csv';
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+    }
+
+    const csv = await response.text();
+    return { success: true, csv, filename };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Export failed',
+    };
+  }
+}
