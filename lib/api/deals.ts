@@ -183,3 +183,24 @@ export async function bulkDeleteDeals(
     { ids }
   );
 }
+
+/**
+ * Search deals (for pickers)
+ */
+export async function searchDeals(
+  token: string | null,
+  query: string,
+  limit: number = 10
+): Promise<ApiResponse<Deal[]>> {
+  const response = await api.get<PaginatedDealsResponse>(
+    DEALS_BASE,
+    token,
+    { search: query, limit }
+  );
+
+  if (response.success && response.data) {
+    return { success: true, data: response.data.data };
+  }
+
+  return { success: false, error: response.error };
+}

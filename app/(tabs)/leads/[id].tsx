@@ -31,7 +31,10 @@ import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
 import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources, getAllTags, getLeadTags, addLeadTags, removeLeadTags, createTag, getLeadDocuments, uploadLeadDocument, deleteLeadDocument, convertLead } from '@/lib/api/leads';
 import { searchCompanies, createCompany } from '@/lib/api/companies';
+import { getDealsByContact, createDeal, updateDeal, deleteDeal, searchDeals, advanceDealStage, closeDealWon, closeDealLost } from '@/lib/api/deals';
 import type { Company, CreateCompanyDto } from '@/types/company';
+import type { Deal, CreateDealDto, UpdateDealDto, DealStage } from '@/types/deal';
+import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS, DEAL_STATUS_COLORS, DEAL_STATUS_LABELS, formatDealValue } from '@/types/deal';
 import { getOrganizationMembers, getMemberDisplayName, type OrgMember } from '@/lib/api/organization';
 import { LeadStatusBadge, ScoreIndicator, SourceBadge } from '@/components/leads/LeadStatusBadge';
 import type { Lead, LeadActivity, KanbanStage, UpdateLeadDto, CreateActivityDto, LeadTag, LeadDocument } from '@/types/lead';
@@ -920,13 +923,23 @@ function TimelineTab({
   activities,
   loading,
   isDark,
+  onRefresh,
 }: {
   activities: LeadActivity[];
   loading: boolean;
   isDark: boolean;
+  onRefresh?: () => Promise<void>;
 }) {
+  const [refreshing, setRefreshing] = useState(false);
   const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
   const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
+  };
 
   if (loading) {
     return (
@@ -940,15 +953,41 @@ function TimelineTab({
 
   if (activityList.length === 0) {
     return (
-      <View style={styles.emptyTab}>
+      <ScrollView
+        style={styles.emptyTab}
+        contentContainerStyle={styles.emptyTabContent}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          ) : undefined
+        }
+      >
         <Ionicons name="time-outline" size={48} color={emptyIconColor} />
         <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No activities yet</Text>
-      </View>
+      </ScrollView>
     );
   }
 
   return (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.tabContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#3b82f6"
+            colors={['#3b82f6']}
+          />
+        ) : undefined
+      }
+    >
       {activityList.map((activity) => (
         <ActivityItem key={activity.id} activity={activity} isDark={isDark} />
       ))}
@@ -1249,6 +1288,7 @@ function TagsTab({
   const [allTags, setAllTags] = useState<LeadTag[]>([]);
   const [leadTags, setLeadTags] = useState<LeadTag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -1278,6 +1318,12 @@ function TagsTab({
 
   useEffect(() => {
     fetchTags();
+  }, [fetchTags]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchTags();
+    setRefreshing(false);
   }, [fetchTags]);
 
   const handleToggleTag = async (tagId: string, isSelected: boolean) => {
@@ -1355,7 +1401,18 @@ function TagsTab({
 
   return (
     <View style={styles.tagsTabContainer}>
-      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#3b82f6"
+            colors={['#3b82f6']}
+          />
+        }
+      >
         {/* Header Section */}
         <View style={[styles.tagsTabHeader, { backgroundColor: cardBg, borderColor }]}>
           <View style={styles.tagsTabHeaderIcon}>
@@ -1573,6 +1630,7 @@ function DocsTab({
 }) {
   const [documents, setDocuments] = useState<LeadDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showUploadOptions, setShowUploadOptions] = useState(false);
 
@@ -1598,6 +1656,12 @@ function DocsTab({
 
   useEffect(() => {
     fetchDocuments();
+  }, [fetchDocuments]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchDocuments();
+    setRefreshing(false);
   }, [fetchDocuments]);
 
   const handlePickDocument = async () => {
@@ -1728,7 +1792,18 @@ function DocsTab({
 
   return (
     <View style={styles.docsTabContainer}>
-      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#8b5cf6"
+            colors={['#8b5cf6']}
+          />
+        }
+      >
         {/* Header Section */}
         <View style={[styles.docsTabHeader, { backgroundColor: cardBg, borderColor }]}>
           <View style={styles.docsTabHeaderIcon}>
@@ -1883,6 +1958,744 @@ function DocsTab({
           </Pressable>
         </Pressable>
       </Modal>
+    </View>
+  );
+}
+
+// Deal Item Component
+function DealItem({
+  deal,
+  isDark,
+  onPress,
+  onDelete,
+}: {
+  deal: Deal;
+  isDark: boolean;
+  onPress: () => void;
+  onDelete: () => void;
+}) {
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+  const stageColor = DEAL_STAGE_COLORS[deal.stage] || '#6b7280';
+  const statusColor = DEAL_STATUS_COLORS[deal.status] || '#6b7280';
+  const currencySymbol = deal.currency?.symbol || '₹';
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  return (
+    <TouchableOpacity
+      style={[styles.dealItem, { backgroundColor: cardBg, borderColor }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      {/* Stage indicator */}
+      <View style={[styles.dealStageIndicator, { backgroundColor: stageColor }]} />
+
+      <View style={styles.dealItemContent}>
+        <View style={styles.dealItemHeader}>
+          <View style={styles.dealItemInfo}>
+            <Text style={[styles.dealItemTitle, { color: textColor }]} numberOfLines={1}>
+              {deal.title}
+            </Text>
+            <View style={styles.dealItemBadges}>
+              <View style={[styles.dealStageBadge, { backgroundColor: `${stageColor}15` }]}>
+                <View style={[styles.dealStageDot, { backgroundColor: stageColor }]} />
+                <Text style={[styles.dealStageBadgeText, { color: stageColor }]}>
+                  {DEAL_STAGE_LABELS[deal.stage] || deal.stage}
+                </Text>
+              </View>
+              <View style={[styles.dealStatusBadge, { backgroundColor: `${statusColor}15` }]}>
+                <Text style={[styles.dealStatusBadgeText, { color: statusColor }]}>
+                  {deal.status}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.dealItemValue}>
+            <Text style={[styles.dealValueText, { color: textColor }]}>
+              {formatDealValue(Number(deal.value), currencySymbol)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.dealItemMeta}>
+          {deal.expectedCloseDate && (
+            <View style={styles.dealMetaItem}>
+              <Ionicons name="calendar-outline" size={12} color={subtitleColor} />
+              <Text style={[styles.dealMetaText, { color: subtitleColor }]}>
+                Expected: {formatDate(deal.expectedCloseDate)}
+              </Text>
+            </View>
+          )}
+          {deal.contact && (
+            <View style={styles.dealMetaItem}>
+              <Ionicons name="person-outline" size={12} color={subtitleColor} />
+              <Text style={[styles.dealMetaText, { color: subtitleColor }]} numberOfLines={1}>
+                {deal.contact.firstName} {deal.contact.lastName}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.dealDeleteBtn}
+        onPress={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="trash-outline" size={18} color="#ef4444" />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+// Create Deal Modal
+function CreateDealModal({
+  visible,
+  leadId,
+  contactId,
+  contactName,
+  onSave,
+  onClose,
+  isDark,
+  saving,
+  defaultValue,
+  currencySymbol,
+}: {
+  visible: boolean;
+  leadId: string;
+  contactId: string;
+  contactName: string;
+  onSave: (data: CreateDealDto) => void;
+  onClose: () => void;
+  isDark: boolean;
+  saving: boolean;
+  defaultValue?: number;
+  currencySymbol?: string;
+}) {
+  const insets = useSafeAreaInsets();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [value, setValue] = useState(defaultValue?.toString() || '');
+  const [expectedCloseDate, setExpectedCloseDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const bgColor = isDark ? '#1e293b' : '#f8fafc';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'white';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+
+  useEffect(() => {
+    if (visible) {
+      setTitle('');
+      setDescription('');
+      setValue(defaultValue?.toString() || '');
+      setExpectedCloseDate(null);
+    }
+  }, [visible, defaultValue]);
+
+  const handleSave = () => {
+    if (!title.trim()) {
+      Alert.alert('Error', 'Please enter a deal title');
+      return;
+    }
+    if (!value.trim() || isNaN(Number(value))) {
+      Alert.alert('Error', 'Please enter a valid deal value');
+      return;
+    }
+
+    const data: CreateDealDto = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      value: Number(value),
+      contactId,
+      expectedCloseDate: expectedCloseDate?.toISOString(),
+    };
+
+    onSave(data);
+  };
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'Select date';
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.createDealOverlay} onPress={onClose}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.createDealKeyboardView}
+        >
+          <Pressable
+            style={[styles.createDealContent, { backgroundColor: bgColor }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <LinearGradient
+              colors={['#22c55e', '#16a34a']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.createDealHeader}
+            >
+              <View style={styles.createDealHeaderContent}>
+                <View>
+                  <Text style={styles.createDealTitle}>Create New Deal</Text>
+                  <Text style={styles.createDealSubtitle}>
+                    Linked to {contactName}
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.createDealCloseBtn} onPress={onClose}>
+                  <Ionicons name="close" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+
+            <ScrollView
+              style={styles.createDealForm}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+            >
+              {/* Title */}
+              <View style={styles.createDealField}>
+                <Text style={[styles.createDealLabel, { color: textColor }]}>Deal Title *</Text>
+                <TextInput
+                  style={[styles.createDealInput, { backgroundColor: inputBg, borderColor, color: textColor }]}
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="Enter deal title"
+                  placeholderTextColor={placeholderColor}
+                />
+              </View>
+
+              {/* Value */}
+              <View style={styles.createDealField}>
+                <Text style={[styles.createDealLabel, { color: textColor }]}>Deal Value *</Text>
+                <View style={[styles.createDealValueInput, { backgroundColor: inputBg, borderColor }]}>
+                  <Text style={[styles.createDealCurrency, { color: subtitleColor }]}>
+                    {currencySymbol || '₹'}
+                  </Text>
+                  <TextInput
+                    style={[styles.createDealValueText, { color: textColor }]}
+                    value={value}
+                    onChangeText={setValue}
+                    placeholder="0"
+                    placeholderTextColor={placeholderColor}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              {/* Expected Close Date */}
+              <View style={styles.createDealField}>
+                <Text style={[styles.createDealLabel, { color: textColor }]}>Expected Close Date</Text>
+                <TouchableOpacity
+                  style={[styles.createDealDateBtn, { backgroundColor: inputBg, borderColor }]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Ionicons name="calendar-outline" size={20} color={subtitleColor} />
+                  <Text style={[styles.createDealDateText, { color: expectedCloseDate ? textColor : placeholderColor }]}>
+                    {formatDate(expectedCloseDate)}
+                  </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={expectedCloseDate || new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, date) => {
+                      setShowDatePicker(Platform.OS === 'ios');
+                      if (date) setExpectedCloseDate(date);
+                    }}
+                    minimumDate={new Date()}
+                  />
+                )}
+              </View>
+
+              {/* Description */}
+              <View style={styles.createDealField}>
+                <Text style={[styles.createDealLabel, { color: textColor }]}>Description</Text>
+                <TextInput
+                  style={[styles.createDealTextarea, { backgroundColor: inputBg, borderColor, color: textColor }]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Optional description..."
+                  placeholderTextColor={placeholderColor}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={[styles.createDealSaveBtn, saving && { opacity: 0.7 }]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                <LinearGradient
+                  colors={['#22c55e', '#16a34a']}
+                  style={styles.createDealSaveBtnGradient}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <>
+                      <Ionicons name="add-circle" size={20} color="white" />
+                      <Text style={styles.createDealSaveBtnText}>Create Deal</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </ScrollView>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// Deals Tab Component
+function DealsTab({
+  lead,
+  accessToken,
+  isDark,
+  onDealCreated,
+}: {
+  lead: Lead | null;
+  accessToken: string | null;
+  isDark: boolean;
+  onDealCreated?: () => void;
+}) {
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+
+  const hasContact = !!lead?.contactId;
+  const contactName = lead?.contact
+    ? `${lead.contact.firstName} ${lead.contact.lastName}`.trim()
+    : 'Unknown Contact';
+  const currencySymbol = lead?.currency?.symbol || '₹';
+
+  const fetchDeals = useCallback(async () => {
+    if (!accessToken || !lead?.contactId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+
+    const response = await getDealsByContact(accessToken, lead.contactId);
+    if (response.success && response.data) {
+      setDeals(response.data);
+    }
+    setLoading(false);
+  }, [accessToken, lead?.contactId]);
+
+  useEffect(() => {
+    fetchDeals();
+  }, [fetchDeals]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchDeals();
+    setRefreshing(false);
+  }, [fetchDeals]);
+
+  const handleCreateDeal = async (data: CreateDealDto) => {
+    if (!accessToken || !lead?.id) return;
+    setSaving(true);
+
+    const response = await createDeal(accessToken, data);
+    if (response.success && response.data) {
+      setDeals(prev => [response.data!, ...prev]);
+      setShowCreateModal(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Add timeline activity for deal creation
+      const dealValue = formatDealValue(Number(response.data.value), currencySymbol);
+      await addLeadActivity(accessToken, lead.id, {
+        type: 'NOTE',
+        title: `Deal Created: ${response.data.title}`,
+        description: `New deal created with value ${dealValue}`,
+        status: 'COMPLETED',
+      });
+
+      // Notify parent to refresh timeline
+      onDealCreated?.();
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to create deal');
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteDeal = (dealId: string) => {
+    Alert.alert(
+      'Delete Deal',
+      'Are you sure you want to delete this deal? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!accessToken) return;
+            const response = await deleteDeal(accessToken, dealId);
+            if (response.success) {
+              setDeals(prev => prev.filter(d => d.id !== dealId));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } else {
+              Alert.alert('Error', response.error?.message || 'Failed to delete deal');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDealStageChange = async (deal: Deal, newStage: DealStage) => {
+    if (!accessToken) return;
+
+    const response = await updateDeal(accessToken, deal.id, { stage: newStage });
+    if (response.success && response.data) {
+      setDeals(prev => prev.map(d => d.id === deal.id ? response.data! : d));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Log activity for stage change
+      if (lead?.id) {
+        await addLeadActivity(accessToken, lead.id, {
+          type: 'NOTE',
+          title: `Deal Stage Changed: ${deal.title}`,
+          description: `Stage updated from ${DEAL_STAGE_LABELS[deal.stage]} to ${DEAL_STAGE_LABELS[newStage]}`,
+          status: 'COMPLETED',
+        });
+        onDealCreated?.();
+      }
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to update deal stage');
+    }
+  };
+
+  const handleMarkDealWon = async (deal: Deal) => {
+    if (!accessToken) return;
+
+    Alert.alert(
+      'Mark as Won',
+      `Are you sure you want to mark "${deal.title}" as won?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark Won',
+          onPress: async () => {
+            const response = await closeDealWon(accessToken, deal.id);
+            if (response.success && response.data) {
+              setDeals(prev => prev.map(d => d.id === deal.id ? response.data! : d));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+              // Log activity
+              if (lead?.id) {
+                const dealValue = formatDealValue(Number(deal.value), currencySymbol);
+                await addLeadActivity(accessToken, lead.id, {
+                  type: 'NOTE',
+                  title: `🎉 Deal Won: ${deal.title}`,
+                  description: `Deal closed as won with value ${dealValue}`,
+                  status: 'COMPLETED',
+                });
+                onDealCreated?.();
+              }
+            } else {
+              Alert.alert('Error', response.error?.message || 'Failed to close deal');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleMarkDealLost = async (deal: Deal) => {
+    if (!accessToken) return;
+
+    Alert.alert(
+      'Mark as Lost',
+      `Are you sure you want to mark "${deal.title}" as lost?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark Lost',
+          style: 'destructive',
+          onPress: async () => {
+            const response = await closeDealLost(accessToken, deal.id);
+            if (response.success && response.data) {
+              setDeals(prev => prev.map(d => d.id === deal.id ? response.data! : d));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+              // Log activity
+              if (lead?.id) {
+                const dealValue = formatDealValue(Number(deal.value), currencySymbol);
+                await addLeadActivity(accessToken, lead.id, {
+                  type: 'NOTE',
+                  title: `Deal Lost: ${deal.title}`,
+                  description: `Deal closed as lost with value ${dealValue}`,
+                  status: 'COMPLETED',
+                });
+                onDealCreated?.();
+              }
+            } else {
+              Alert.alert('Error', response.error?.message || 'Failed to close deal');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const showStagePickerAlert = (deal: Deal) => {
+    const stages: DealStage[] = ['PROSPECTING', 'QUALIFICATION', 'PROPOSAL', 'NEGOTIATION'];
+
+    Alert.alert(
+      'Change Stage',
+      'Select a new stage for this deal',
+      [
+        ...stages.map(stage => ({
+          text: `${deal.stage === stage ? '✓ ' : ''}${DEAL_STAGE_LABELS[stage]}`,
+          onPress: () => {
+            if (deal.stage !== stage) {
+              handleDealStageChange(deal, stage);
+            }
+          },
+        })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]
+    );
+  };
+
+  const handleDealPress = (deal: Deal) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const isClosed = deal.status === 'WON' || deal.status === 'LOST';
+
+    // Build action options based on deal status
+    const actions: Array<{text: string; onPress?: () => void; style?: 'cancel' | 'destructive'}> = [];
+
+    if (!isClosed) {
+      actions.push({
+        text: '📊 Change Stage',
+        onPress: () => showStagePickerAlert(deal),
+      });
+      actions.push({
+        text: '✅ Mark as Won',
+        onPress: () => handleMarkDealWon(deal),
+      });
+      actions.push({
+        text: '❌ Mark as Lost',
+        onPress: () => handleMarkDealLost(deal),
+      });
+    }
+
+    actions.push({
+      text: '🗑️ Delete Deal',
+      style: 'destructive',
+      onPress: () => handleDeleteDeal(deal.id),
+    });
+
+    actions.push({ text: 'Cancel', style: 'cancel' });
+
+    Alert.alert(
+      deal.title,
+      `Value: ${formatDealValue(Number(deal.value), currencySymbol)}\nStage: ${DEAL_STAGE_LABELS[deal.stage]}\nStatus: ${DEAL_STATUS_LABELS[deal.status]}${isClosed ? '\n\n(Deal is closed - stage changes not available)' : ''}`,
+      actions
+    );
+  };
+
+  // Calculate total deal value
+  const totalValue = deals.reduce((sum, deal) => sum + Number(deal.value), 0);
+  const openDeals = deals.filter(d => d.status === 'OPEN').length;
+
+  if (loading) {
+    return (
+      <View style={styles.loadingTab}>
+        <ActivityIndicator size="small" color="#22c55e" />
+      </View>
+    );
+  }
+
+  // No contact linked - show empty state
+  if (!hasContact) {
+    return (
+      <View style={styles.dealsTabContainer}>
+        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.dealsNoContactContainer}>
+            <View style={[styles.dealsNoContactIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(234,179,8,0.1)' }]}>
+              <Ionicons name="link-outline" size={40} color="#eab308" />
+            </View>
+            <Text style={[styles.dealsNoContactTitle, { color: textColor }]}>No Contact Linked</Text>
+            <Text style={[styles.dealsNoContactText, { color: subtitleColor }]}>
+              Deals are linked to contacts. Please add a contact to this lead first, or convert this lead to create a contact and deal.
+            </Text>
+            <View style={[styles.dealsNoContactHint, { backgroundColor: isDark ? 'rgba(234,179,8,0.1)' : 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)' }]}>
+              <Ionicons name="bulb-outline" size={16} color="#eab308" />
+              <Text style={[styles.dealsNoContactHintText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]}>
+                Tip: Use the "Convert to Deal" option from the header menu to convert this lead into a contact and optionally create a deal.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.dealsTabContainer}>
+      <ScrollView
+        style={styles.tabContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#22c55e"
+            colors={['#22c55e']}
+          />
+        }
+      >
+        {/* Header Section */}
+        <View style={[styles.dealsTabHeader, { backgroundColor: cardBg, borderColor }]}>
+          <View style={styles.dealsTabHeaderIcon}>
+            <LinearGradient
+              colors={['rgba(34,197,94,0.15)', 'rgba(22,163,74,0.15)']}
+              style={styles.dealsTabIconGradient}
+            >
+              <Ionicons name="briefcase" size={20} color="#22c55e" />
+            </LinearGradient>
+          </View>
+          <View style={styles.dealsTabHeaderInfo}>
+            <Text style={[styles.dealsTabHeaderTitle, { color: textColor }]}>Linked Deals</Text>
+            <Text style={[styles.dealsTabHeaderSubtitle, { color: subtitleColor }]}>
+              {deals.length === 0
+                ? 'No deals yet'
+                : `${deals.length} deal${deals.length > 1 ? 's' : ''} • ${openDeals} open`}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.dealsTabAddBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowCreateModal(true);
+            }}
+          >
+            <LinearGradient
+              colors={['#22c55e', '#16a34a']}
+              style={styles.dealsTabAddBtnGradient}
+            >
+              <Ionicons name="add" size={18} color="white" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats Card */}
+        {deals.length > 0 && (
+          <View style={[styles.dealsStatsCard, { backgroundColor: cardBg, borderColor }]}>
+            <View style={styles.dealsStatItem}>
+              <Text style={[styles.dealsStatValue, { color: '#22c55e' }]}>
+                {formatDealValue(totalValue, currencySymbol)}
+              </Text>
+              <Text style={[styles.dealsStatLabel, { color: subtitleColor }]}>Total Value</Text>
+            </View>
+            <View style={[styles.dealsStatDivider, { backgroundColor: borderColor }]} />
+            <View style={styles.dealsStatItem}>
+              <Text style={[styles.dealsStatValue, { color: textColor }]}>{deals.length}</Text>
+              <Text style={[styles.dealsStatLabel, { color: subtitleColor }]}>Total Deals</Text>
+            </View>
+            <View style={[styles.dealsStatDivider, { backgroundColor: borderColor }]} />
+            <View style={styles.dealsStatItem}>
+              <Text style={[styles.dealsStatValue, { color: '#3b82f6' }]}>{openDeals}</Text>
+              <Text style={[styles.dealsStatLabel, { color: subtitleColor }]}>Open</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Deals List */}
+        {deals.length === 0 ? (
+          <View style={styles.dealsEmptyContainer}>
+            <View style={[styles.dealsEmptyIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(34,197,94,0.08)' }]}>
+              <Ionicons name="briefcase-outline" size={40} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(34,197,94,0.5)'} />
+            </View>
+            <Text style={[styles.dealsEmptyTitle, { color: textColor }]}>No deals yet</Text>
+            <Text style={[styles.dealsEmptyText, { color: subtitleColor }]}>
+              Create a deal to track revenue opportunities for this lead's contact
+            </Text>
+            <TouchableOpacity
+              style={styles.dealsCreateBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowCreateModal(true);
+              }}
+            >
+              <LinearGradient
+                colors={['#22c55e', '#16a34a']}
+                style={styles.dealsCreateBtnGradient}
+              >
+                <Ionicons name="add" size={18} color="white" />
+                <Text style={styles.dealsCreateBtnText}>Create First Deal</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.dealsList}>
+            {deals.map((deal) => (
+              <DealItem
+                key={deal.id}
+                deal={deal}
+                isDark={isDark}
+                onPress={() => handleDealPress(deal)}
+                onDelete={() => handleDeleteDeal(deal.id)}
+              />
+            ))}
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      {/* Create Deal Modal */}
+      <CreateDealModal
+        visible={showCreateModal}
+        leadId={lead?.id || ''}
+        contactId={lead?.contactId || ''}
+        contactName={contactName}
+        onSave={handleCreateDeal}
+        onClose={() => setShowCreateModal(false)}
+        isDark={isDark}
+        saving={saving}
+        defaultValue={lead?.value}
+        currencySymbol={currencySymbol}
+      />
     </View>
   );
 }
@@ -2839,12 +3652,13 @@ export default function LeadDetailScreen() {
         </View>
 
         {/* Tabs */}
-        <View style={styles.tabs}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsScrollContent}>
           <Tab label="Details" active={activeTab === 'details'} onPress={() => setActiveTab('details')} isDark={isDark} />
           <Tab label="Timeline" active={activeTab === 'timeline'} onPress={() => setActiveTab('timeline')} isDark={isDark} />
           <Tab label="Tags" active={activeTab === 'tags'} onPress={() => setActiveTab('tags')} isDark={isDark} />
           <Tab label="Docs" active={activeTab === 'docs'} onPress={() => setActiveTab('docs')} isDark={isDark} />
-        </View>
+          <Tab label="Deals" active={activeTab === 'deals'} onPress={() => setActiveTab('deals')} isDark={isDark} />
+        </ScrollView>
       </View>
 
       {/* Tab Content */}
@@ -2860,13 +3674,16 @@ export default function LeadDetailScreen() {
         />
       )}
       {activeTab === 'timeline' && (
-        <TimelineTab activities={activities} loading={activitiesLoading} isDark={isDark} />
+        <TimelineTab activities={activities} loading={activitiesLoading} isDark={isDark} onRefresh={fetchActivities} />
       )}
       {activeTab === 'tags' && (
         <TagsTab leadId={id} accessToken={accessToken} isDark={isDark} />
       )}
       {activeTab === 'docs' && (
         <DocsTab leadId={id} accessToken={accessToken} isDark={isDark} />
+      )}
+      {activeTab === 'deals' && (
+        <DealsTab lead={lead} accessToken={accessToken} isDark={isDark} onDealCreated={fetchActivities} />
       )}
 
       {/* Follow-up Action Sheet */}
@@ -3009,8 +3826,8 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   tab: {
-    flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
@@ -3208,8 +4025,12 @@ const styles = StyleSheet.create({
   },
   emptyTab: {
     flex: 1,
+  },
+  emptyTabContent: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 60,
   },
   emptyTabText: {
     fontSize: 14,
@@ -4493,5 +5314,381 @@ const styles = StyleSheet.create({
   convertNoResultsText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  // Tabs scroll styles
+  tabsScroll: {
+    flexGrow: 0,
+    marginTop: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  tabsScrollContent: {
+    paddingHorizontal: 16,
+  },
+  // Deals Tab styles
+  dealsTabContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  dealsTabHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  dealsTabHeaderIcon: {
+    marginRight: 12,
+  },
+  dealsTabIconGradient: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dealsTabHeaderInfo: {
+    flex: 1,
+  },
+  dealsTabHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  dealsTabHeaderSubtitle: {
+    fontSize: 13,
+  },
+  dealsTabAddBtn: {
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  dealsTabAddBtnGradient: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dealsStatsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  dealsStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dealsStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  dealsStatLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dealsStatDivider: {
+    width: 1,
+    height: 32,
+    marginHorizontal: 8,
+  },
+  dealsEmptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 32,
+  },
+  dealsEmptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  dealsEmptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  dealsEmptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  dealsCreateBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  dealsCreateBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  dealsCreateBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'white',
+  },
+  dealsList: {
+    gap: 12,
+  },
+  dealItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  dealStageIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
+  },
+  dealItemContent: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  dealItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  dealItemInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  dealItemTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  dealItemBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  dealStageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  dealStageDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dealStageBadgeText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  dealStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  dealStatusBadgeText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  dealItemValue: {
+    alignItems: 'flex-end',
+  },
+  dealValueText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  dealItemMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  dealMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dealMetaText: {
+    fontSize: 12,
+  },
+  dealDeleteBtn: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  // No contact state for deals
+  dealsNoContactContainer: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  dealsNoContactIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  dealsNoContactTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  dealsNoContactText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  dealsNoContactHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+  },
+  dealsNoContactHintText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  // Create Deal Modal styles
+  createDealOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  createDealKeyboardView: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  createDealContent: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  createDealHeader: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  createDealHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  createDealTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: 'white',
+    marginBottom: 4,
+  },
+  createDealSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  createDealCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createDealForm: {
+    padding: 16,
+  },
+  createDealField: {
+    marginBottom: 16,
+  },
+  createDealLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  createDealInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+  },
+  createDealValueInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  createDealCurrency: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 8,
+  },
+  createDealValueText: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 12,
+  },
+  createDealDateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  createDealDateText: {
+    flex: 1,
+    fontSize: 15,
+  },
+  createDealTextarea: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    minHeight: 80,
+  },
+  createDealSaveBtn: {
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  createDealSaveBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  createDealSaveBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });
