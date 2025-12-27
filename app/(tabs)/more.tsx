@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -141,75 +141,11 @@ function ThemeOption({
   );
 }
 
-// Notification toggle component
-function NotificationToggle({
-  icon,
-  title,
-  subtitle,
-  value,
-  onValueChange,
-  isDark,
-  color = '#3b82f6',
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-  isDark: boolean;
-  color?: string;
-}) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
-  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-  const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
-
-  return (
-    <View style={[styles.notificationToggle, { borderColor, backgroundColor: bgColor }]}>
-      <View style={[styles.notificationToggleIcon, { backgroundColor: `${color}15` }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <View style={styles.notificationToggleContent}>
-        <Text style={[styles.notificationToggleTitle, { color: textColor }]}>
-          {title}
-        </Text>
-        <Text style={[styles.notificationToggleSubtitle, { color: subtitleColor }]}>
-          {subtitle}
-        </Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: isDark ? '#374151' : '#d1d5db', true: '#3b82f6' }}
-        thumbColor={value ? '#ffffff' : '#f4f4f5'}
-        ios_backgroundColor={isDark ? '#374151' : '#d1d5db'}
-      />
-    </View>
-  );
-}
-
-// Notification settings interface
-interface NotificationSettings {
-  pushEnabled: boolean;
-  emailEnabled: boolean;
-  leadAlerts: boolean;
-  dealUpdates: boolean;
-  taskReminders: boolean;
-}
-
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [showThemeModal, setShowThemeModal] = useState(false);
-  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    pushEnabled: true,
-    emailEnabled: true,
-    leadAlerts: true,
-    dealUpdates: true,
-    taskReminders: true,
-  });
 
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
@@ -245,24 +181,9 @@ export default function MoreScreen() {
     }
   };
 
-  const getNotificationsLabel = (): string => {
-    const enabledCount = [
-      notifications.pushEnabled,
-      notifications.emailEnabled,
-    ].filter(Boolean).length;
-
-    if (enabledCount === 0) return 'All off';
-    if (enabledCount === 2) return 'All on';
-    return 'Custom';
-  };
-
   const handleThemeChange = (newTheme: Theme) => {
     setTheme(newTheme);
     setShowThemeModal(false);
-  };
-
-  const updateNotification = (key: keyof NotificationSettings, value: boolean) => {
-    setNotifications(prev => ({ ...prev, [key]: value }));
   };
 
   const firstName = user?.firstName || 'User';
@@ -348,9 +269,9 @@ export default function MoreScreen() {
           <MenuItem
             icon="notifications-outline"
             title="Notifications"
-            subtitle={getNotificationsLabel()}
+            subtitle="Manage notification channels"
             color="#f59e0b"
-            onPress={() => setShowNotificationsModal(true)}
+            onPress={() => router.push('/notification-settings' as Href)}
             isDark={isDark}
           />
           <MenuItem
@@ -455,95 +376,6 @@ export default function MoreScreen() {
                 <TouchableOpacity
                   style={styles.modalCloseButton}
                   onPress={() => setShowThemeModal(false)}
-                >
-                  <Text style={styles.modalCloseButtonText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Notifications Modal */}
-      <Modal
-        visible={showNotificationsModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowNotificationsModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowNotificationsModal(false)}
-        >
-          <View style={styles.modalContainer}>
-            <TouchableOpacity activeOpacity={1}>
-              <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Notifications</Text>
-                <Text style={[styles.modalSubtitle, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
-                  Manage how you receive notifications
-                </Text>
-
-                <View style={styles.notificationSection}>
-                  <Text style={[styles.notificationSectionTitle, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)' }]}>
-                    Channels
-                  </Text>
-                  <NotificationToggle
-                    icon="phone-portrait-outline"
-                    title="Push Notifications"
-                    subtitle="Receive alerts on your device"
-                    value={notifications.pushEnabled}
-                    onValueChange={(value) => updateNotification('pushEnabled', value)}
-                    isDark={isDark}
-                    color="#3b82f6"
-                  />
-                  <NotificationToggle
-                    icon="mail-outline"
-                    title="Email Notifications"
-                    subtitle="Get updates in your inbox"
-                    value={notifications.emailEnabled}
-                    onValueChange={(value) => updateNotification('emailEnabled', value)}
-                    isDark={isDark}
-                    color="#ef4444"
-                  />
-                </View>
-
-                <View style={styles.notificationSection}>
-                  <Text style={[styles.notificationSectionTitle, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)' }]}>
-                    Alert Types
-                  </Text>
-                  <NotificationToggle
-                    icon="person-add-outline"
-                    title="Lead Alerts"
-                    subtitle="New leads and lead updates"
-                    value={notifications.leadAlerts}
-                    onValueChange={(value) => updateNotification('leadAlerts', value)}
-                    isDark={isDark}
-                    color="#22c55e"
-                  />
-                  <NotificationToggle
-                    icon="briefcase-outline"
-                    title="Deal Updates"
-                    subtitle="Deal progress and closures"
-                    value={notifications.dealUpdates}
-                    onValueChange={(value) => updateNotification('dealUpdates', value)}
-                    isDark={isDark}
-                    color="#f59e0b"
-                  />
-                  <NotificationToggle
-                    icon="alarm-outline"
-                    title="Task Reminders"
-                    subtitle="Upcoming and overdue tasks"
-                    value={notifications.taskReminders}
-                    onValueChange={(value) => updateNotification('taskReminders', value)}
-                    isDark={isDark}
-                    color="#8b5cf6"
-                  />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.modalCloseButton}
-                  onPress={() => setShowNotificationsModal(false)}
                 >
                   <Text style={styles.modalCloseButtonText}>Done</Text>
                 </TouchableOpacity>
@@ -662,7 +494,6 @@ const styles = StyleSheet.create({
   modalContent: {
     borderRadius: 20,
     padding: 24,
-    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 22,
@@ -718,43 +549,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  // Notification styles
-  notificationSection: {
-    marginBottom: 16,
-  },
-  notificationSectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  notificationToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  notificationToggleIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationToggleContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  notificationToggleTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  notificationToggleSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
   },
 });
