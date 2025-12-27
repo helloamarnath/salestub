@@ -10,16 +10,21 @@ import {
   RefreshControl,
   ActivityIndicator,
   Animated,
+  Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
-import { getLeads, getKanbanView } from '@/lib/api/leads';
+import { getLeads, getKanbanView, exportLeadsToCSV, bulkDeleteLeads, bulkUpdateStage } from '@/lib/api/leads';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import { LeadCard } from '@/components/leads/LeadCard';
 import { LeadFilterModal, type LeadFilterState } from '@/components/filters';
@@ -215,6 +220,16 @@ export default function LeadsScreen() {
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<LeadFilterState>({});
   const [userRoleKey, setUserRoleKey] = useState<string | undefined>();
+
+  // Export state
+  const [exporting, setExporting] = useState(false);
+
+  // Selection mode state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkUpdatingStage, setBulkUpdatingStage] = useState(false);
+  const [showStagePickerForBulk, setShowStagePickerForBulk] = useState(false);
 
   // Count active advanced filters (count total selected items across all filter types)
   const activeAdvancedFilterCount =
@@ -515,10 +530,159 @@ export default function LeadsScreen() {
     router.push('/(tabs)/leads/create');
   };
 
-  // Render lead item
+  // Export leads to CSV
+  const handleExport = async () => {
+    if (exporting || !accessToken) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setExporting(true);
+
+    try {
+      // Build filters based on current active filter and advanced filters
+      const exportFilters: { stageId?: string; source?: string } = {};
+
+      // If a specific stage filter is active
+      if (advancedFilters.stageIds?.length === 1) {
+        exportFilters.stageId = advancedFilters.stageIds[0];
+      }
+
+      // If a specific source filter is active
+      if (advancedFilters.sources?.length === 1) {
+        exportFilters.source = advancedFilters.sources[0];
+      }
+
+      const result = await exportLeadsToCSV(accessToken, exportFilters);
+
+      if (result.success && result.csv) {
+        // Save to a temp file
+        const fileUri = FileSystem.documentDirectory + (result.filename || 'leads-export.csv');
+        await FileSystem.writeAsStringAsync(fileUri, result.csv, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Export Leads',
+            UTI: 'public.comma-separated-values-text',
+          });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Alert.alert(
+            'Export Ready',
+            'CSV file has been saved. Sharing is not available on this device.'
+          );
+        }
+      } else {
+        Alert.alert('Export Failed', result.error || 'Failed to export leads');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      Alert.alert('Export Failed', 'An error occurred while exporting leads');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Selection mode handlers
+  const enterSelectionMode = (leadId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectionMode(true);
+    setSelectedIds(new Set([leadId]));
+  };
+
+  const exitSelectionMode = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setShowStagePickerForBulk(false);
+  };
+
+  const toggleSelection = (leadId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(leadId)) {
+        newSet.delete(leadId);
+        // Exit selection mode if no items selected
+        if (newSet.size === 0) {
+          setSelectionMode(false);
+        }
+      } else {
+        newSet.add(leadId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedIds(new Set(filteredLeads.map(l => l.id)));
+  };
+
+  const handleBulkDelete = async () => {
+    if (!accessToken || selectedIds.size === 0) return;
+
+    Alert.alert(
+      'Delete Leads',
+      `Are you sure you want to delete ${selectedIds.size} lead${selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setBulkDeleting(true);
+            const response = await bulkDeleteLeads(accessToken, Array.from(selectedIds));
+            setBulkDeleting(false);
+
+            if (response.success) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Alert.alert('Success', `${response.data?.deleted || selectedIds.size} lead${(response.data?.deleted || selectedIds.size) !== 1 ? 's' : ''} deleted`);
+              exitSelectionMode();
+              fetchLeads(1);
+            } else {
+              Alert.alert('Error', response.error?.message || 'Failed to delete leads');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBulkStageChange = async (stageId: string) => {
+    if (!accessToken || selectedIds.size === 0) return;
+
+    setBulkUpdatingStage(true);
+    const response = await bulkUpdateStage(accessToken, Array.from(selectedIds), stageId);
+    setBulkUpdatingStage(false);
+    setShowStagePickerForBulk(false);
+
+    if (response.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Success', `${response.data?.updated || selectedIds.size} lead${(response.data?.updated || selectedIds.size) !== 1 ? 's' : ''} updated`);
+      exitSelectionMode();
+      fetchLeads(1);
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to update leads');
+    }
+  };
+
+  // Render lead item with selection mode support
   const renderLead = useCallback(
-    ({ item }: { item: Lead }) => <LeadCard lead={item} isDark={isDark} />,
-    [isDark]
+    ({ item }: { item: Lead }) => (
+      <LeadCard
+        lead={item}
+        isDark={isDark}
+        selectionMode={selectionMode}
+        selected={selectedIds.has(item.id)}
+        onLongPress={() => !selectionMode && enterSelectionMode(item.id)}
+        onSelect={() => selectionMode && toggleSelection(item.id)}
+      />
+    ),
+    [isDark, selectionMode, selectedIds]
   );
 
   // List footer
@@ -556,12 +720,25 @@ export default function LeadsScreen() {
                 </Text>
               )}
             </View>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleCreatePress}
-            >
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[styles.exportButton, { backgroundColor: searchBg, borderColor: searchBorder }]}
+                onPress={handleExport}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                ) : (
+                  <Ionicons name="download-outline" size={20} color="#3b82f6" />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleCreatePress}
+              >
+                <Ionicons name="add" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Search bar with filter */}
@@ -681,6 +858,82 @@ export default function LeadsScreen() {
         showOwnerFilter={isSuperAdmin(userRoleKey)}
         userRoleKey={userRoleKey}
       />
+
+      {/* Bulk Action Bar */}
+      {selectionMode && (
+        <View style={[styles.bulkActionBar, { paddingBottom: insets.bottom + 10, backgroundColor: isDark ? '#1e293b' : 'white', borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+          <View style={styles.bulkActionBarContent}>
+            <View style={styles.bulkSelectionInfo}>
+              <TouchableOpacity onPress={exitSelectionMode} style={styles.bulkCloseButton}>
+                <Ionicons name="close" size={24} color={textColor} />
+              </TouchableOpacity>
+              <Text style={[styles.bulkSelectedCount, { color: textColor }]}>
+                {selectedIds.size} selected
+              </Text>
+              <TouchableOpacity onPress={selectAll} style={[styles.selectAllButton, { borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }]}>
+                <Text style={[styles.selectAllText, { color: subtitleColor }]}>Select All</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.bulkActions}>
+              <TouchableOpacity
+                style={[styles.bulkActionButton, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}
+                onPress={() => setShowStagePickerForBulk(true)}
+                disabled={bulkUpdatingStage}
+              >
+                {bulkUpdatingStage ? (
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                ) : (
+                  <>
+                    <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
+                    <Text style={styles.bulkActionText}>Stage</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bulkActionButton, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]}
+                onPress={handleBulkDelete}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting ? (
+                  <ActivityIndicator size="small" color="#ef4444" />
+                ) : (
+                  <>
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                    <Text style={[styles.bulkActionText, { color: '#ef4444' }]}>Delete</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Bulk Stage Picker Modal */}
+      <Modal visible={showStagePickerForBulk} transparent animationType="slide" onRequestClose={() => setShowStagePickerForBulk(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowStagePickerForBulk(false)}>
+          <View style={[styles.stagePickerContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+            <View style={[styles.stagePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+              <Text style={[styles.stagePickerTitle, { color: textColor }]}>Move to Stage</Text>
+              <TouchableOpacity onPress={() => setShowStagePickerForBulk(false)}>
+                <Ionicons name="close" size={24} color={textColor} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.stagePickerList}>
+              {pipelineStages.map((stage) => (
+                <TouchableOpacity
+                  key={stage.id}
+                  style={[styles.stagePickerItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
+                  onPress={() => handleBulkStageChange(stage.id)}
+                >
+                  <View style={[styles.stageColorDot, { backgroundColor: getStageColor(stage) }]} />
+                  <Text style={[styles.stagePickerItemText, { color: textColor }]}>{stage.name}</Text>
+                  <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -709,6 +962,19 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  exportButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addButton: {
     width: 40,
@@ -899,5 +1165,102 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Bulk Action Bar styles
+  bulkActionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+  },
+  bulkActionBarContent: {
+    gap: 12,
+  },
+  bulkSelectionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  bulkCloseButton: {
+    padding: 4,
+  },
+  bulkSelectedCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  selectAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  selectAllText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  bulkActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  bulkActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  bulkActionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  // Stage Picker Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  stagePickerContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '60%',
+  },
+  stagePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  stagePickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  stagePickerList: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  stagePickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  stageColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  stagePickerItemText: {
+    flex: 1,
+    fontSize: 16,
   },
 });

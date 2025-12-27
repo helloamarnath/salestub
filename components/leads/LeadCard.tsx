@@ -13,9 +13,12 @@ interface LeadCardProps {
   onPress?: () => void;
   onLongPress?: () => void;
   isDark?: boolean;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelect?: () => void;
 }
 
-export function LeadCard({ lead, onPress, onLongPress, isDark = true }: LeadCardProps) {
+export function LeadCard({ lead, onPress, onLongPress, isDark = true, selectionMode = false, selected = false, onSelect }: LeadCardProps) {
   const contactName = lead.contact
     ? getContactFullName(lead.contact)
     : 'No contact';
@@ -37,6 +40,10 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true }: LeadCard
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (selectionMode && onSelect) {
+      onSelect();
+      return;
+    }
     if (onPress) {
       onPress();
     } else {
@@ -96,10 +103,18 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true }: LeadCard
       <View style={[styles.container, { borderColor }]}>
         <BlurView intensity={15} tint={isDark ? 'dark' : 'light'} style={[styles.blur, { backgroundColor: bgColor }]}>
           <View style={styles.content}>
-            {/* Left: Avatar */}
-            <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
+            {/* Left: Avatar or Checkbox */}
+            {selectionMode ? (
+              <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+                {selected && (
+                  <Ionicons name="checkmark" size={18} color="white" />
+                )}
+              </View>
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
 
             {/* Center: Lead Info */}
             <View style={styles.info}>
@@ -233,5 +248,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'rgba(59, 130, 246, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 20,
+  },
+  checkboxSelected: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
   },
 });

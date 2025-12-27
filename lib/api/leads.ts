@@ -399,3 +399,53 @@ export async function convertLead(
     data
   );
 }
+
+// ============ Export ============
+
+/**
+ * Export leads to CSV
+ * Returns raw CSV string (not JSON wrapped)
+ */
+export async function exportLeadsToCSV(
+  token: string | null,
+  filters?: { stageId?: string; source?: string }
+): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.salestub.com';
+
+  const url = new URL(`${API_URL}${LEADS_BASE}/export`);
+  if (filters?.stageId) url.searchParams.append('stageId', filters.stageId);
+  if (filters?.source) url.searchParams.append('source', filters.source);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.message || `Export failed with status ${response.status}`,
+      };
+    }
+
+    // Get filename from Content-Disposition header if available
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'leads-export.csv';
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+    }
+
+    const csv = await response.text();
+    return { success: true, csv, filename };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Export failed',
+    };
+  }
+}
