@@ -134,10 +134,10 @@ export default function DashboardScreen() {
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
 
   // Navigation handlers
-  const handleAddLead = () => router.push('/leads/create' as any);
-  const handleAddDeal = () => router.push('/deals/create' as any);
+  const handleAddLead = () => router.push('/(tabs)/leads/create' as any);
+  const handleAddDeal = () => router.push('/(tabs)/deals/create' as any);
   const handleAddTask = () => router.push('/activities/create' as any);
-  const handleAddContact = () => router.push('/contacts/create' as any);
+  const handleAddContact = () => router.push('/(tabs)/contacts/customer/create' as any);
   const handleViewAllActivities = () => router.push('/activities' as any);
   const handleActivityPress = (activity: DashboardActivity) => router.push(`/activities/${activity.id}` as any);
 

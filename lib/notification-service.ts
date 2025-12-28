@@ -138,23 +138,44 @@ class NotificationService {
   }
 
   async unsubscribeFromPushNotifications(accessToken: string): Promise<void> {
-    if (!this.fcmToken) return;
+    // Try to get token from memory or fetch fresh one
+    let token = this.fcmToken;
+
+    if (!token) {
+      // Try to get the current device token
+      try {
+        const tokenData = await Notifications.getDevicePushTokenAsync();
+        token = tokenData.data;
+      } catch (error) {
+        console.log('No push token available to unsubscribe');
+        return;
+      }
+    }
+
+    if (!token) {
+      console.log('No push token available to unsubscribe');
+      return;
+    }
 
     try {
       const response = await api.delete<{ success: boolean }>(
         '/api/v1/push-notifications/unsubscribe',
         accessToken,
-        { fcmToken: this.fcmToken }
+        { fcmToken: token }
       );
 
       if (response.success) {
         this.fcmToken = null;
         console.log('Push notifications unsubscribed successfully');
       } else {
-        console.error('Failed to unsubscribe from push notifications:', response.error?.message);
+        // If unsubscribe fails (e.g., token not found on server), just clear local state
+        console.log('Unsubscribe response:', response.error?.message);
+        this.fcmToken = null;
       }
     } catch (error) {
       console.error('Failed to unsubscribe from push notifications:', error);
+      // Clear local state anyway on error
+      this.fcmToken = null;
     }
   }
 

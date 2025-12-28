@@ -264,6 +264,7 @@ export default function MoreScreen() {
             title="Calendar"
             subtitle="Sync your calendar"
             color="#06b6d4"
+            onPress={() => router.push('/calendar' as Href)}
             isDark={isDark}
           />
           <MenuItem

@@ -170,8 +170,8 @@ export const api = {
   patch: <T>(endpoint: string, token: string | null, body?: unknown) =>
     apiRequest<T>(endpoint, token, { method: 'PATCH', body }),
 
-  delete: <T>(endpoint: string, token: string | null) =>
-    apiRequest<T>(endpoint, token, { method: 'DELETE' }),
+  delete: <T>(endpoint: string, token: string | null, body?: unknown) =>
+    apiRequest<T>(endpoint, token, { method: 'DELETE', body }),
 };
 
 // Upload file with multipart form data
