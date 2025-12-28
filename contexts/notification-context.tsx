@@ -223,9 +223,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           // Parse actionUrl and navigate
           const url = data.actionUrl as string;
           if (url.includes('/leads/')) {
-            router.push('/(tabs)');
+            // Extract lead ID and navigate to leads tab
+            const leadMatch = url.match(/\/leads\/([^/?]+)/);
+            if (leadMatch) {
+              router.push(`/(tabs)/leads/${leadMatch[1]}` as any);
+            } else {
+              router.push('/(tabs)/leads' as any);
+            }
           } else if (url.includes('/deals/')) {
-            router.push('/(tabs)');
+            // Extract deal ID and navigate to deals tab
+            const dealMatch = url.match(/\/deals\/([^/?]+)/);
+            if (dealMatch) {
+              router.push(`/(tabs)/deals/${dealMatch[1]}` as any);
+            } else {
+              router.push('/(tabs)/deals' as any);
+            }
+          } else if (url.includes('/contacts/')) {
+            // Extract contact ID and navigate to contacts tab
+            const contactMatch = url.match(/\/contacts\/([^/?]+)/);
+            if (contactMatch) {
+              router.push(`/(tabs)/contacts/${contactMatch[1]}` as any);
+            } else {
+              router.push('/(tabs)/contacts' as any);
+            }
+          } else if (url.includes('/activities')) {
+            // Activity notifications - show in notifications screen for now
+            // TODO: Add activities tab/screen when implemented
+            router.push('/notifications' as any);
+          } else {
+            // Default fallback to notifications
+            router.push('/notifications' as any);
           }
         } else {
           // Navigate to notifications screen
