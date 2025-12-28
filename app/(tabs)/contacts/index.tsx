@@ -18,7 +18,9 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useRBAC } from '@/hooks/use-rbac';
 import { Colors } from '@/constants/theme';
+import { AccessDenied } from '@/components/AccessDenied';
 import { getContacts } from '@/lib/api/contacts';
 import { getCompanies } from '@/lib/api/companies';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
@@ -185,10 +187,12 @@ function EmptyState({
   type,
   isDark,
   onAdd,
+  canCreate,
 }: {
   type: TabType;
   isDark: boolean;
   onAdd: () => void;
+  canCreate: boolean;
 }) {
   const textColor = isDark ? 'white' : Colors.light.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -204,16 +208,20 @@ function EmptyState({
         No {type === 'customers' ? 'Customers' : 'Organizations'} Yet
       </Text>
       <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>
-        {type === 'customers'
-          ? 'Add your first customer contact to get started'
-          : 'Add your first organization to get started'}
+        {canCreate
+          ? type === 'customers'
+            ? 'Add your first customer contact to get started'
+            : 'Add your first organization to get started'
+          : 'No contacts available'}
       </Text>
-      <TouchableOpacity style={styles.emptyButton} onPress={onAdd}>
-        <Ionicons name="add" size={20} color="white" />
-        <Text style={styles.emptyButtonText}>
-          Add {type === 'customers' ? 'Customer' : 'Organization'}
-        </Text>
-      </TouchableOpacity>
+      {canCreate && (
+        <TouchableOpacity style={styles.emptyButton} onPress={onAdd}>
+          <Ionicons name="add" size={20} color="white" />
+          <Text style={styles.emptyButtonText}>
+            Add {type === 'customers' ? 'Customer' : 'Organization'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -223,8 +231,20 @@ export default function ContactsScreen() {
   const router = useRouter();
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
+  const rbac = useRBAC();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
+
+  // Check if user has permission to view contacts
+  if (rbac.isLoaded && !rbac.canRead('contacts')) {
+    return (
+      <AccessDenied
+        title="Access Denied"
+        message="You don't have permission to view contacts. Please contact your administrator."
+        showHomeButton={true}
+      />
+    );
+  }
 
   const [activeTab, setActiveTab] = useState<TabType>('customers');
   const [searchQuery, setSearchQuery] = useState('');
@@ -468,9 +488,11 @@ export default function ContactsScreen() {
         <View style={styles.headerContent}>
           <View style={styles.headerTop}>
             <Text style={[styles.title, { color: textColor }]}>Contacts</Text>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
+            {rbac.canCreate('contacts') && (
+              <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
+                <Ionicons name="add" size={24} color="white" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Tab Switcher */}
@@ -566,7 +588,7 @@ export default function ContactsScreen() {
       {isLoading && data.length === 0 ? (
         renderSkeleton()
       ) : data.length === 0 ? (
-        <EmptyState type={activeTab} isDark={isDark} onAdd={handleAddNew} />
+        <EmptyState type={activeTab} isDark={isDark} onAdd={handleAddNew} canCreate={rbac.canCreate('contacts')} />
       ) : activeTab === 'customers' ? (
         <FlatList
           data={customers}

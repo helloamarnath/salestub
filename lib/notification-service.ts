@@ -121,7 +121,7 @@ class NotificationService {
         '/api/v1/push-notifications/subscribe',
         accessToken,
         {
-          token,
+          fcmToken: token,
           platform: Platform.OS,
           deviceName: Device.deviceName || 'Unknown Device',
         }
@@ -141,10 +141,10 @@ class NotificationService {
     if (!this.fcmToken) return;
 
     try {
-      const response = await api.post<{ success: boolean }>(
+      const response = await api.delete<{ success: boolean }>(
         '/api/v1/push-notifications/unsubscribe',
         accessToken,
-        { token: this.fcmToken }
+        { fcmToken: this.fcmToken }
       );
 
       if (response.success) {

@@ -39,7 +39,7 @@ interface User {
   mfaEnabled: boolean;
 }
 
-// Minimal user data for storage
+// User data for storage (includes roles and permissions for RBAC)
 interface StoredUser {
   id: string;
   email: string;
@@ -47,9 +47,12 @@ interface StoredUser {
   lastName?: string;
   orgId?: string;
   membershipId?: string;
+  isInternal?: boolean;
+  roles?: string[];
+  permissions?: string[];
 }
 
-// Extract minimal user data for secure storage
+// Extract user data for secure storage (including roles and permissions)
 function getStorableUser(user: User): StoredUser {
   return {
     id: user.id,
@@ -58,16 +61,24 @@ function getStorableUser(user: User): StoredUser {
     lastName: user.lastName,
     orgId: user.orgId,
     membershipId: user.membershipId,
+    isInternal: user.isInternal,
+    roles: user.roles,
+    permissions: user.permissions,
   };
 }
 
-// Restore full user from stored data (with defaults for missing fields)
+// Restore full user from stored data
 function restoreUser(stored: StoredUser): User {
   return {
-    ...stored,
-    isInternal: false,
-    roles: [],
-    permissions: [],
+    id: stored.id,
+    email: stored.email,
+    firstName: stored.firstName,
+    lastName: stored.lastName,
+    orgId: stored.orgId,
+    membershipId: stored.membershipId,
+    isInternal: stored.isInternal || false,
+    roles: stored.roles || [],
+    permissions: stored.permissions || [],
     mfaEnabled: false,
   };
 }

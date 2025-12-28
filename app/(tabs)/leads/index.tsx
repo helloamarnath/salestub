@@ -21,7 +21,9 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
+import { useRBAC } from '@/hooks/use-rbac';
 import { Colors } from '@/constants/theme';
+import { AccessDenied } from '@/components/AccessDenied';
 import { getLeads, getKanbanView, bulkDeleteLeads, bulkUpdateStage } from '@/lib/api/leads';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import { LeadCard } from '@/components/leads/LeadCard';
@@ -142,7 +144,7 @@ function LeadSkeleton({ isDark }: { isDark: boolean }) {
 }
 
 // Empty state component
-function EmptyState({ searchQuery, filterLabel, isDark }: { searchQuery: string; filterLabel: string; isDark: boolean }) {
+function EmptyState({ searchQuery, filterLabel, isDark, canCreate }: { searchQuery: string; filterLabel: string; isDark: boolean; canCreate: boolean }) {
   const textColor = isDark ? 'white' : Colors.light.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const iconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
@@ -160,9 +162,9 @@ function EmptyState({ searchQuery, filterLabel, isDark }: { searchQuery: string;
       <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>
         {searchQuery
           ? 'Try adjusting your search or filters'
-          : 'Create your first lead to get started'}
+          : canCreate ? 'Create your first lead to get started' : 'No leads available'}
       </Text>
-      {!searchQuery && (
+      {!searchQuery && canCreate && (
         <TouchableOpacity
           style={styles.emptyButton}
           onPress={() => router.push('/(tabs)/leads/create')}
@@ -197,8 +199,20 @@ export default function LeadsScreen() {
   const insets = useSafeAreaInsets();
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
+  const rbac = useRBAC();
 
   const isDark = resolvedTheme === 'dark';
+
+  // Check if user has permission to view leads
+  if (rbac.isLoaded && !rbac.canRead('leads')) {
+    return (
+      <AccessDenied
+        title="Access Denied"
+        message="You don't have permission to view leads. Please contact your administrator."
+        showHomeButton={true}
+      />
+    );
+  }
   const colors = Colors[resolvedTheme];
 
   // State
@@ -659,12 +673,14 @@ export default function LeadsScreen() {
                 </Text>
               )}
             </View>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleCreatePress}
-            >
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
+            {rbac.canCreate('leads') && (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleCreatePress}
+              >
+                <Ionicons name="add" size={24} color="white" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Search bar with filter */}
@@ -748,7 +764,7 @@ export default function LeadsScreen() {
       ) : error ? (
         <ErrorState message={error} onRetry={() => fetchLeads(1)} isDark={isDark} />
       ) : filteredLeads.length === 0 ? (
-        <EmptyState searchQuery={searchQuery} filterLabel={currentFilterLabel} isDark={isDark} />
+        <EmptyState searchQuery={searchQuery} filterLabel={currentFilterLabel} isDark={isDark} canCreate={rbac.canCreate('leads')} />
       ) : (
         <FlatList
           data={filteredLeads}
@@ -801,34 +817,38 @@ export default function LeadsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.bulkActions}>
-              <TouchableOpacity
-                style={[styles.bulkActionButton, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}
-                onPress={() => setShowStagePickerForBulk(true)}
-                disabled={bulkUpdatingStage}
-              >
-                {bulkUpdatingStage ? (
-                  <ActivityIndicator size="small" color="#3b82f6" />
-                ) : (
-                  <>
-                    <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
-                    <Text style={styles.bulkActionText}>Stage</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.bulkActionButton, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]}
-                onPress={handleBulkDelete}
-                disabled={bulkDeleting}
-              >
-                {bulkDeleting ? (
-                  <ActivityIndicator size="small" color="#ef4444" />
-                ) : (
-                  <>
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                    <Text style={[styles.bulkActionText, { color: '#ef4444' }]}>Delete</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              {rbac.canUpdate('leads') && (
+                <TouchableOpacity
+                  style={[styles.bulkActionButton, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}
+                  onPress={() => setShowStagePickerForBulk(true)}
+                  disabled={bulkUpdatingStage}
+                >
+                  {bulkUpdatingStage ? (
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                  ) : (
+                    <>
+                      <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
+                      <Text style={styles.bulkActionText}>Stage</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+              {rbac.canDelete('leads') && (
+                <TouchableOpacity
+                  style={[styles.bulkActionButton, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]}
+                  onPress={handleBulkDelete}
+                  disabled={bulkDeleting}
+                >
+                  {bulkDeleting ? (
+                    <ActivityIndicator size="small" color="#ef4444" />
+                  ) : (
+                    <>
+                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                      <Text style={[styles.bulkActionText, { color: '#ef4444' }]}>Delete</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>

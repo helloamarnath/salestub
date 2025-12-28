@@ -180,24 +180,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [accessToken]);
 
+  // Track if we've already subscribed to avoid duplicate subscriptions
+  const hasSubscribedRef = useRef(false);
+  const lastAccessTokenRef = useRef<string | null>(null);
+
   // Setup push notifications when authenticated
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated || !accessToken) {
+      // User logged out - unsubscribe and reset
+      if (hasSubscribedRef.current && lastAccessTokenRef.current) {
+        notificationService.unsubscribeFromPushNotifications(lastAccessTokenRef.current);
+        hasSubscribedRef.current = false;
+        lastAccessTokenRef.current = null;
+      }
+      return;
+    }
+
+    // Only subscribe once per session, not on every token refresh
+    if (hasSubscribedRef.current) {
+      return;
+    }
 
     const setupNotifications = async () => {
       await notificationService.setupAndroidChannel();
       await notificationService.subscribeToPushNotifications(accessToken);
       await refreshUnreadCount();
+      hasSubscribedRef.current = true;
+      lastAccessTokenRef.current = accessToken;
     };
 
     setupNotifications();
-
-    // Cleanup on logout
-    return () => {
-      if (accessToken) {
-        notificationService.unsubscribeFromPushNotifications(accessToken);
-      }
-    };
   }, [isAuthenticated, accessToken, refreshUnreadCount]);
 
   // Listen for incoming notifications

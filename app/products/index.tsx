@@ -19,7 +19,9 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
+import { useRBAC } from '@/hooks/use-rbac';
 import { Colors } from '@/constants/theme';
+import { AccessDenied } from '@/components/AccessDenied';
 import { getProducts, deleteProduct } from '@/lib/api/products';
 import type { Product, ProductFilters } from '@/types/product';
 import { formatProductPrice } from '@/types/product';
@@ -30,11 +32,13 @@ function ProductCard({
   isDark,
   onPress,
   onDelete,
+  canDelete,
 }: {
   product: Product;
   isDark: boolean;
   onPress: () => void;
   onDelete: () => void;
+  canDelete: boolean;
 }) {
   const textColor = isDark ? 'white' : Colors.light.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -106,16 +110,18 @@ function ProductCard({
 
         {/* Actions */}
         <View style={styles.productActions}>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              handleDelete();
-            }}
-          >
-            <Ionicons name="trash-outline" size={18} color="#ef4444" />
-          </TouchableOpacity>
+          {canDelete && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                handleDelete();
+              }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#ef4444" />
+            </TouchableOpacity>
+          )}
           <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
         </View>
       </View>
@@ -152,7 +158,7 @@ function ProductSkeleton({ isDark }: { isDark: boolean }) {
 }
 
 // Empty State
-function EmptyState({ isDark, searchQuery }: { isDark: boolean; searchQuery: string }) {
+function EmptyState({ isDark, searchQuery, canCreate }: { isDark: boolean; searchQuery: string; canCreate: boolean }) {
   const textColor = isDark ? 'white' : Colors.light.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const iconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
@@ -170,9 +176,9 @@ function EmptyState({ isDark, searchQuery }: { isDark: boolean; searchQuery: str
       <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>
         {searchQuery
           ? 'Try adjusting your search'
-          : 'Create your first product to get started'}
+          : canCreate ? 'Create your first product to get started' : 'No products available'}
       </Text>
-      {!searchQuery && (
+      {!searchQuery && canCreate && (
         <TouchableOpacity
           style={styles.emptyButton}
           onPress={() => router.push('/products/create')}
@@ -189,8 +195,20 @@ export default function ProductsScreen() {
   const insets = useSafeAreaInsets();
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
+  const rbac = useRBAC();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
+
+  // Check if user has permission to view products
+  if (rbac.isLoaded && !rbac.canRead('products')) {
+    return (
+      <AccessDenied
+        title="Access Denied"
+        message="You don't have permission to view products. Please contact your administrator."
+        showHomeButton={true}
+      />
+    );
+  }
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
@@ -326,9 +344,10 @@ export default function ProductsScreen() {
         isDark={isDark}
         onPress={() => router.push(`/products/${item.id}`)}
         onDelete={() => handleDelete(item.id)}
+        canDelete={rbac.canDelete('products')}
       />
     ),
-    [isDark, accessToken]
+    [isDark, accessToken, rbac]
   );
 
   // List footer
@@ -366,9 +385,11 @@ export default function ProductsScreen() {
                 </Text>
               )}
             </View>
-            <TouchableOpacity style={styles.addButton} onPress={handleCreate}>
-              <Ionicons name="add" size={24} color="white" />
-            </TouchableOpacity>
+            {rbac.canCreate('products') && (
+              <TouchableOpacity style={styles.addButton} onPress={handleCreate}>
+                <Ionicons name="add" size={24} color="white" />
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Search Bar */}
@@ -399,7 +420,7 @@ export default function ProductsScreen() {
           ))}
         </View>
       ) : products.length === 0 ? (
-        <EmptyState isDark={isDark} searchQuery={searchQuery} />
+        <EmptyState isDark={isDark} searchQuery={searchQuery} canCreate={rbac.canCreate('products')} />
       ) : (
         <FlatList
           data={products}

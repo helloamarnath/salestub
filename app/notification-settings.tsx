@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,6 +75,7 @@ export default function NotificationSettingsScreen() {
   const { accessToken } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     pushNotificationsEnabled: true,
     emailNotificationsEnabled: true,
@@ -173,6 +174,49 @@ export default function NotificationSettingsScreen() {
       preferences.smsNotificationsEnabled,
       preferences.whatsappNotificationsEnabled,
     ].filter(Boolean).length;
+  };
+
+  const sendTestNotification = async () => {
+    if (!accessToken) {
+      Alert.alert('Error', 'You must be logged in to send a test notification');
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      const response = await fetch(`${API_URL}/api/v1/push-notifications/test`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert(
+          'Test Sent',
+          data.message || 'Test notification sent successfully! You should receive it shortly.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Failed',
+          data.message || 'Failed to send test notification. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      Alert.alert(
+        'Error',
+        'Network error. Please check your connection and try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   return (
@@ -308,6 +352,54 @@ export default function NotificationSettingsScreen() {
                 </Text>
               </View>
             </BlurView>
+          </View>
+
+          {/* Test Notification Section */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)' }]}>
+              Test Notifications
+            </Text>
+            <View style={[styles.sectionCard, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+              <BlurView
+                intensity={15}
+                tint={isDark ? 'dark' : 'light'}
+                style={[styles.sectionCardBlur, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}
+              >
+                <View style={styles.testNotificationContent}>
+                  <View style={styles.testNotificationInfo}>
+                    <View style={[styles.testNotificationIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+                      <Ionicons name="paper-plane-outline" size={22} color="#8b5cf6" />
+                    </View>
+                    <View style={styles.testNotificationText}>
+                      <Text style={[styles.testNotificationTitle, { color: colors.foreground }]}>
+                        Send Test Notification
+                      </Text>
+                      <Text style={[styles.testNotificationSubtitle, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
+                        Verify push notifications are working on your device
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.testButton,
+                      { backgroundColor: '#8b5cf6' },
+                      isSendingTest && styles.testButtonDisabled,
+                    ]}
+                    onPress={sendTestNotification}
+                    disabled={isSendingTest}
+                  >
+                    {isSendingTest ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <>
+                        <Ionicons name="send" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                        <Text style={styles.testButtonText}>Send</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </BlurView>
+            </View>
           </View>
         </ScrollView>
       )}
@@ -451,5 +543,54 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 20,
+  },
+  testNotificationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+  },
+  testNotificationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  testNotificationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  testNotificationText: {
+    flex: 1,
+    marginLeft: 14,
+    marginRight: 12,
+  },
+  testNotificationTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  testNotificationSubtitle: {
+    fontSize: 13,
+    marginTop: 3,
+    lineHeight: 18,
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minWidth: 80,
+  },
+  testButtonDisabled: {
+    opacity: 0.7,
+  },
+  testButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

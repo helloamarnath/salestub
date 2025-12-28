@@ -20,7 +20,9 @@ import { Paths, File as ExpoFile } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useRBAC } from '@/hooks/use-rbac';
 import { Colors } from '@/constants/theme';
+import { AccessDenied } from '@/components/AccessDenied';
 import { getDeals, getDealCounts, bulkDeleteDeals, bulkUpdateStage, exportDealsToCSV } from '@/lib/api/deals';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import { DealFilterModal, type DealFilterState } from '@/components/filters';
@@ -201,10 +203,12 @@ function EmptyState({
   isDark,
   onAdd,
   hasFilters,
+  canCreate,
 }: {
   isDark: boolean;
   onAdd: () => void;
   hasFilters: boolean;
+  canCreate: boolean;
 }) {
   const textColor = isDark ? 'white' : Colors.light.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -218,9 +222,9 @@ function EmptyState({
       <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>
         {hasFilters
           ? 'Try adjusting your filters or search'
-          : 'Create your first deal to get started'}
+          : canCreate ? 'Create your first deal to get started' : 'No deals available'}
       </Text>
-      {!hasFilters && (
+      {!hasFilters && canCreate && (
         <TouchableOpacity style={styles.emptyButton} onPress={onAdd}>
           <Ionicons name="add" size={20} color="white" />
           <Text style={styles.emptyButtonText}>Create Deal</Text>
@@ -277,8 +281,20 @@ export default function DealsScreen() {
   const router = useRouter();
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
+  const rbac = useRBAC();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
+
+  // Check if user has permission to view deals
+  if (rbac.isLoaded && !rbac.canRead('deals')) {
+    return (
+      <AccessDenied
+        title="Access Denied"
+        message="You don't have permission to view deals. Please contact your administrator."
+        showHomeButton={true}
+      />
+    );
+  }
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -631,29 +647,33 @@ export default function DealsScreen() {
                   >
                     <Ionicons name="ellipsis-horizontal" size={20} color={textColor} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
-                    <Ionicons name="add" size={24} color="white" />
-                  </TouchableOpacity>
+                  {rbac.canCreate('deals') && (
+                    <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
+                      <Ionicons name="add" size={24} color="white" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
 
               {/* More menu dropdown */}
               {showMoreMenu && (
                 <View style={[styles.moreMenu, { backgroundColor: isDark ? '#1e293b' : 'white', borderColor }]}>
-                  <TouchableOpacity
-                    style={styles.moreMenuItem}
-                    onPress={handleExport}
-                    disabled={exporting}
-                  >
-                    {exporting ? (
-                      <ActivityIndicator size="small" color="#3b82f6" />
-                    ) : (
-                      <Ionicons name="download-outline" size={20} color={textColor} />
-                    )}
-                    <Text style={[styles.moreMenuText, { color: textColor }]}>
-                      {exporting ? 'Exporting...' : 'Export to CSV'}
-                    </Text>
-                  </TouchableOpacity>
+                  {rbac.canExport('deals') && (
+                    <TouchableOpacity
+                      style={styles.moreMenuItem}
+                      onPress={handleExport}
+                      disabled={exporting}
+                    >
+                      {exporting ? (
+                        <ActivityIndicator size="small" color="#3b82f6" />
+                      ) : (
+                        <Ionicons name="download-outline" size={20} color={textColor} />
+                      )}
+                      <Text style={[styles.moreMenuText, { color: textColor }]}>
+                        {exporting ? 'Exporting...' : 'Export to CSV'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     style={styles.moreMenuItem}
                     onPress={() => {
@@ -721,7 +741,7 @@ export default function DealsScreen() {
       {loading && deals.length === 0 ? (
         renderSkeleton()
       ) : deals.length === 0 ? (
-        <EmptyState isDark={isDark} onAdd={handleAddNew} hasFilters={hasFilters} />
+        <EmptyState isDark={isDark} onAdd={handleAddNew} hasFilters={hasFilters} canCreate={rbac.canCreate('deals')} />
       ) : (
         <FlatList
           data={deals}
@@ -762,20 +782,24 @@ export default function DealsScreen() {
             </View>
           ) : (
             <View style={styles.bulkActionButtons}>
-              <TouchableOpacity
-                style={[styles.bulkActionBtn, styles.bulkActionStageBtn]}
-                onPress={handleBulkStageUpdate}
-              >
-                <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
-                <Text style={styles.bulkActionStageBtnText}>Change Stage</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.bulkActionBtn, styles.bulkActionDeleteBtn]}
-                onPress={handleBulkDelete}
-              >
-                <Ionicons name="trash-outline" size={20} color="white" />
-                <Text style={styles.bulkActionDeleteBtnText}>Delete</Text>
-              </TouchableOpacity>
+              {rbac.canUpdate('deals') && (
+                <TouchableOpacity
+                  style={[styles.bulkActionBtn, styles.bulkActionStageBtn]}
+                  onPress={handleBulkStageUpdate}
+                >
+                  <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
+                  <Text style={styles.bulkActionStageBtnText}>Change Stage</Text>
+                </TouchableOpacity>
+              )}
+              {rbac.canDelete('deals') && (
+                <TouchableOpacity
+                  style={[styles.bulkActionBtn, styles.bulkActionDeleteBtn]}
+                  onPress={handleBulkDelete}
+                >
+                  <Ionicons name="trash-outline" size={20} color="white" />
+                  <Text style={styles.bulkActionDeleteBtnText}>Delete</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>

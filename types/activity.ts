@@ -115,7 +115,7 @@ export interface ActivityFilters {
 
 export interface PaginatedActivitiesResponse {
   data: Activity[];
-  meta: {
+  pagination: {
     total: number;
     page: number;
     limit: number;

@@ -222,7 +222,11 @@ export default function MoreScreen() {
         </View>
 
         {/* Profile card */}
-        <View style={styles.profileCardWrapper}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.push('/profile' as Href)}
+          style={styles.profileCardWrapper}
+        >
           <View style={[styles.profileCard, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
             <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={[styles.profileCardBlur, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
               <View style={styles.profileContent}>
@@ -235,13 +239,11 @@ export default function MoreScreen() {
                   </Text>
                   <Text style={[styles.profileEmail, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>{email}</Text>
                 </View>
-                <TouchableOpacity>
-                  <Ionicons name="chevron-forward" size={20} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'} />
-                </TouchableOpacity>
+                <Ionicons name="chevron-forward" size={20} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'} />
               </View>
             </BlurView>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* CRM Settings */}
         <MenuSection title="CRM" isDark={isDark}>
