@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Platform, View, ActivityIndicator, StyleSheet, DynamicColorIOS } from 'react-native';
 import { router } from 'expo-router';
 import {
   NativeTabs,
@@ -7,10 +7,33 @@ import {
   Label,
 } from 'expo-router/unstable-native-tabs';
 import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/contexts/theme-context';
+
+// Color constants for tab bar theming
+const colors = {
+  light: {
+    background: '#ffffff',
+    tint: '#3b82f6', // Primary blue
+    inactive: '#64748b', // Slate gray
+    indicator: '#3b82f6',
+    ripple: 'rgba(59, 130, 246, 0.12)',
+  },
+  dark: {
+    background: '#0f172a', // Dark slate
+    tint: '#60a5fa', // Lighter blue for dark mode
+    inactive: '#94a3b8', // Lighter gray for visibility
+    indicator: '#60a5fa',
+    ripple: 'rgba(96, 165, 250, 0.12)',
+  },
+};
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { resolvedTheme } = useTheme();
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const isDark = resolvedTheme === 'dark';
+  const themeColors = isDark ? colors.dark : colors.light;
 
   // Handle redirect in useEffect to avoid render loops
   useEffect(() => {
@@ -26,8 +49,8 @@ export default function TabLayout() {
   // Show loading spinner while checking auth or redirecting
   if (isLoading || !isAuthenticated) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={[styles.loadingContainer, { backgroundColor: themeColors.background }]}>
+        <ActivityIndicator size="large" color={themeColors.tint} />
       </View>
     );
   }
@@ -35,6 +58,30 @@ export default function TabLayout() {
   return (
     <NativeTabs
       minimizeBehavior={Platform.OS === 'ios' ? 'onScrollDown' : undefined}
+      // Background color
+      backgroundColor={themeColors.background}
+      // Icon colors: default (inactive) and selected (active)
+      iconColor={{
+        default: themeColors.inactive,
+        selected: themeColors.tint,
+      }}
+      // Label styling for both states
+      labelStyle={{
+        default: { color: themeColors.inactive },
+        selected: { color: themeColors.tint },
+      }}
+      // Android-specific props
+      {...(Platform.OS === 'android' && {
+        indicatorColor: themeColors.indicator,
+        rippleColor: themeColors.ripple,
+      })}
+      // iOS-specific: Use DynamicColorIOS for automatic adaptation
+      {...(Platform.OS === 'ios' && {
+        tintColor: DynamicColorIOS({
+          dark: colors.dark.tint,
+          light: colors.light.tint,
+        }),
+      })}
     >
       <NativeTabs.Trigger name="index">
         <Icon
@@ -84,6 +131,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0f172a',
   },
 });
