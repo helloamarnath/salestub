@@ -564,8 +564,8 @@ function ActivityFormModal({
           </View>
         </View>
 
-        {/* Date Picker */}
-        {showDatePicker && (
+        {/* Date Picker - iOS: Modal with spinner, Android: Native dialog */}
+        {showDatePicker && Platform.OS === 'ios' && (
           <Modal transparent animationType="fade">
             <Pressable style={[styles.datePickerOverlay, { backgroundColor: overlayColor }]} onPress={() => setShowDatePicker(false)}>
               <View style={[styles.datePickerContainer, { backgroundColor: bgColor }]}>
@@ -588,9 +588,22 @@ function ActivityFormModal({
             </Pressable>
           </Modal>
         )}
+        {showDatePicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={dueDate}
+            mode="date"
+            display="default"
+            onChange={(event, date) => {
+              setShowDatePicker(false);
+              if (event.type === 'set' && date) {
+                setDueDate(date);
+              }
+            }}
+          />
+        )}
 
-        {/* Time Picker */}
-        {showTimePicker && (
+        {/* Time Picker - iOS: Modal with spinner, Android: Native dialog */}
+        {showTimePicker && Platform.OS === 'ios' && (
           <Modal transparent animationType="fade">
             <Pressable style={[styles.datePickerOverlay, { backgroundColor: overlayColor }]} onPress={() => setShowTimePicker(false)}>
               <View style={[styles.datePickerContainer, { backgroundColor: bgColor }]}>
@@ -612,6 +625,19 @@ function ActivityFormModal({
               </View>
             </Pressable>
           </Modal>
+        )}
+        {showTimePicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={dueDate}
+            mode="time"
+            display="default"
+            onChange={(event, date) => {
+              setShowTimePicker(false);
+              if (event.type === 'set' && date) {
+                setDueDate(date);
+              }
+            }}
+          />
         )}
 
         {/* Reminder Picker */}
@@ -2224,8 +2250,14 @@ function CreateDealModal({
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     onChange={(event, date) => {
-                      setShowDatePicker(Platform.OS === 'ios');
-                      if (date) setExpectedCloseDate(date);
+                      // Android: close picker on any action (set or dismissed)
+                      if (Platform.OS === 'android') {
+                        setShowDatePicker(false);
+                      }
+                      // Only update date if user confirmed selection
+                      if (event.type === 'set' && date) {
+                        setExpectedCloseDate(date);
+                      }
                     }}
                     minimumDate={new Date()}
                   />

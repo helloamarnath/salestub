@@ -813,15 +813,19 @@ export default function CreateDealScreen() {
         isDark={isDark}
       />
 
-      {/* Date Picker */}
+      {/* Date Picker - iOS: spinner (stays open), Android: native dialog */}
       {showDatePicker && (
         <DateTimePicker
           value={expectedCloseDate || new Date()}
           mode="date"
-          display="spinner"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event, date) => {
-            setShowDatePicker(Platform.OS === 'ios');
-            if (date) {
+            // Android: close picker on any action (set or dismissed)
+            if (Platform.OS === 'android') {
+              setShowDatePicker(false);
+            }
+            // Only update date if user confirmed selection
+            if (event.type === 'set' && date) {
               setExpectedCloseDate(date);
             }
           }}
