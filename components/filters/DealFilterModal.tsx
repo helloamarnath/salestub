@@ -155,8 +155,11 @@ export function DealFilterModal({
 
   // Handle date changes
   const handleFromDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowFromDatePicker(Platform.OS === 'ios');
-    if (event.type === 'set' && selectedDate) {
+    // Android closes automatically, iOS stays open until Done is pressed
+    if (Platform.OS === 'android') {
+      setShowFromDatePicker(false);
+    }
+    if (selectedDate) {
       setFilters({
         ...filters,
         expectedCloseDateFrom: selectedDate.toISOString().split('T')[0],
@@ -165,8 +168,11 @@ export function DealFilterModal({
   };
 
   const handleToDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowToDatePicker(Platform.OS === 'ios');
-    if (event.type === 'set' && selectedDate) {
+    // Android closes automatically, iOS stays open until Done is pressed
+    if (Platform.OS === 'android') {
+      setShowToDatePicker(false);
+    }
+    if (selectedDate) {
       setFilters({
         ...filters,
         expectedCloseDateTo: selectedDate.toISOString().split('T')[0],
@@ -400,23 +406,63 @@ export function DealFilterModal({
               </View>
             </View>
 
-            {/* Date Pickers */}
-            {showFromDatePicker && (
+            {/* Date Pickers - iOS: with Done button */}
+            {showFromDatePicker && Platform.OS === 'ios' && (
+              <View style={[styles.iosPickerContainer, { backgroundColor: chipBg, borderColor }]}>
+                <View style={[styles.iosPickerHeader, { borderBottomColor: borderColor }]}>
+                  <TouchableOpacity onPress={() => setShowFromDatePicker(false)}>
+                    <Text style={[styles.iosPickerCancel, { color: subtitleColor }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={[styles.iosPickerTitle, { color: textColor }]}>From Date</Text>
+                  <TouchableOpacity onPress={() => setShowFromDatePicker(false)}>
+                    <Text style={styles.iosPickerDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={filters.expectedCloseDateFrom ? new Date(filters.expectedCloseDateFrom) : new Date()}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleFromDateChange}
+                  themeVariant={isDark ? 'dark' : 'light'}
+                  style={styles.iosPicker}
+                />
+              </View>
+            )}
+            {showFromDatePicker && Platform.OS === 'android' && (
               <DateTimePicker
                 value={filters.expectedCloseDateFrom ? new Date(filters.expectedCloseDateFrom) : new Date()}
                 mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                display="default"
                 onChange={handleFromDateChange}
-                themeVariant={isDark ? 'dark' : 'light'}
               />
             )}
-            {showToDatePicker && (
+            {showToDatePicker && Platform.OS === 'ios' && (
+              <View style={[styles.iosPickerContainer, { backgroundColor: chipBg, borderColor }]}>
+                <View style={[styles.iosPickerHeader, { borderBottomColor: borderColor }]}>
+                  <TouchableOpacity onPress={() => setShowToDatePicker(false)}>
+                    <Text style={[styles.iosPickerCancel, { color: subtitleColor }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={[styles.iosPickerTitle, { color: textColor }]}>To Date</Text>
+                  <TouchableOpacity onPress={() => setShowToDatePicker(false)}>
+                    <Text style={styles.iosPickerDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={filters.expectedCloseDateTo ? new Date(filters.expectedCloseDateTo) : new Date()}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleToDateChange}
+                  themeVariant={isDark ? 'dark' : 'light'}
+                  style={styles.iosPicker}
+                />
+              </View>
+            )}
+            {showToDatePicker && Platform.OS === 'android' && (
               <DateTimePicker
                 value={filters.expectedCloseDateTo ? new Date(filters.expectedCloseDateTo) : new Date()}
                 mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                display="default"
                 onChange={handleToDateChange}
-                themeVariant={isDark ? 'dark' : 'light'}
               />
             )}
           </View>
@@ -586,5 +632,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+  },
+  // iOS picker styles
+  iosPickerContainer: {
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  iosPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  iosPickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  iosPickerCancel: {
+    fontSize: 16,
+  },
+  iosPickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  iosPicker: {
+    height: 180,
   },
 });
