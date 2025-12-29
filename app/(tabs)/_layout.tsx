@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Platform, View, ActivityIndicator, StyleSheet, DynamicColorIOS } from 'react-native';
-import { router } from 'expo-router';
-import {
-  NativeTabs,
-  Icon,
-  Label,
-} from 'expo-router/unstable-native-tabs';
+import { router, Tabs } from 'expo-router';
+import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 
@@ -15,16 +12,23 @@ const colors = {
     background: '#ffffff',
     tint: '#3b82f6', // Primary blue
     inactive: '#64748b', // Slate gray
-    indicator: '#3b82f6',
-    ripple: 'rgba(59, 130, 246, 0.12)',
   },
   dark: {
     background: '#0f172a', // Dark slate
     tint: '#60a5fa', // Lighter blue for dark mode
     inactive: '#94a3b8', // Lighter gray for visibility
-    indicator: '#60a5fa',
-    ripple: 'rgba(96, 165, 250, 0.12)',
   },
+};
+
+// Android tab icon mapping (Ionicons)
+type IconName = keyof typeof Ionicons.glyphMap;
+
+const tabIcons: Record<string, { default: IconName; selected: IconName }> = {
+  index: { default: 'home-outline', selected: 'home' },
+  leads: { default: 'people-outline', selected: 'people' },
+  deals: { default: 'briefcase-outline', selected: 'briefcase' },
+  contacts: { default: 'person-circle-outline', selected: 'person-circle' },
+  more: { default: 'menu-outline', selected: 'menu' },
 };
 
 export default function TabLayout() {
@@ -39,7 +43,6 @@ export default function TabLayout() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isRedirecting) {
       setIsRedirecting(true);
-      // Use setTimeout to ensure we're not in a render cycle
       setTimeout(() => {
         router.replace('/');
       }, 0);
@@ -55,74 +58,131 @@ export default function TabLayout() {
     );
   }
 
-  return (
-    <NativeTabs
-      minimizeBehavior={Platform.OS === 'ios' ? 'onScrollDown' : undefined}
-      // Background color
-      backgroundColor={themeColors.background}
-      // Icon colors: default (inactive) and selected (active)
-      iconColor={{
-        default: themeColors.inactive,
-        selected: themeColors.tint,
-      }}
-      // Label styling for both states
-      labelStyle={{
-        default: { color: themeColors.inactive },
-        selected: { color: themeColors.tint },
-      }}
-      // Android-specific props
-      {...(Platform.OS === 'android' && {
-        indicatorColor: themeColors.indicator,
-        rippleColor: themeColors.ripple,
-      })}
-      // iOS-specific: Use DynamicColorIOS for automatic adaptation
-      {...(Platform.OS === 'ios' && {
-        tintColor: DynamicColorIOS({
+  // iOS: Use NativeTabs for liquid glass effect with SF Symbols
+  if (Platform.OS === 'ios') {
+    return (
+      <NativeTabs
+        minimizeBehavior="onScrollDown"
+        tintColor={DynamicColorIOS({
           dark: colors.dark.tint,
           light: colors.light.tint,
-        }),
-      })}
+        })}
+      >
+        <NativeTabs.Trigger name="index">
+          <Icon sf={{ default: 'house', selected: 'house.fill' }} />
+          <Label>Home</Label>
+        </NativeTabs.Trigger>
+
+        <NativeTabs.Trigger name="leads">
+          <Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
+          <Label>Leads</Label>
+        </NativeTabs.Trigger>
+
+        <NativeTabs.Trigger name="deals">
+          <Icon sf={{ default: 'briefcase', selected: 'briefcase.fill' }} />
+          <Label>Deals</Label>
+        </NativeTabs.Trigger>
+
+        <NativeTabs.Trigger name="contacts">
+          <Icon sf={{ default: 'person.circle', selected: 'person.circle.fill' }} />
+          <Label>Contacts</Label>
+        </NativeTabs.Trigger>
+
+        <NativeTabs.Trigger name="more">
+          <Icon sf={{ default: 'line.3.horizontal', selected: 'line.3.horizontal' }} />
+          <Label>More</Label>
+        </NativeTabs.Trigger>
+      </NativeTabs>
+    );
+  }
+
+  // Android: Use standard Tabs with Ionicons
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: themeColors.tint,
+        tabBarInactiveTintColor: themeColors.inactive,
+        tabBarStyle: {
+          backgroundColor: themeColors.background,
+          borderTopColor: isDark ? '#1e293b' : '#e2e8f0',
+          borderTopWidth: 1,
+          paddingTop: 4,
+          paddingBottom: 8,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
+      }}
     >
-      <NativeTabs.Trigger name="index">
-        <Icon
-          sf={{ default: 'house', selected: 'house.fill' }}
-          drawable="ic_home"
-        />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="leads">
-        <Icon
-          sf={{ default: 'person.2', selected: 'person.2.fill' }}
-          drawable="ic_people"
-        />
-        <Label>Leads</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="deals">
-        <Icon
-          sf={{ default: 'briefcase', selected: 'briefcase.fill' }}
-          drawable="ic_briefcase"
-        />
-        <Label>Deals</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="contacts">
-        <Icon
-          sf={{ default: 'person.circle', selected: 'person.circle.fill' }}
-          drawable="ic_contact"
-        />
-        <Label>Contacts</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="more">
-        <Icon
-          sf={{ default: 'line.3.horizontal', selected: 'line.3.horizontal' }}
-          drawable="ic_menu"
-        />
-        <Label>More</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? tabIcons.index.selected : tabIcons.index.default}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="leads"
+        options={{
+          title: 'Leads',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? tabIcons.leads.selected : tabIcons.leads.default}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="deals"
+        options={{
+          title: 'Deals',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? tabIcons.deals.selected : tabIcons.deals.default}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="contacts"
+        options={{
+          title: 'Contacts',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? tabIcons.contacts.selected : tabIcons.contacts.default}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? tabIcons.more.selected : tabIcons.more.default}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
 

@@ -2244,17 +2244,42 @@ function CreateDealModal({
                     {formatDate(expectedCloseDate)}
                   </Text>
                 </TouchableOpacity>
-                {showDatePicker && (
+                {/* iOS: Modal with Done button */}
+                {showDatePicker && Platform.OS === 'ios' && (
+                  <Modal transparent animationType="fade">
+                    <Pressable
+                      style={[styles.datePickerOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <View style={[styles.datePickerContainer, { backgroundColor: inputBg }]}>
+                        <DateTimePicker
+                          value={expectedCloseDate || new Date()}
+                          mode="date"
+                          display="spinner"
+                          onChange={(event, date) => {
+                            if (date) setExpectedCloseDate(date);
+                          }}
+                          minimumDate={new Date()}
+                          textColor={textColor}
+                        />
+                        <TouchableOpacity
+                          style={styles.datePickerDone}
+                          onPress={() => setShowDatePicker(false)}
+                        >
+                          <Text style={styles.datePickerDoneText}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </Pressable>
+                  </Modal>
+                )}
+                {/* Android: Native dialog */}
+                {showDatePicker && Platform.OS === 'android' && (
                   <DateTimePicker
                     value={expectedCloseDate || new Date()}
                     mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    display="default"
                     onChange={(event, date) => {
-                      // Android: close picker on any action (set or dismissed)
-                      if (Platform.OS === 'android') {
-                        setShowDatePicker(false);
-                      }
-                      // Only update date if user confirmed selection
+                      setShowDatePicker(false);
                       if (event.type === 'set' && date) {
                         setExpectedCloseDate(date);
                       }

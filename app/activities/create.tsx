@@ -109,7 +109,10 @@ export default function CreateActivityScreen() {
   }, [accessToken, title, description, type, priority, dueDate, duration, reminder]);
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
+    // Android closes automatically, iOS stays open
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (selectedDate) {
       const newDate = dueDate ? new Date(dueDate) : new Date();
       newDate.setFullYear(selectedDate.getFullYear());
@@ -120,9 +123,12 @@ export default function CreateActivityScreen() {
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(false);
-    if (selectedTime && dueDate) {
-      const newDate = new Date(dueDate);
+    // Android closes automatically, iOS stays open
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
+    if (selectedTime) {
+      const newDate = dueDate ? new Date(dueDate) : new Date();
       newDate.setHours(selectedTime.getHours());
       newDate.setMinutes(selectedTime.getMinutes());
       setDueDate(newDate);
@@ -576,23 +582,70 @@ export default function CreateActivityScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Date Picker Modal */}
-      {showDatePicker && (
+      {/* Date Picker - iOS: Modal with Done button, Android: Native dialog */}
+      {showDatePicker && Platform.OS === 'ios' && (
+        <View style={styles.datePickerOverlay}>
+          <View style={[styles.datePickerContainer, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+            <View style={[styles.datePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={[styles.datePickerTitle, { color: isDark ? 'white' : '#000' }]}>Select Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={dueDate || new Date()}
+              mode="date"
+              display="spinner"
+              onChange={handleDateChange}
+              minimumDate={new Date()}
+              style={{ backgroundColor: isDark ? '#1e293b' : '#ffffff' }}
+              textColor={isDark ? 'white' : '#000'}
+            />
+          </View>
+        </View>
+      )}
+      {showDatePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={dueDate || new Date()}
           mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           onChange={handleDateChange}
           minimumDate={new Date()}
         />
       )}
 
-      {/* Time Picker Modal */}
-      {showTimePicker && (
+      {/* Time Picker - iOS: Modal with Done button, Android: Native dialog */}
+      {showTimePicker && Platform.OS === 'ios' && (
+        <View style={styles.datePickerOverlay}>
+          <View style={[styles.datePickerContainer, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+            <View style={[styles.datePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                <Text style={styles.datePickerCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={[styles.datePickerTitle, { color: isDark ? 'white' : '#000' }]}>Select Time</Text>
+              <TouchableOpacity onPress={() => setShowTimePicker(false)}>
+                <Text style={styles.datePickerDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={dueDate || new Date()}
+              mode="time"
+              display="spinner"
+              onChange={handleTimeChange}
+              style={{ backgroundColor: isDark ? '#1e293b' : '#ffffff' }}
+              textColor={isDark ? 'white' : '#000'}
+            />
+          </View>
+        </View>
+      )}
+      {showTimePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={dueDate || new Date()}
           mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           onChange={handleTimeChange}
         />
       )}
@@ -751,5 +804,40 @@ const styles = StyleSheet.create({
   },
   reminderOptionText: {
     fontSize: 14,
+  },
+  datePickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerContainer: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  datePickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  datePickerCancel: {
+    fontSize: 16,
+    color: '#ef4444',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3b82f6',
   },
 });

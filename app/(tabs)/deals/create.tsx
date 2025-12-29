@@ -813,18 +813,42 @@ export default function CreateDealScreen() {
         isDark={isDark}
       />
 
-      {/* Date Picker - iOS: spinner (stays open), Android: native dialog */}
-      {showDatePicker && (
+      {/* Date Picker - iOS: spinner with Done button, Android: native dialog */}
+      {showDatePicker && Platform.OS === 'ios' && (
+        <View style={styles.datePickerOverlay}>
+          <View style={[styles.datePickerContainer, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+            <View style={[styles.datePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={[styles.datePickerTitle, { color: isDark ? 'white' : '#000' }]}>Select Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={expectedCloseDate || new Date()}
+              mode="date"
+              display="spinner"
+              onChange={(event, date) => {
+                if (date) {
+                  setExpectedCloseDate(date);
+                }
+              }}
+              minimumDate={new Date()}
+              style={{ backgroundColor: isDark ? '#1e293b' : '#ffffff' }}
+              textColor={isDark ? 'white' : '#000'}
+            />
+          </View>
+        </View>
+      )}
+      {showDatePicker && Platform.OS === 'android' && (
         <DateTimePicker
           value={expectedCloseDate || new Date()}
           mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           onChange={(event, date) => {
-            // Android: close picker on any action (set or dismissed)
-            if (Platform.OS === 'android') {
-              setShowDatePicker(false);
-            }
-            // Only update date if user confirmed selection
+            setShowDatePicker(false);
             if (event.type === 'set' && date) {
               setExpectedCloseDate(date);
             }
@@ -1044,5 +1068,40 @@ const styles = StyleSheet.create({
   entitySubtitle: {
     fontSize: 13,
     marginTop: 2,
+  },
+  datePickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  datePickerContainer: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 20,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  datePickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  datePickerCancel: {
+    fontSize: 16,
+    color: '#ef4444',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3b82f6',
   },
 });

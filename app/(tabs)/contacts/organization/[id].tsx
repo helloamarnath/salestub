@@ -17,7 +17,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
-import { getCompanyFull, getCompanyContacts, deleteCompany } from '@/lib/api/companies';
+import { getCompany, getCompanyContacts, deleteCompany } from '@/lib/api/companies';
 import { getCompanyActivities } from '@/lib/api/activities';
 import type { Company } from '@/types/company';
 import type { Contact } from '@/types/contact';
@@ -422,37 +422,30 @@ export default function OrganizationDetailScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch company with full relations
-      const companyResponse = await getCompanyFull(accessToken, id!);
+      // Fetch company data
+      const companyResponse = await getCompany(accessToken, id!);
       if (companyResponse.success && companyResponse.data) {
         setCompany(companyResponse.data);
-        setContacts(companyResponse.data.contacts || []);
-        setLeads(companyResponse.data.leads || []);
-        setDeals(companyResponse.data.deals || []);
-        // Use activities from full response if available
-        if (companyResponse.data.activities) {
-          setActivities(companyResponse.data.activities as Activity[]);
-        }
       }
 
-      // Try to fetch contacts separately for more complete data
+      // Fetch contacts separately
       try {
         const contactsResponse = await getCompanyContacts(accessToken, id!, { limit: 50 });
         if (contactsResponse.success && contactsResponse.data && Array.isArray(contactsResponse.data.data)) {
           setContacts(contactsResponse.data.data as CompanyContact[]);
         }
       } catch (contactsError) {
-        console.log('Contacts endpoint not available, using data from company full response');
+        console.log('Contacts endpoint not available');
       }
 
-      // Try to fetch activities separately for more complete data
+      // Fetch activities separately
       try {
         const activitiesResponse = await getCompanyActivities(accessToken, id!);
         if (activitiesResponse.success && activitiesResponse.data && Array.isArray(activitiesResponse.data)) {
           setActivities(activitiesResponse.data);
         }
       } catch (activityError) {
-        console.log('Activities endpoint not available, using data from company full response');
+        console.log('Activities endpoint not available');
       }
     } catch (error) {
       console.error('Error fetching company data:', error);
