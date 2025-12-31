@@ -522,10 +522,17 @@ function ActivityFormModal({
                 <TextInput
                   style={[styles.formInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
                   value={duration}
-                  onChangeText={setDuration}
+                  onChangeText={(text) => {
+                    // Only allow positive numbers (digits only)
+                    const filtered = text.replace(/[^0-9]/g, '');
+                    // Limit to reasonable max (480 = 8 hours)
+                    if (filtered === '' || parseInt(filtered, 10) <= 480) {
+                      setDuration(filtered);
+                    }
+                  }}
                   placeholder="30"
                   placeholderTextColor={placeholderColor}
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                 />
               </View>
             )}

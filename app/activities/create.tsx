@@ -484,7 +484,14 @@ export default function CreateActivityScreen() {
                 },
               ]}
               value={duration}
-              onChangeText={(text) => setDuration(text.replace(/[^0-9]/g, ''))}
+              onChangeText={(text) => {
+                // Only allow positive numbers (digits only)
+                const filtered = text.replace(/[^0-9]/g, '');
+                // Limit to reasonable max (480 = 8 hours)
+                if (filtered === '' || parseInt(filtered, 10) <= 480) {
+                  setDuration(filtered);
+                }
+              }}
               placeholder="e.g., 30"
               placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'}
               keyboardType="number-pad"
