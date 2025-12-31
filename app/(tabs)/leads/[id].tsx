@@ -366,6 +366,7 @@ function ActivityFormModal({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ title?: string }>({});
 
   const bgColor = isDark ? '#1e293b' : 'white';
   const textColor = isDark ? 'white' : Colors.light.foreground;
@@ -383,6 +384,7 @@ function ActivityFormModal({
       setDueDate(new Date());
       setDuration('30');
       setReminder('none');
+      setFormErrors({});
     }
   }, [visible]);
 
@@ -408,10 +410,18 @@ function ActivityFormModal({
   };
 
   const handleSubmit = () => {
+    // Validate required fields
+    const errors: { title?: string } = {};
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title');
+      errors.title = 'Title is required';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
+
+    setFormErrors({});
 
     const data: CreateActivityDto & { reminder?: string } = {
       type: activityType!,
@@ -461,14 +471,25 @@ function ActivityFormModal({
           <ScrollView style={styles.activityFormBody} showsVerticalScrollIndicator={false}>
             {/* Title */}
             <View style={styles.formGroup}>
-              <Text style={[styles.formLabel, { color: subtitleColor }]}>Title *</Text>
+              <Text style={[styles.formLabel, { color: subtitleColor }]}>
+                Title <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
-                style={[styles.formInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
+                style={[
+                  styles.formInput,
+                  { backgroundColor: inputBg, color: textColor, borderColor: formErrors.title ? '#ef4444' : borderColor }
+                ]}
                 value={title}
-                onChangeText={setTitle}
+                onChangeText={(text) => {
+                  setTitle(text);
+                  if (formErrors.title) setFormErrors({});
+                }}
                 placeholder={`Enter ${activityOption?.label.toLowerCase()} title...`}
                 placeholderTextColor={placeholderColor}
               />
+              {formErrors.title && (
+                <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{formErrors.title}</Text>
+              )}
             </View>
 
             {/* Description */}
