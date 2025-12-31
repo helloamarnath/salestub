@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Modal, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTheme, Theme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
 import { router, Href } from 'expo-router';
+import {
+  Currency,
+  OrganizationSettings,
+  getOrganizationSettings,
+  getCurrencies,
+  updateOrganizationSettings,
+} from '@/lib/api/organization';
 
 // Support URLs from landing page
 const SUPPORT_URLS = {
@@ -152,12 +159,86 @@ function ThemeOption({
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
+  const { user, logout, accessToken } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [orgSettings, setOrgSettings] = useState<OrganizationSettings | null>(null);
+  const [loadingCurrencies, setLoadingCurrencies] = useState(false);
+  const [updatingCurrency, setUpdatingCurrency] = useState(false);
 
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
+
+  // Fetch organization settings
+  const fetchOrgSettings = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const response = await getOrganizationSettings(accessToken);
+      if (response.success && response.data) {
+        setOrgSettings(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching org settings:', error);
+    }
+  }, [accessToken]);
+
+  // Fetch currencies
+  const fetchCurrencies = useCallback(async () => {
+    if (!accessToken) return;
+    setLoadingCurrencies(true);
+    try {
+      const response = await getCurrencies(accessToken);
+      if (response.success && response.data) {
+        setCurrencies(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching currencies:', error);
+    } finally {
+      setLoadingCurrencies(false);
+    }
+  }, [accessToken]);
+
+  // Load org settings on mount
+  useEffect(() => {
+    fetchOrgSettings();
+  }, [fetchOrgSettings]);
+
+  // Handle currency change
+  const handleCurrencyChange = async (currency: Currency) => {
+    if (!accessToken || currency.id === orgSettings?.currencyId) {
+      setShowCurrencyModal(false);
+      return;
+    }
+
+    setUpdatingCurrency(true);
+    try {
+      const response = await updateOrganizationSettings(accessToken, {
+        currencyId: currency.id,
+      });
+      if (response.success && response.data) {
+        setOrgSettings(response.data);
+        Alert.alert('Success', `Currency changed to ${currency.name}`);
+      } else {
+        Alert.alert('Error', response.error?.message || 'Failed to update currency');
+      }
+    } catch (error) {
+      console.error('Error updating currency:', error);
+      Alert.alert('Error', 'Failed to update currency');
+    } finally {
+      setUpdatingCurrency(false);
+      setShowCurrencyModal(false);
+    }
+  };
+
+  // Open currency modal and fetch currencies
+  const openCurrencyModal = () => {
+    setShowCurrencyModal(true);
+    if (currencies.length === 0) {
+      fetchCurrencies();
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -288,6 +369,14 @@ export default function MoreScreen() {
             isDark={isDark}
           />
           <MenuItem
+            icon="cash-outline"
+            title="Currency"
+            subtitle={orgSettings?.currency ? `${orgSettings.currency.symbol} ${orgSettings.currency.code}` : 'Loading...'}
+            color="#10b981"
+            onPress={openCurrencyModal}
+            isDark={isDark}
+          />
+          <MenuItem
             icon={isDark ? 'moon-outline' : 'sunny-outline'}
             title="Appearance"
             subtitle={getThemeLabel()}
@@ -395,6 +484,77 @@ export default function MoreScreen() {
                   onPress={() => setShowThemeModal(false)}
                 >
                   <Text style={styles.modalCloseButtonText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Currency Selection Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCurrencyModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity activeOpacity={1}>
+              <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#ffffff', maxHeight: 500 }]}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Currency</Text>
+                <Text style={[styles.modalSubtitle, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
+                  Choose your organization's display currency
+                </Text>
+
+                {loadingCurrencies || updatingCurrency ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <Text style={[styles.loadingText, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
+                      {updatingCurrency ? 'Updating...' : 'Loading currencies...'}
+                    </Text>
+                  </View>
+                ) : (
+                  <ScrollView style={styles.currencyList} showsVerticalScrollIndicator={false}>
+                    {currencies.map((currency) => (
+                      <TouchableOpacity
+                        key={currency.id}
+                        style={[
+                          styles.currencyOption,
+                          { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+                        ]}
+                        onPress={() => handleCurrencyChange(currency)}
+                      >
+                        <View style={styles.currencyInfo}>
+                          <Text style={[styles.currencySymbol, { color: colors.foreground }]}>
+                            {currency.symbol}
+                          </Text>
+                          <View style={styles.currencyDetails}>
+                            <Text style={[styles.currencyCode, { color: colors.foreground }]}>
+                              {currency.code}
+                            </Text>
+                            <Text style={[styles.currencyName, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
+                              {currency.name}
+                            </Text>
+                          </View>
+                        </View>
+                        {orgSettings?.currencyId === currency.id && (
+                          <Ionicons name="checkmark-circle" size={24} color="#3b82f6" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setShowCurrencyModal(false)}
+                >
+                  <Text style={styles.modalCloseButtonText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -566,5 +726,49 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Currency modal styles
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  currencyList: {
+    maxHeight: 300,
+  },
+  currencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+  },
+  currencyInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  currencySymbol: {
+    fontSize: 24,
+    fontWeight: '600',
+    width: 40,
+    textAlign: 'center',
+  },
+  currencyDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  currencyCode: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  currencyName: {
+    fontSize: 13,
+    marginTop: 2,
   },
 });

@@ -109,3 +109,57 @@ export function getMemberDisplayName(member: OrgMember): string {
   }
   return member.email;
 }
+
+// Currency types
+export interface Currency {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+}
+
+// Organization settings types
+export interface OrganizationSettings {
+  id: string;
+  name: string;
+  slug: string;
+  industry?: string;
+  size?: string;
+  website?: string;
+  phone?: string;
+  logoUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  country: string;
+  currencyId?: string;
+  currency?: Currency;
+}
+
+/**
+ * Get organization settings
+ */
+export async function getOrganizationSettings(
+  token: string | null
+): Promise<ApiResponse<OrganizationSettings>> {
+  return api.get<OrganizationSettings>(`${ORGANIZATION_BASE}/settings`, token);
+}
+
+/**
+ * Update organization settings
+ */
+export async function updateOrganizationSettings(
+  token: string | null,
+  data: { currencyId?: string; name?: string; industry?: string }
+): Promise<ApiResponse<OrganizationSettings>> {
+  return api.put<OrganizationSettings>(`${ORGANIZATION_BASE}/settings`, token, data);
+}
+
+/**
+ * Get available currencies
+ */
+export async function getCurrencies(
+  token: string | null
+): Promise<ApiResponse<Currency[]>> {
+  return api.get<Currency[]>('/api/v1/currencies', token);
+}
