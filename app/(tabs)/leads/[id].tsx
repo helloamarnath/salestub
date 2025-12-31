@@ -601,6 +601,7 @@ function ActivityFormModal({
                   value={dueDate}
                   mode="date"
                   display="spinner"
+                  minimumDate={new Date()}
                   onChange={(event, date) => {
                     if (date) setDueDate(date);
                   }}
@@ -621,6 +622,7 @@ function ActivityFormModal({
             value={dueDate}
             mode="date"
             display="default"
+            minimumDate={new Date()}
             onChange={(event, date) => {
               setShowDatePicker(false);
               if (event.type === 'set' && date) {
