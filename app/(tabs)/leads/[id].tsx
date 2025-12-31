@@ -362,7 +362,7 @@ function ActivityFormModal({
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState(new Date());
   const [duration, setDuration] = useState('30');
-  const [reminder, setReminder] = useState('1hour');
+  const [reminder, setReminder] = useState('none');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
@@ -382,7 +382,7 @@ function ActivityFormModal({
       setDescription('');
       setDueDate(new Date());
       setDuration('30');
-      setReminder('1hour');
+      setReminder('none');
     }
   }, [visible]);
 
