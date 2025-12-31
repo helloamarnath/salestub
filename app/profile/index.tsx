@@ -119,14 +119,20 @@ export default function ProfileScreen() {
     setLastNameError('');
     setPhoneError('');
 
-    // Validate first name
-    if (firstName.trim() && firstName.trim().length < 2) {
+    // Validate first name (required)
+    if (!firstName.trim()) {
+      setFirstNameError('First name is required');
+      isValid = false;
+    } else if (firstName.trim().length < 2) {
       setFirstNameError('First name must be at least 2 characters');
       isValid = false;
     }
 
-    // Validate last name
-    if (lastName.trim() && lastName.trim().length < 2) {
+    // Validate last name (required)
+    if (!lastName.trim()) {
+      setLastNameError('Last name is required');
+      isValid = false;
+    } else if (lastName.trim().length < 2) {
       setLastNameError('Last name must be at least 2 characters');
       isValid = false;
     }
@@ -303,7 +309,7 @@ export default function ProfileScreen() {
                 {/* First Name */}
                 <View style={styles.inputGroup}>
                   <Text style={[styles.inputLabel, { color: subtitleColor }]}>
-                    First Name
+                    First Name {isEditing && <Text style={styles.requiredStar}>*</Text>}
                   </Text>
                   {isEditing ? (
                     <>
@@ -333,7 +339,7 @@ export default function ProfileScreen() {
                 {/* Last Name */}
                 <View style={[styles.inputGroup, { borderTopColor: borderColor, borderTopWidth: 1 }]}>
                   <Text style={[styles.inputLabel, { color: subtitleColor }]}>
-                    Last Name
+                    Last Name {isEditing && <Text style={styles.requiredStar}>*</Text>}
                   </Text>
                   {isEditing ? (
                     <>
@@ -609,6 +615,10 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 12,
     marginTop: 6,
+  },
+  requiredStar: {
+    color: '#ef4444',
+    fontWeight: '600',
   },
   readOnlyRow: {
     flexDirection: 'row',
