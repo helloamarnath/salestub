@@ -463,7 +463,7 @@ export default function LoginScreen() {
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         <Ionicons
-                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                           size={20}
                           color="rgba(255,255,255,0.4)"
                         />
