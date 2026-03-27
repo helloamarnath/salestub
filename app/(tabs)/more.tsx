@@ -326,8 +326,24 @@ export default function MoreScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* CRM Settings */}
+        {/* CRM */}
         <MenuSection title="CRM" isDark={isDark}>
+          <MenuItem
+            icon="briefcase-outline"
+            title="Deals"
+            subtitle="Manage your deals pipeline"
+            color="#22c55e"
+            onPress={() => router.push('/deals' as Href)}
+            isDark={isDark}
+          />
+          <MenuItem
+            icon="receipt-outline"
+            title="Invoices"
+            subtitle="Track invoices & payments"
+            color="#ef4444"
+            onPress={() => router.push('/invoices' as Href)}
+            isDark={isDark}
+          />
           <MenuItem
             icon="cube-outline"
             title="Products"

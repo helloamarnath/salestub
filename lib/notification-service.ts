@@ -104,7 +104,7 @@ class NotificationService {
     try {
       const tokenData = await Notifications.getDevicePushTokenAsync();
       this.fcmToken = tokenData.data;
-      console.log('FCM token obtained:', this.fcmToken.substring(0, 20) + '...');
+      console.log('FCM token obtained:', this.fcmToken?.substring(0, 20) + '...');
       return this.fcmToken;
     } catch (error) {
       console.error('Error getting FCM token:', error);

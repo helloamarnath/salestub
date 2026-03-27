@@ -582,7 +582,7 @@ export default function ActivityDetailScreen() {
               {activity.contact && (
                 <TouchableOpacity
                   style={styles.relatedItem}
-                  onPress={() => router.push(`/contacts/${activity.contactId}` as any)}
+                  onPress={() => router.push(`/(tabs)/contacts/customer/${activity.contactId}` as any)}
                 >
                   <View style={[styles.relatedIcon, { backgroundColor: '#3b82f615' }]}>
                     <Ionicons name="person-outline" size={16} color="#3b82f6" />
@@ -631,7 +631,7 @@ export default function ActivityDetailScreen() {
               {activity.lead && (
                 <TouchableOpacity
                   style={styles.relatedItem}
-                  onPress={() => router.push(`/leads/${activity.leadId}` as any)}
+                  onPress={() => router.push(`/(tabs)/leads/${activity.leadId}` as any)}
                 >
                   <View style={[styles.relatedIcon, { backgroundColor: '#f59e0b15' }]}>
                     <Ionicons name="flash-outline" size={16} color="#f59e0b" />

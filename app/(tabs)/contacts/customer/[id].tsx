@@ -646,7 +646,7 @@ export default function CustomerDetailScreen() {
                     key={deal.id}
                     deal={deal}
                     isDark={isDark}
-                    onPress={() => router.push(`/(tabs)/deals/${deal.id}` as any)}
+                    onPress={() => router.push(`/deals/${deal.id}` as any)}
                   />
                 ))}
               </>

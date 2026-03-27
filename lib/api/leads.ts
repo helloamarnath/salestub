@@ -279,6 +279,20 @@ export async function uploadLeadDocument(
 }
 
 /**
+ * Get a signed preview URL for a document
+ */
+export async function getLeadDocumentPreview(
+  token: string | null,
+  leadId: string,
+  documentId: string
+): Promise<ApiResponse<{ url: string; fileName: string; fileType: string; fileSize: number }>> {
+  return api.get<{ url: string; fileName: string; fileType: string; fileSize: number }>(
+    `${LEADS_BASE}/${leadId}/documents/${documentId}/preview`,
+    token
+  );
+}
+
+/**
  * Delete a document
  */
 export async function deleteLeadDocument(
@@ -398,6 +412,47 @@ export async function convertLead(
     token,
     data
   );
+}
+
+/**
+ * Convert lead to deal (industry-standard Lead → Deal flow)
+ */
+export async function convertLeadToDeal(
+  token: string | null,
+  leadId: string,
+  options?: {
+    title?: string;
+    value?: number;
+    stage?: string;
+    expectedCloseDate?: string;
+  }
+): Promise<ApiResponse<{ deal: Record<string, unknown>; message: string }>> {
+  return api.post<{ deal: Record<string, unknown>; message: string }>(
+    `${LEADS_BASE}/${leadId}/convert-to-deal`,
+    token,
+    options || {}
+  );
+}
+
+/**
+ * Get lead notes (separate endpoint)
+ */
+export async function getLeadNotesEndpoint(
+  token: string | null,
+  leadId: string
+): Promise<ApiResponse<{ id: string; content: string; type: string; createdBy: string; createdAt: string; metadata?: Record<string, unknown> }[]>> {
+  return api.get(`${LEADS_BASE}/${leadId}/notes`, token);
+}
+
+/**
+ * Add note to a lead (separate endpoint)
+ */
+export async function addLeadNoteEndpoint(
+  token: string | null,
+  leadId: string,
+  data: { content: string; type?: string }
+): Promise<ApiResponse<{ id: string; content: string; type: string; createdBy: string; createdAt: string }>> {
+  return api.post(`${LEADS_BASE}/${leadId}/notes`, token, data);
 }
 
 // ============ Export ============

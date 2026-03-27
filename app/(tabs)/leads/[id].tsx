@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,16 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
-import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources, getAllTags, getLeadTags, addLeadTags, removeLeadTags, createTag, getLeadDocuments, uploadLeadDocument, deleteLeadDocument, convertLead } from '@/lib/api/leads';
+import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources, getAllTags, getLeadTags, addLeadTags, removeLeadTags, createTag, getLeadDocuments, uploadLeadDocument, deleteLeadDocument, getLeadDocumentPreview, convertLead, qualifyLead, markLeadLost, getLeadProducts, addLeadProduct, removeLeadProduct, getLeadNotesEndpoint, addLeadNoteEndpoint, convertLeadToDeal } from '@/lib/api/leads';
+import { getProducts, createProduct } from '@/lib/api/products';
+import { getQuotes } from '@/lib/api/quotes';
+import { getInvoices } from '@/lib/api/invoices';
+import type { Product } from '@/types/product';
+import type { Quote } from '@/types/quote';
+import { QUOTE_STATUS_COLORS, QUOTE_STATUS_LABELS } from '@/types/quote';
+import type { Invoice } from '@/types/invoice';
+import { INVOICE_STATUS_COLORS, INVOICE_STATUS_LABELS } from '@/types/invoice';
+import * as WebBrowser from 'expo-web-browser';
 import { searchCompanies, createCompany } from '@/lib/api/companies';
 import { getDealsByContact, createDeal, updateDeal, deleteDeal, searchDeals, advanceDealStage, closeDealWon, closeDealLost } from '@/lib/api/deals';
 import type { Company, CreateCompanyDto } from '@/types/company';
@@ -37,7 +46,7 @@ import type { Deal, CreateDealDto, UpdateDealDto, DealStage } from '@/types/deal
 import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS, DEAL_STATUS_COLORS, DEAL_STATUS_LABELS, formatDealValue } from '@/types/deal';
 import { getOrganizationMembers, getMemberDisplayName, type OrgMember } from '@/lib/api/organization';
 import { LeadStatusBadge, ScoreIndicator, SourceBadge } from '@/components/leads/LeadStatusBadge';
-import type { Lead, LeadActivity, KanbanStage, UpdateLeadDto, CreateActivityDto, LeadTag, LeadDocument } from '@/types/lead';
+import type { Lead, LeadActivity, KanbanStage, UpdateLeadDto, CreateActivityDto, LeadTag, LeadDocument, LeadProduct } from '@/types/lead';
 import { LEAD_SOURCES as SOURCES } from '@/types/lead';
 import { getContactFullName, getContactInitials, getAvatarColor } from '@/types/contact';
 import { ACTIVITY_TYPE_COLORS, ACTIVITY_TYPE_ICONS } from '@/types/lead';
@@ -106,11 +115,16 @@ function Tab({
 
 // Activity item component
 function ActivityItem({ activity, isDark }: { activity: LeadActivity; isDark: boolean }) {
-  const color = ACTIVITY_TYPE_COLORS[activity.type];
-  const iconName = ACTIVITY_TYPE_ICONS[activity.type] as keyof typeof Ionicons.glyphMap;
+  const color = ACTIVITY_TYPE_COLORS[activity.type] || '#6b7280';
+  const iconName = (ACTIVITY_TYPE_ICONS[activity.type] || 'ellipse-outline') as keyof typeof Ionicons.glyphMap;
   const textColor = isDark ? 'white' : Colors.light.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const mutedColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+  const metaBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+
+  const meta = activity as any;
+  const activityType = meta.metadata?.activityType;
+  const isFieldChange = activityType === 'field_update' || activityType === 'stage_change' || activityType === 'owner_change' || activityType === 'lead_created';
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -123,18 +137,37 @@ function ActivityItem({ activity, isDark }: { activity: LeadActivity; isDark: bo
     });
   };
 
+  // Choose icon for system activities
+  let displayIcon = iconName;
+  let displayColor: string = color;
+  if (activityType === 'stage_change') {
+    displayIcon = 'swap-horizontal-outline';
+    displayColor = '#8b5cf6';
+  } else if (activityType === 'owner_change') {
+    displayIcon = 'person-outline';
+    displayColor = '#f59e0b';
+  } else if (activityType === 'lead_created') {
+    displayIcon = 'add-circle-outline';
+    displayColor = '#22c55e';
+  } else if (activityType === 'field_update') {
+    displayIcon = 'create-outline';
+    displayColor = '#06b6d4';
+  }
+
   return (
     <View style={styles.activityItem}>
-      <View style={[styles.activityIcon, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={iconName} size={16} color={color} />
+      <View style={[styles.activityIcon, { backgroundColor: `${displayColor}20` }]}>
+        <Ionicons name={displayIcon as any} size={16} color={displayColor} />
       </View>
       <View style={styles.activityContent}>
         <View style={styles.activityHeader}>
-          <Text style={[styles.activityTitle, { color: textColor }]}>{activity.title}</Text>
-          {activity.status === 'COMPLETED' ? (
-            <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
-          ) : (
-            <Ionicons name="ellipse-outline" size={16} color="#f59e0b" />
+          <Text style={[styles.activityTitle, { color: textColor }]} numberOfLines={2}>{activity.title}</Text>
+          {!isFieldChange && (
+            activity.status === 'COMPLETED' ? (
+              <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
+            ) : (
+              <Ionicons name="ellipse-outline" size={16} color="#f59e0b" />
+            )
           )}
         </View>
         {activity.description && (
@@ -142,7 +175,23 @@ function ActivityItem({ activity, isDark }: { activity: LeadActivity; isDark: bo
             {activity.description}
           </Text>
         )}
-        <Text style={[styles.activityDate, { color: mutedColor }]}>{formatDate(activity.createdAt)}</Text>
+        {/* Show metadata for field changes */}
+        {isFieldChange && meta.metadata?.oldDisplayValue && meta.metadata?.newDisplayValue && (
+          <View style={[styles.activityMetaBox, { backgroundColor: metaBg }]}>
+            <Text style={[{ fontSize: 12, color: subtitleColor }]}>
+              {meta.metadata.fieldLabel || meta.metadata.field || 'Field'}:{' '}
+              <Text style={{ textDecorationLine: 'line-through', color: mutedColor }}>{meta.metadata.oldDisplayValue}</Text>
+              {' → '}
+              <Text style={{ fontWeight: '600', color: textColor }}>{meta.metadata.newDisplayValue}</Text>
+            </Text>
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+          <Text style={[styles.activityDate, { color: mutedColor }]}>{formatDate(activity.createdAt)}</Text>
+          {meta.metadata?.performedByName && (
+            <Text style={[{ fontSize: 11, color: mutedColor }]}>· {meta.metadata.performedByName}</Text>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -758,12 +807,35 @@ function DetailsTab({
   const [showValueInput, setShowValueInput] = useState(false);
   const [showScoreInput, setShowScoreInput] = useState(false);
   const [showOwnerPicker, setShowOwnerPicker] = useState(false);
+  const [showTitleInput, setShowTitleInput] = useState(false);
+  const [showDescriptionInput, setShowDescriptionInput] = useState(false);
 
   const textColor = isDark ? 'white' : Colors.light.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const labelColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+  const getScoreBadgeColor = (score: number): string => {
+    if (score >= 80) return '#22c55e';
+    if (score >= 60) return '#3b82f6';
+    if (score >= 40) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  // Inquiry type for IndiaMART leads
+  const getInquiryType = (): { label: string; color: string } | null => {
+    if (lead.source !== 'INDIAMART' || !lead.metadata) return null;
+    const sender = (lead.metadata as any)?.originalSender;
+    if (!sender) return null;
+    if (typeof sender === 'string' && sender.includes('buyleads@')) {
+      return { label: 'BuyLead', color: '#f59e0b' };
+    }
+    return { label: 'Direct Inquiry', color: '#22c55e' };
+  };
+
+  const inquiryType = getInquiryType();
 
   const contactName = lead.contact ? getContactFullName(lead.contact) : null;
   const initials = lead.contact
@@ -772,7 +844,7 @@ function DetailsTab({
   const avatarColor = getAvatarColor(contactName || lead.title);
 
   const formatValue = (value?: number): string => {
-    if (!value) return 'Not set';
+    if (!value) return '-';
     const symbol = lead.currency?.symbol || '₹';
     return `${symbol}${value.toLocaleString()}`;
   };
@@ -807,25 +879,89 @@ function DetailsTab({
   return (
     <>
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-        {/* Status Section */}
+        {/* Lead Details Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Status</Text>
-          <View style={styles.statusGrid}>
-            <EditableStatusItem label="Stage" onPress={() => setShowStagePicker(true)} isDark={isDark}>
-              <LeadStatusBadge stage={lead.stage} size="medium" />
-            </EditableStatusItem>
-            <EditableStatusItem label="Source" onPress={() => setShowSourcePicker(true)} isDark={isDark}>
-              <SourceBadge source={lead.source} size="medium" />
-            </EditableStatusItem>
-            <EditableStatusItem label="Value" onPress={() => setShowValueInput(true)} isDark={isDark}>
-              <Text style={[styles.statusValue, { color: textColor }]}>{formatValue(lead.value)}</Text>
-            </EditableStatusItem>
-            <EditableStatusItem label="Score" onPress={() => setShowScoreInput(true)} isDark={isDark}>
-              <View style={styles.scoreContainer}>
-                <ScoreIndicator score={lead.score} size={10} />
-                <Text style={[styles.scoreText, { color: textColor }]}>{lead.score || 0}</Text>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Lead Details</Text>
+          <View style={[styles.detailsGrid, { backgroundColor: cardBg, borderColor }]}>
+            {/* Row 1: Title, Score, Stage, Pipeline */}
+            <View style={styles.detailsRow}>
+              <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowTitleInput(true); }}>
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>TITLE</Text>
+                <Text style={[styles.detailsCellValue, { color: textColor }]} numberOfLines={2}>{lead.title}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowScoreInput(true); }}>
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>SCORE</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <ScoreIndicator score={lead.score} size={8} />
+                  <View style={{ height: 6, width: 48, backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)', borderRadius: 3, overflow: 'hidden' }}>
+                    <View style={{ height: '100%', width: `${lead.score || 0}%`, backgroundColor: getScoreBadgeColor(lead.score || 0), borderRadius: 3 }} />
+                  </View>
+                  <Text style={[{ fontSize: 14, fontWeight: '600', color: getScoreBadgeColor(lead.score || 0) }]}>{lead.score || 0}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.detailsRow}>
+              <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowStagePicker(true); }}>
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>STAGE</Text>
+                <LeadStatusBadge stage={lead.stage} size="medium" />
+              </TouchableOpacity>
+              <View style={styles.detailsCell}>
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>PIPELINE</Text>
+                <Text style={[styles.detailsCellValue, { color: textColor }]}>{lead.pipeline?.name || '-'}</Text>
               </View>
-            </EditableStatusItem>
+            </View>
+
+            {/* Row 2: Source, Inquiry Type, Owner, Value */}
+            <View style={styles.detailsRow}>
+              <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowSourcePicker(true); }}>
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>SOURCE</Text>
+                <SourceBadge source={lead.source} size="medium" />
+              </TouchableOpacity>
+              {inquiryType ? (
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>INQUIRY TYPE</Text>
+                  <View style={[styles.inquiryBadge, { backgroundColor: inquiryType.color + '20' }]}>
+                    <Text style={[styles.inquiryBadgeText, { color: inquiryType.color }]}>{inquiryType.label}</Text>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowValueInput(true); }}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>VALUE</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{formatValue(lead.value)}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <View style={styles.detailsRow}>
+              <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowOwnerPicker(true); }}>
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>OWNER</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{lead.owner.userName.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <Text style={[{ fontSize: 13, color: textColor }]} numberOfLines={1}>{lead.owner.userName}</Text>
+                </View>
+              </TouchableOpacity>
+              {inquiryType ? (
+                <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowValueInput(true); }}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>VALUE</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{formatValue(lead.value)}</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>CURRENCY</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{lead.currency?.code || '-'}</Text>
+                </View>
+              )}
+            </View>
+            {inquiryType && (
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>CURRENCY</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{lead.currency?.code || '-'}</Text>
+                </View>
+                <View style={styles.detailsCell} />
+              </View>
+            )}
           </View>
           {updating && (
             <View style={styles.updatingIndicator}>
@@ -835,71 +971,169 @@ function DetailsTab({
           )}
         </View>
 
-        {/* Owner Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Owner</Text>
-          <TouchableOpacity
-            style={[styles.ownerCard, { backgroundColor: cardBg }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowOwnerPicker(true);
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.ownerAvatar, { backgroundColor: '#8b5cf6' }]}>
-              <Text style={styles.ownerAvatarText}>
-                {lead.owner.userName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <View style={styles.ownerInfo}>
-              <Text style={[styles.ownerName, { color: textColor }]}>{lead.owner.userName}</Text>
-              <Text style={[styles.ownerEmail, { color: subtitleColor }]}>{lead.owner.userEmail}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Contact Section */}
+        {/* Contact Information Section */}
         {lead.contact && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Contact</Text>
-            <View style={[styles.contactCard, { backgroundColor: cardBg }]}>
-              <View style={[styles.contactAvatar, { backgroundColor: avatarColor }]}>
-                <Text style={styles.contactAvatarText}>{initials}</Text>
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Contact Information</Text>
+            <View style={[styles.detailsGrid, { backgroundColor: cardBg, borderColor }]}>
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>FIRST NAME</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{lead.contact.firstName || '-'}</Text>
+                </View>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>LAST NAME</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{lead.contact.lastName || '-'}</Text>
+                </View>
               </View>
-              <View style={styles.contactInfo}>
-                <Text style={[styles.contactName, { color: textColor }]}>{contactName}</Text>
-                {lead.contact.title && (
-                  <Text style={[styles.contactTitle, { color: subtitleColor }]}>{lead.contact.title}</Text>
-                )}
-                {lead.contact.email && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(`mailto:${lead.contact!.email}`)}
-                  >
-                    <Text style={styles.contactEmail}>{lead.contact.email}</Text>
-                  </TouchableOpacity>
-                )}
-                {lead.contact.phone && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(`tel:${lead.contact!.phone}`)}
-                  >
-                    <Text style={styles.contactPhone}>{lead.contact.phone}</Text>
-                  </TouchableOpacity>
-                )}
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>EMAIL</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    {lead.contact.email ? (
+                      <>
+                        <TouchableOpacity onPress={() => Linking.openURL(`mailto:${lead.contact!.email}`)} style={{ flex: 1 }}>
+                          <Text style={[{ fontSize: 13, color: '#3b82f6' }]} numberOfLines={1}>{lead.contact.email}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => Linking.openURL(`mailto:${lead.contact!.email}`)}>
+                          <Ionicons name="mail" size={16} color="#3b82f6" />
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <Text style={[styles.detailsCellValue, { color: textColor }]}>-</Text>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>PHONE</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    {lead.contact.phone ? (
+                      <>
+                        <TouchableOpacity onPress={() => Linking.openURL(`tel:${lead.contact!.phone}`)} style={{ flex: 1 }}>
+                          <Text style={[{ fontSize: 13, color: '#22c55e' }]} numberOfLines={1}>{lead.contact.phone}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => Linking.openURL(`tel:${lead.contact!.phone}`)}>
+                          <Ionicons name="call" size={14} color="#22c55e" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => { const p = lead.contact!.phone!.replace(/\D/g, ''); Linking.openURL(`https://wa.me/${p}`); }}>
+                          <Ionicons name="logo-whatsapp" size={14} color="#25d366" />
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <Text style={[styles.detailsCellValue, { color: textColor }]}>-</Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>TITLE/ROLE</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{lead.contact.title || '-'}</Text>
+                </View>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>COMPANY</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{lead.contact.company?.name || '-'}</Text>
+                </View>
+              </View>
+              {/* Address fields */}
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>COUNTRY</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{(lead.contact as any).country || '-'}</Text>
+                </View>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>STATE</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{(lead.contact as any).state || '-'}</Text>
+                </View>
+              </View>
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>CITY</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{(lead.contact as any).city || '-'}</Text>
+                </View>
+                <View style={styles.detailsCell}>
+                  <Text style={[styles.detailsCellLabel, { color: labelColor }]}>POSTAL CODE</Text>
+                  <Text style={[styles.detailsCellValue, { color: textColor }]}>{(lead.contact as any).postalCode || '-'}</Text>
+                </View>
               </View>
             </View>
           </View>
         )}
 
-        {/* Description */}
-        {lead.description && (
+        {/* Company Section */}
+        {lead.contact?.company && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Description</Text>
-            <Text style={[styles.description, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)' }]}>{lead.description}</Text>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="business" size={16} color={sectionTitleColor} />
+                <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Company</Text>
+              </View>
+            </View>
+            <View style={[styles.companyCard, { backgroundColor: cardBg, borderColor }]}>
+              <View style={[styles.companyAvatar, { backgroundColor: avatarColor }]}>
+                <Text style={{ color: 'white', fontSize: 14, fontWeight: '700' }}>
+                  {lead.contact.company.name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={[{ fontSize: 15, fontWeight: '600', color: textColor, flex: 1 }]}>{lead.contact.company.name}</Text>
+            </View>
           </View>
         )}
 
-        {/* Timestamps */}
+        {/* Requirements/Description */}
+        {lead.description && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="mail-outline" size={16} color={sectionTitleColor} />
+                <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Requirements</Text>
+              </View>
+              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowDescriptionInput(true); }}>
+                <Ionicons name="pencil-outline" size={16} color={subtitleColor} />
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.requirementsCard, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[{ fontSize: 13, color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)', lineHeight: 20 }]}>
+                {lead.description}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Custom Fields */}
+        {lead.customFieldValues && Object.keys(lead.customFieldValues).length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Additional Information</Text>
+            <View style={[styles.detailsGrid, { backgroundColor: cardBg, borderColor }]}>
+              {Object.entries(lead.customFieldValues).map(([key, value], idx, arr) => {
+                if (idx % 2 === 1) return null;
+                const nextEntry = arr[idx + 1];
+                return (
+                  <View key={key} style={styles.detailsRow}>
+                    <View style={styles.detailsCell}>
+                      <Text style={[styles.detailsCellLabel, { color: labelColor }]}>{key.toUpperCase()}</Text>
+                      <Text style={[styles.detailsCellValue, { color: textColor }]}>
+                        {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '-')}
+                      </Text>
+                    </View>
+                    {nextEntry ? (
+                      <View style={styles.detailsCell}>
+                        <Text style={[styles.detailsCellLabel, { color: labelColor }]}>{nextEntry[0].toUpperCase()}</Text>
+                        <Text style={[styles.detailsCellValue, { color: textColor }]}>
+                          {typeof nextEntry[1] === 'object' ? JSON.stringify(nextEntry[1]) : String(nextEntry[1] ?? '-')}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.detailsCell} />
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Info Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Info</Text>
           <View style={[styles.infoRow, { borderBottomColor: borderColor }]}>
@@ -970,6 +1204,30 @@ function DetailsTab({
         onClose={() => setShowOwnerPicker(false)}
         isDark={isDark}
       />
+
+      <ValueInputModal
+        visible={showTitleInput}
+        title="Lead Title"
+        value={lead.title}
+        onSave={(value) => {
+          if (value.trim()) onUpdateField('title', value.trim());
+        }}
+        onClose={() => setShowTitleInput(false)}
+        isDark={isDark}
+        keyboardType="numeric"
+        placeholder="Enter lead title..."
+      />
+
+      <ValueInputModal
+        visible={showDescriptionInput}
+        title="Description"
+        value={lead.description || ''}
+        onSave={(value) => onUpdateField('description', value.trim() || undefined)}
+        onClose={() => setShowDescriptionInput(false)}
+        isDark={isDark}
+        keyboardType="numeric"
+        placeholder="Enter description..."
+      />
     </>
   );
 }
@@ -987,8 +1245,12 @@ function TimelineTab({
   onRefresh?: () => Promise<void>;
 }) {
   const [refreshing, setRefreshing] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
   const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
+  const chipBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const chipText = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
@@ -996,6 +1258,20 @@ function TimelineTab({
     await onRefresh();
     setRefreshing(false);
   };
+
+  const FILTER_OPTIONS = [
+    { key: 'all', label: 'All' },
+    { key: 'CALL', label: 'Calls', color: ACTIVITY_TYPE_COLORS.CALL },
+    { key: 'EMAIL', label: 'Emails', color: ACTIVITY_TYPE_COLORS.EMAIL },
+    { key: 'MEETING', label: 'Meetings', color: ACTIVITY_TYPE_COLORS.MEETING },
+    { key: 'TASK', label: 'Tasks', color: ACTIVITY_TYPE_COLORS.TASK },
+    { key: 'NOTE', label: 'Notes', color: ACTIVITY_TYPE_COLORS.NOTE },
+  ];
+
+  const activityList = (activities || []).filter((a) => {
+    if (typeFilter === 'all') return true;
+    return a.type === typeFilter;
+  });
 
   if (loading) {
     return (
@@ -1005,50 +1281,74 @@ function TimelineTab({
     );
   }
 
-  const activityList = activities || [];
-
-  if (activityList.length === 0) {
-    return (
-      <ScrollView
-        style={styles.emptyTab}
-        contentContainerStyle={styles.emptyTabContent}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#3b82f6"
-              colors={['#3b82f6']}
-            />
-          ) : undefined
-        }
-      >
-        <Ionicons name="time-outline" size={48} color={emptyIconColor} />
-        <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No activities yet</Text>
-      </ScrollView>
-    );
-  }
-
   return (
-    <ScrollView
-      style={styles.tabContent}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        onRefresh ? (
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#3b82f6"
-            colors={['#3b82f6']}
-          />
-        ) : undefined
-      }
-    >
-      {activityList.map((activity) => (
-        <ActivityItem key={activity.id} activity={activity} isDark={isDark} />
-      ))}
-      <View style={{ height: 100 }} />
-    </ScrollView>
+    <View style={{ flex: 1 }}>
+      {/* Filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ maxHeight: 44, paddingHorizontal: 16, paddingVertical: 6 }}
+        contentContainerStyle={{ gap: 6, alignItems: 'center' }}
+      >
+        {FILTER_OPTIONS.map((opt) => {
+          const isActive = typeFilter === opt.key;
+          const activeColor = opt.color || '#3b82f6';
+          return (
+            <TouchableOpacity
+              key={opt.key}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setTypeFilter(opt.key);
+              }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                borderRadius: 14,
+                borderWidth: 1,
+                backgroundColor: isActive ? `${activeColor}20` : chipBg,
+                borderColor: isActive ? activeColor : chipBorder,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: isActive ? '600' : '500', color: isActive ? activeColor : chipText }}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {activityList.length === 0 ? (
+        <ScrollView
+          style={styles.emptyTab}
+          contentContainerStyle={styles.emptyTabContent}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#3b82f6" colors={['#3b82f6']} />
+            ) : undefined
+          }
+        >
+          <Ionicons name="time-outline" size={48} color={emptyIconColor} />
+          <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
+            {typeFilter === 'all' ? 'No activities yet' : `No ${typeFilter.toLowerCase()} activities`}
+          </Text>
+        </ScrollView>
+      ) : (
+        <ScrollView
+          style={styles.tabContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#3b82f6" colors={['#3b82f6']} />
+            ) : undefined
+          }
+        >
+          {activityList.map((activity) => (
+            <ActivityItem key={activity.id} activity={activity} isDark={isDark} />
+          ))}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      )}
+    </View>
   );
 }
 
@@ -1579,11 +1879,13 @@ function TagsTab({
 function DocumentItem({
   doc,
   isDark,
+  onPreview,
   onDownload,
   onDelete,
 }: {
   doc: LeadDocument;
   isDark: boolean;
+  onPreview: () => void;
   onDownload: () => void;
   onDelete: () => void;
 }) {
@@ -1657,6 +1959,12 @@ function DocumentItem({
         </View>
       </View>
       <View style={styles.docItemActions}>
+        <TouchableOpacity
+          style={[styles.docItemActionBtn, { backgroundColor: 'rgba(139,92,246,0.1)' }]}
+          onPress={onPreview}
+        >
+          <Ionicons name="eye-outline" size={18} color="#8b5cf6" />
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.docItemActionBtn, { backgroundColor: 'rgba(59,130,246,0.1)' }]}
           onPress={onDownload}
@@ -1805,10 +2113,23 @@ function DocsTab({
     setUploading(false);
   };
 
+  const handlePreview = async (doc: LeadDocument) => {
+    if (!accessToken || !leadId) return;
+    try {
+      const response = await getLeadDocumentPreview(accessToken, leadId, doc.id);
+      if (response.success && response.data?.url) {
+        await WebBrowser.openBrowserAsync(response.data.url);
+      } else {
+        Alert.alert('Error', 'Could not generate preview URL');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to open document preview');
+    }
+  };
+
   const handleDownload = async (doc: LeadDocument) => {
-    // For now, show an alert. In production, you'd download the file using the API
-    Alert.alert('Download', `Download "${doc.fileName}" feature coming soon`);
-    // TODO: Implement actual download using FileSystem and Sharing
+    // Use preview URL to open in browser for now
+    await handlePreview(doc);
   };
 
   const handleDelete = async (doc: LeadDocument) => {
@@ -1932,6 +2253,7 @@ function DocsTab({
                   key={doc.id}
                   doc={doc}
                   isDark={isDark}
+                  onPreview={() => handlePreview(doc)}
                   onDownload={() => handleDownload(doc)}
                   onDelete={() => handleDelete(doc)}
                 />
@@ -3300,6 +3622,863 @@ function ConvertLeadModal({
   );
 }
 
+// Products tab content
+function ProductsTab({
+  leadId,
+  accessToken,
+  isDark,
+}: {
+  leadId: string;
+  accessToken: string | null;
+  isDark: boolean;
+}) {
+  const [products, setProducts] = useState<LeadProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [addQuantity, setAddQuantity] = useState('1');
+  const [addPrice, setAddPrice] = useState('');
+  const [addNotes, setAddNotes] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickProductName, setQuickProductName] = useState('');
+  const [quickProductPrice, setQuickProductPrice] = useState('');
+  const [quickProductSku, setQuickProductSku] = useState('');
+  const [creatingProduct, setCreatingProduct] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+  const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+
+  const fetchProducts = useCallback(async () => {
+    if (!accessToken || !leadId) return;
+    setLoading(true);
+    const response = await getLeadProducts(accessToken, leadId);
+    if (response.success && response.data) {
+      setProducts(response.data);
+    }
+    setLoading(false);
+  }, [accessToken, leadId]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Search products with debounce
+  useEffect(() => {
+    if (!productSearch.trim() || !accessToken) {
+      setSearchResults([]);
+      return;
+    }
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(async () => {
+      setSearching(true);
+      const response = await getProducts(accessToken, { search: productSearch, limit: 10, isActive: true });
+      if (response.success && response.data) {
+        const linked = new Set(products.map((p) => p.productId));
+        setSearchResults((response.data.data || []).filter((p: Product) => !linked.has(p.id)));
+      }
+      setSearching(false);
+    }, 300);
+  }, [productSearch, accessToken, products]);
+
+  const handleSelectProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setProductSearch('');
+    setSearchResults([]);
+    setAddPrice(product.price ? (product.price / 100).toString() : '');
+  };
+
+  const handleAddProduct = async () => {
+    if (!selectedProduct || !accessToken || !leadId) return;
+    const qty = parseInt(addQuantity, 10);
+    if (!qty || qty < 1) {
+      Alert.alert('Error', 'Quantity must be at least 1');
+      return;
+    }
+    setAdding(true);
+    const priceInCents = addPrice ? Math.round(parseFloat(addPrice) * 100) : undefined;
+    const response = await addLeadProduct(accessToken, leadId, {
+      productId: selectedProduct.id,
+      quantity: qty,
+      unitPrice: priceInCents,
+      notes: addNotes.trim() || undefined,
+    });
+    if (response.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSelectedProduct(null);
+      setAddQuantity('1');
+      setAddPrice('');
+      setAddNotes('');
+      setShowAddProduct(false);
+      fetchProducts();
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to add product');
+    }
+    setAdding(false);
+  };
+
+  const handleRemoveProduct = (productId: string, productName: string) => {
+    Alert.alert(
+      'Remove Product',
+      `Remove "${productName}" from this lead?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const response = await removeLeadProduct(accessToken, leadId, productId);
+            if (response.success) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setProducts((prev) => prev.filter((p) => p.id !== productId));
+            } else {
+              Alert.alert('Error', response.error?.message || 'Failed to remove product');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const formatPrice = (value: number, symbol?: string) => {
+    return `${symbol || '₹'}${(value / 100).toLocaleString('en-IN')}`;
+  };
+
+  const totalValue = products.reduce((sum, p) => {
+    const price = p.unitPrice ?? (p as any).product?.price ?? 0;
+    return sum + price * p.quantity;
+  }, 0);
+
+  if (loading) {
+    return (
+      <View style={styles.tabContent}>
+        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+            Linked Products ({products.length})
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowAddProduct(!showAddProduct);
+              setSelectedProduct(null);
+              setProductSearch('');
+            }}
+          >
+            <Ionicons name={showAddProduct ? 'close' : 'add-circle'} size={24} color="#3b82f6" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Add Product Form */}
+        {showAddProduct && (
+          <View style={[styles.addNoteForm, { backgroundColor: cardBg, borderColor }]}>
+            {!selectedProduct ? (
+              <>
+                <TextInput
+                  style={[styles.formInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
+                  value={productSearch}
+                  onChangeText={setProductSearch}
+                  placeholder="Search products..."
+                  placeholderTextColor={placeholderColor}
+                />
+                {searching && <ActivityIndicator size="small" color="#3b82f6" />}
+                {searchResults.map((product) => (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={[styles.productSearchResult, { borderBottomColor: borderColor }]}
+                    onPress={() => handleSelectProduct(product)}
+                  >
+                    <View style={styles.productSearchInfo}>
+                      <Text style={[styles.productName, { color: textColor }]}>{product.name}</Text>
+                      {product.sku && (
+                        <Text style={[{ fontSize: 12, color: subtitleColor }]}>SKU: {product.sku}</Text>
+                      )}
+                    </View>
+                    <Text style={[{ fontSize: 13, fontWeight: '600', color: textColor }]}>
+                      {formatPrice(product.price || 0)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                {productSearch.trim() && !searching && searchResults.length === 0 && (
+                  <View style={{ paddingVertical: 8, gap: 8 }}>
+                    <Text style={[{ fontSize: 13, color: subtitleColor, textAlign: 'center' }]}>
+                      No products found for "{productSearch}"
+                    </Text>
+                    {!showQuickCreate ? (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowQuickCreate(true);
+                          setQuickProductName(productSearch.trim());
+                        }}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6 }}
+                      >
+                        <Ionicons name="add-circle" size={18} color="#3b82f6" />
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#3b82f6' }}>Create Quick Product</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={[{ padding: 12, borderRadius: 8, borderWidth: 1, gap: 8, backgroundColor: inputBg, borderColor }]}>
+                        <Text style={[styles.formLabel, { color: subtitleColor }]}>Product Name *</Text>
+                        <TextInput
+                          style={[styles.formInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'white', color: textColor, borderColor }]}
+                          value={quickProductName}
+                          onChangeText={setQuickProductName}
+                          placeholder="Product name"
+                          placeholderTextColor={placeholderColor}
+                          autoFocus
+                        />
+                        <View style={styles.productFormRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.formLabel, { color: subtitleColor }]}>Price</Text>
+                            <TextInput
+                              style={[styles.formInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'white', color: textColor, borderColor }]}
+                              value={quickProductPrice}
+                              onChangeText={setQuickProductPrice}
+                              placeholder="0"
+                              placeholderTextColor={placeholderColor}
+                              keyboardType="decimal-pad"
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.formLabel, { color: subtitleColor }]}>SKU</Text>
+                            <TextInput
+                              style={[styles.formInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'white', color: textColor, borderColor }]}
+                              value={quickProductSku}
+                              onChangeText={setQuickProductSku}
+                              placeholder="Optional"
+                              placeholderTextColor={placeholderColor}
+                            />
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TouchableOpacity
+                            style={{ flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }}
+                            onPress={() => {
+                              setShowQuickCreate(false);
+                              setQuickProductName('');
+                              setQuickProductPrice('');
+                              setQuickProductSku('');
+                            }}
+                          >
+                            <Text style={{ fontSize: 13, fontWeight: '500', color: textColor }}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.addNoteButton, { flex: 1 }, (!quickProductName.trim() || creatingProduct) && { opacity: 0.5 }]}
+                            onPress={async () => {
+                              if (!quickProductName.trim() || !accessToken) return;
+                              setCreatingProduct(true);
+                              const priceInCents = quickProductPrice ? Math.round(parseFloat(quickProductPrice) * 100) : 0;
+                              const createResp = await createProduct(accessToken, {
+                                name: quickProductName.trim(),
+                                price: priceInCents,
+                                sku: quickProductSku.trim() || undefined,
+                                isActive: true,
+                              });
+                              if (createResp.success && createResp.data) {
+                                // Auto-select the newly created product
+                                handleSelectProduct(createResp.data);
+                                setShowQuickCreate(false);
+                                setQuickProductName('');
+                                setQuickProductPrice('');
+                                setQuickProductSku('');
+                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                              } else {
+                                Alert.alert('Error', createResp.error?.message || 'Failed to create product');
+                              }
+                              setCreatingProduct(false);
+                            }}
+                            disabled={!quickProductName.trim() || creatingProduct}
+                          >
+                            {creatingProduct ? (
+                              <ActivityIndicator size="small" color="white" />
+                            ) : (
+                              <Text style={styles.addNoteButtonText}>Create & Select</Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                <View style={[styles.selectedProductBanner, { backgroundColor: '#3b82f610', borderColor: '#3b82f630' }]}>
+                  <Ionicons name="cube" size={18} color="#3b82f6" />
+                  <Text style={[{ flex: 1, fontSize: 14, fontWeight: '600', color: textColor }]}>{selectedProduct.name}</Text>
+                  <TouchableOpacity onPress={() => setSelectedProduct(null)}>
+                    <Ionicons name="close" size={18} color={subtitleColor} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.productFormRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.formLabel, { color: subtitleColor }]}>Quantity</Text>
+                    <TextInput
+                      style={[styles.formInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
+                      value={addQuantity}
+                      onChangeText={(t) => setAddQuantity(t.replace(/[^0-9]/g, ''))}
+                      keyboardType="number-pad"
+                      placeholder="1"
+                      placeholderTextColor={placeholderColor}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.formLabel, { color: subtitleColor }]}>Price (optional)</Text>
+                    <TextInput
+                      style={[styles.formInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
+                      value={addPrice}
+                      onChangeText={setAddPrice}
+                      keyboardType="decimal-pad"
+                      placeholder={selectedProduct.price ? (selectedProduct.price / 100).toString() : '0'}
+                      placeholderTextColor={placeholderColor}
+                    />
+                  </View>
+                </View>
+                <TextInput
+                  style={[styles.formInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
+                  value={addNotes}
+                  onChangeText={setAddNotes}
+                  placeholder="Notes (optional)"
+                  placeholderTextColor={placeholderColor}
+                />
+                <TouchableOpacity
+                  style={[styles.addNoteButton, adding && { opacity: 0.5 }]}
+                  onPress={handleAddProduct}
+                  disabled={adding}
+                >
+                  {adding ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.addNoteButtonText}>Add Product</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        )}
+
+        {products.length === 0 && !showAddProduct ? (
+          <View style={styles.emptyTabContent}>
+            <Ionicons name="cube-outline" size={48} color={emptyIconColor} />
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No products linked</Text>
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
+              Tap + to add a product
+            </Text>
+          </View>
+        ) : (
+          <>
+            {products.map((lp) => (
+              <View key={lp.id} style={[styles.productItem, { backgroundColor: cardBg, borderColor }]}>
+                <View style={styles.productInfo}>
+                  <Text style={[styles.productName, { color: textColor }]}>
+                    {lp.productName || (lp as any).product?.name || 'Product'}
+                  </Text>
+                  <View style={styles.productMeta}>
+                    <Text style={[styles.productQty, { color: subtitleColor }]}>
+                      Qty: {lp.quantity}
+                    </Text>
+                    <Text style={[styles.productPrice, { color: subtitleColor }]}>
+                      @ {formatPrice(lp.unitPrice || (lp as any).product?.price || 0)}
+                    </Text>
+                  </View>
+                  {lp.notes && (
+                    <Text style={[styles.productNotes, { color: subtitleColor }]} numberOfLines={1}>
+                      {lp.notes}
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.productRight}>
+                  <Text style={[styles.productTotal, { color: textColor }]}>
+                    {formatPrice((lp.unitPrice || (lp as any).product?.price || 0) * lp.quantity)}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveProduct(lp.id, lp.productName || (lp as any).product?.name || 'Product')}
+                    style={styles.productRemove}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            {products.length > 0 && (
+              <View style={[styles.productTotalRow, { borderTopColor: borderColor }]}>
+                <Text style={[styles.productTotalLabel, { color: subtitleColor }]}>Total</Text>
+                <Text style={[styles.productTotalValue, { color: textColor }]}>
+                  {formatPrice(totalValue)}
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+      </View>
+
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
+// Notes tab content
+function NotesTab({
+  leadId,
+  accessToken,
+  isDark,
+}: {
+  leadId: string;
+  accessToken: string | null;
+  isDark: boolean;
+}) {
+  const [notes, setNotes] = useState<{ id: string; content: string; type: string; createdBy: string; createdAt: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [noteContent, setNoteContent] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+  const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+
+  const fetchNotes = useCallback(async () => {
+    if (!accessToken || !leadId) return;
+    setLoading(true);
+    const response = await getLeadNotesEndpoint(accessToken, leadId);
+    if (response.success && response.data) {
+      setNotes(response.data);
+    }
+    setLoading(false);
+  }, [accessToken, leadId]);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  const handleAddNote = async () => {
+    if (!noteContent.trim() || !accessToken || !leadId) return;
+    setSaving(true);
+    const response = await addLeadNoteEndpoint(accessToken, leadId, {
+      content: noteContent.trim(),
+      type: 'GENERAL',
+    });
+    if (response.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setNoteContent('');
+      setShowAddNote(false);
+      fetchNotes();
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to add note');
+    }
+    setSaving(false);
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.tabContent}>
+        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+            Notes ({notes.length})
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowAddNote(!showAddNote);
+            }}
+          >
+            <Ionicons name={showAddNote ? 'close' : 'add-circle'} size={24} color="#3b82f6" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Add Note Form */}
+        {showAddNote && (
+          <View style={[styles.addNoteForm, { backgroundColor: cardBg, borderColor }]}>
+            <TextInput
+              style={[styles.noteInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
+              value={noteContent}
+              onChangeText={setNoteContent}
+              placeholder="Write a note..."
+              placeholderTextColor={placeholderColor}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <TouchableOpacity
+              style={[styles.addNoteButton, !noteContent.trim() && { opacity: 0.5 }]}
+              onPress={handleAddNote}
+              disabled={!noteContent.trim() || saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.addNoteButtonText}>Add Note</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Notes List */}
+        {notes.length === 0 && !showAddNote ? (
+          <View style={styles.emptyTabContent}>
+            <Ionicons name="document-text-outline" size={48} color={emptyIconColor} />
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No notes yet</Text>
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
+              Tap + to add a note
+            </Text>
+          </View>
+        ) : (
+          notes.map((note) => (
+            <View key={note.id} style={[styles.noteItem, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.noteContent, { color: textColor }]}>{note.content}</Text>
+              <View style={styles.noteFooter}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  {note.createdBy && (
+                    <Text style={[{ fontSize: 12, fontWeight: '500', color: subtitleColor }]} numberOfLines={1}>
+                      {note.createdBy}
+                    </Text>
+                  )}
+                  <Text style={[styles.noteDate, { color: subtitleColor }]}>
+                    {note.createdBy ? '· ' : ''}{formatDate(note.createdAt)}
+                  </Text>
+                </View>
+                {note.type && note.type !== 'GENERAL' && (
+                  <View style={[styles.noteTypeBadge, { backgroundColor: '#3b82f620' }]}>
+                    <Text style={[styles.noteTypeText, { color: '#3b82f6' }]}>{note.type}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
+// Metadata tab content
+function MetadataTab({
+  lead,
+  isDark,
+}: {
+  lead: Lead;
+  isDark: boolean;
+}) {
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const codeBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
+  const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+  const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+
+  const hasCustomFields = lead.customFieldValues && Object.keys(lead.customFieldValues).length > 0;
+  const hasMetadata = lead.metadata && Object.keys(lead.metadata).length > 0;
+
+  if (!hasCustomFields && !hasMetadata) {
+    return (
+      <View style={styles.tabContent}>
+        <View style={styles.emptyTabContent}>
+          <Ionicons name="code-slash-outline" size={48} color={emptyIconColor} />
+          <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No metadata</Text>
+          <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
+            Metadata is captured from external sources like IndiaMART
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      {/* Custom Fields */}
+      {hasCustomFields && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Custom Fields</Text>
+          {Object.entries(lead.customFieldValues!).map(([key, value]) => (
+            <View key={key} style={[styles.metadataRow, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.metadataKey, { color: subtitleColor }]}>{key}</Text>
+              <Text style={[styles.metadataValue, { color: textColor }]}>
+                {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '-')}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Raw Metadata */}
+      {hasMetadata && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Source Metadata</Text>
+          <View style={[styles.codeBlock, { backgroundColor: codeBg }]}>
+            <Text style={[styles.codeText, { color: textColor }]}>
+              {JSON.stringify(lead.metadata, null, 2)}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
+// Quotes tab content
+function QuotesTab({
+  leadId,
+  accessToken,
+  isDark,
+}: {
+  leadId: string;
+  accessToken: string | null;
+  isDark: boolean;
+}) {
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+  const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+
+  useEffect(() => {
+    const fetchQuotes = async () => {
+      if (!accessToken || !leadId) return;
+      setLoading(true);
+      const response = await getQuotes(accessToken, { leadId, limit: 50 });
+      if (response.success && response.data) {
+        setQuotes(response.data.data || []);
+      }
+      setLoading(false);
+    };
+    fetchQuotes();
+  }, [accessToken, leadId]);
+
+  const formatAmount = (amount: number | string, symbol?: string) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `${symbol || '₹'}${(num / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.tabContent}>
+        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+            Quotes ({quotes.length})
+          </Text>
+        </View>
+
+        {quotes.length === 0 ? (
+          <View style={styles.emptyTabContent}>
+            <Ionicons name="document-text-outline" size={48} color={emptyIconColor} />
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No quotes yet</Text>
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
+              Create quotes from the Deals tab
+            </Text>
+          </View>
+        ) : (
+          quotes.map((quote) => {
+            const statusColor = QUOTE_STATUS_COLORS[quote.status] || '#6b7280';
+            return (
+              <View key={quote.id} style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}>
+                <View style={styles.recordCardHeader}>
+                  <Text style={[styles.recordCardNumber, { color: '#3b82f6' }]}>#{quote.quoteNumber}</Text>
+                  <View style={[styles.recordStatusBadge, { backgroundColor: statusColor + '20' }]}>
+                    <Text style={[styles.recordStatusText, { color: statusColor }]}>
+                      {QUOTE_STATUS_LABELS[quote.status]}
+                    </Text>
+                  </View>
+                </View>
+                {quote.subject && (
+                  <Text style={[{ fontSize: 13, color: textColor, marginTop: 4 }]} numberOfLines={1}>{quote.subject}</Text>
+                )}
+                <View style={styles.recordCardFooter}>
+                  <Text style={[styles.recordCardDate, { color: subtitleColor }]}>
+                    {formatDate(quote.createdAt)}
+                  </Text>
+                  <Text style={[styles.recordCardAmount, { color: textColor }]}>
+                    {formatAmount(quote.total, quote.currency?.symbol)}
+                  </Text>
+                </View>
+              </View>
+            );
+          })
+        )}
+      </View>
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
+// Invoices tab content
+function InvoicesTab({
+  leadId,
+  accessToken,
+  isDark,
+}: {
+  leadId: string;
+  accessToken: string | null;
+  isDark: boolean;
+}) {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
+  const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      if (!accessToken || !leadId) return;
+      setLoading(true);
+      const response = await getInvoices(accessToken, { leadId, limit: 50 });
+      if (response.success && response.data) {
+        setInvoices(response.data.data || []);
+      }
+      setLoading(false);
+    };
+    fetchInvoices();
+  }, [accessToken, leadId]);
+
+  const formatAmount = (amount: number | string, symbol?: string) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `${symbol || '₹'}${(num / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.tabContent}>
+        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+            Invoices ({invoices.length})
+          </Text>
+        </View>
+
+        {invoices.length === 0 ? (
+          <View style={styles.emptyTabContent}>
+            <Ionicons name="receipt-outline" size={48} color={emptyIconColor} />
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No invoices yet</Text>
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
+              Create invoices from the web app
+            </Text>
+          </View>
+        ) : (
+          invoices.map((invoice) => {
+            const statusColor = INVOICE_STATUS_COLORS[invoice.status] || '#6b7280';
+            const amountDue = typeof invoice.amountDue === 'string' ? parseFloat(invoice.amountDue) : (invoice.amountDue || 0);
+            const total = typeof invoice.total === 'string' ? parseFloat(invoice.total) : (invoice.total || 0);
+            const showAmountDue = amountDue > 0 && amountDue !== total;
+
+            return (
+              <View key={invoice.id} style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}>
+                <View style={styles.recordCardHeader}>
+                  <Text style={[styles.recordCardNumber, { color: '#3b82f6' }]}>#{invoice.invoiceNumber}</Text>
+                  <View style={[styles.recordStatusBadge, { backgroundColor: statusColor + '20' }]}>
+                    <Text style={[styles.recordStatusText, { color: statusColor }]}>
+                      {INVOICE_STATUS_LABELS[invoice.status]}
+                    </Text>
+                  </View>
+                </View>
+                {invoice.subject && (
+                  <Text style={[{ fontSize: 13, color: textColor, marginTop: 4 }]} numberOfLines={1}>{invoice.subject}</Text>
+                )}
+                <View style={styles.recordCardFooter}>
+                  <Text style={[styles.recordCardDate, { color: subtitleColor }]}>
+                    Due: {formatDate(invoice.dueDate)}
+                  </Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.recordCardAmount, { color: textColor }]}>
+                      {formatAmount(invoice.total, invoice.currency?.symbol)}
+                    </Text>
+                    {showAmountDue && (
+                      <Text style={[{ fontSize: 11, color: '#ef4444', fontWeight: '500' }]}>
+                        Due: {formatAmount(invoice.amountDue, invoice.currency?.symbol)}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          })
+        )}
+      </View>
+      <View style={{ height: 100 }} />
+    </ScrollView>
+  );
+}
+
 export default function LeadDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -3346,6 +4525,12 @@ export default function LeadDetailScreen() {
   // Convert lead state
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [converting, setConverting] = useState(false);
+
+  // More actions state
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [showMarkLostModal, setShowMarkLostModal] = useState(false);
+  const [lostReason, setLostReason] = useState('');
+  const [qualifyingOrMarking, setQualifyingOrMarking] = useState(false);
 
   // Fetch lead sources
   useEffect(() => {
@@ -3623,6 +4808,39 @@ export default function LeadDetailScreen() {
     setConverting(false);
   };
 
+  // Qualify lead
+  const handleQualify = async () => {
+    if (!accessToken || !lead) return;
+    setQualifyingOrMarking(true);
+    setShowMoreActions(false);
+    const response = await qualifyLead(accessToken, lead.id);
+    if (response.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Success', 'Lead has been qualified.');
+      fetchLead();
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to qualify lead');
+    }
+    setQualifyingOrMarking(false);
+  };
+
+  // Mark lead as lost
+  const handleMarkLost = async () => {
+    if (!accessToken || !lead) return;
+    setQualifyingOrMarking(true);
+    const response = await markLeadLost(accessToken, lead.id, lostReason.trim() || undefined);
+    if (response.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowMarkLostModal(false);
+      setLostReason('');
+      Alert.alert('Success', 'Lead has been marked as lost.');
+      fetchLead();
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to mark lead as lost');
+    }
+    setQualifyingOrMarking(false);
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -3673,28 +4891,17 @@ export default function LeadDetailScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: 'rgba(34,197,94,0.15)' }]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setShowConvertModal(true);
-              }}
-            >
-              <Ionicons name="swap-horizontal" size={20} color="#22c55e" />
-            </TouchableOpacity>
             <TouchableOpacity style={[styles.headerButton, { backgroundColor: buttonBg }]} onPress={handleEdit}>
               <Ionicons name="pencil" size={20} color={textColor} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.headerButton, styles.deleteButton]}
-              onPress={handleDelete}
-              disabled={deleting}
+              style={[styles.headerButton, { backgroundColor: buttonBg }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowMoreActions(true);
+              }}
             >
-              {deleting ? (
-                <ActivityIndicator size="small" color="#ef4444" />
-              ) : (
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-              )}
+              <Ionicons name="ellipsis-vertical" size={20} color={textColor} />
             </TouchableOpacity>
           </View>
         </View>
@@ -3738,6 +4945,8 @@ export default function LeadDetailScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Action Buttons Bar removed - now in fixed bottom bar */}
+
         {/* Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsScrollContent}>
           <Tab label="Details" active={activeTab === 'details'} onPress={() => setActiveTab('details')} isDark={isDark} />
@@ -3745,6 +4954,11 @@ export default function LeadDetailScreen() {
           <Tab label="Tags" active={activeTab === 'tags'} onPress={() => setActiveTab('tags')} isDark={isDark} />
           <Tab label="Docs" active={activeTab === 'docs'} onPress={() => setActiveTab('docs')} isDark={isDark} />
           <Tab label="Deals" active={activeTab === 'deals'} onPress={() => setActiveTab('deals')} isDark={isDark} />
+          <Tab label="Products" active={activeTab === 'products'} onPress={() => setActiveTab('products')} isDark={isDark} />
+          <Tab label="Notes" active={activeTab === 'notes'} onPress={() => setActiveTab('notes')} isDark={isDark} />
+          <Tab label="Quotes" active={activeTab === 'quotes'} onPress={() => setActiveTab('quotes')} isDark={isDark} />
+          <Tab label="Invoices" active={activeTab === 'invoices'} onPress={() => setActiveTab('invoices')} isDark={isDark} />
+          <Tab label="Metadata" active={activeTab === 'metadata'} onPress={() => setActiveTab('metadata')} isDark={isDark} />
         </ScrollView>
       </View>
 
@@ -3772,6 +4986,73 @@ export default function LeadDetailScreen() {
       {activeTab === 'deals' && (
         <DealsTab lead={lead} accessToken={accessToken} isDark={isDark} onDealCreated={fetchActivities} />
       )}
+      {activeTab === 'products' && (
+        <ProductsTab leadId={id} accessToken={accessToken} isDark={isDark} />
+      )}
+      {activeTab === 'notes' && (
+        <NotesTab leadId={id} accessToken={accessToken} isDark={isDark} />
+      )}
+      {activeTab === 'quotes' && (
+        <QuotesTab leadId={id} accessToken={accessToken} isDark={isDark} />
+      )}
+      {activeTab === 'invoices' && (
+        <InvoicesTab leadId={id} accessToken={accessToken} isDark={isDark} />
+      )}
+      {activeTab === 'metadata' && (
+        <MetadataTab lead={lead} isDark={isDark} />
+      )}
+
+      {/* Fixed Bottom Action Bar */}
+      <View style={[styles.bottomActionBar, {
+        backgroundColor: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.95)',
+        borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+        paddingBottom: insets.bottom || 8,
+      }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6, paddingHorizontal: 16 }}
+        >
+          <TouchableOpacity
+            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.1)' }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowConvertModal(true);
+            }}
+          >
+            <Ionicons name="briefcase-outline" size={16} color="#22c55e" />
+            <Text style={[styles.bottomBarButtonText, { color: '#22c55e' }]}>Deal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('quotes'); }}
+          >
+            <Ionicons name="document-text-outline" size={16} color="#3b82f6" />
+            <Text style={[styles.bottomBarButtonText, { color: '#3b82f6' }]}>Quotes</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('invoices'); }}
+          >
+            <Ionicons name="receipt-outline" size={16} color="#ef4444" />
+            <Text style={[styles.bottomBarButtonText, { color: '#ef4444' }]}>Invoices</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]}
+            onPress={handleFollowUpPress}
+          >
+            <Ionicons name="time-outline" size={16} color="#8b5cf6" />
+            <Text style={[styles.bottomBarButtonText, { color: '#8b5cf6' }]}>Follow Up</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)' }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('products'); }}
+          >
+            <Ionicons name="cube-outline" size={16} color="#f59e0b" />
+            <Text style={[styles.bottomBarButtonText, { color: '#f59e0b' }]}>Products</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       {/* Follow-up Action Sheet */}
       <FollowUpActionSheet
@@ -3804,6 +5085,171 @@ export default function LeadDetailScreen() {
         converting={converting}
         token={accessToken}
       />
+
+      {/* More Actions Modal */}
+      <Modal visible={showMoreActions} transparent animationType="fade" onRequestClose={() => setShowMoreActions(false)}>
+        <Pressable
+          style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}
+          onPress={() => setShowMoreActions(false)}
+        >
+          <Pressable style={[styles.moreActionsContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+            <View style={[styles.actionSheetHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' }]} />
+            <Text style={[styles.actionSheetTitle, { color: textColor }]}>Lead Actions</Text>
+
+            {/* Convert to Deal */}
+            <TouchableOpacity
+              style={[styles.moreActionItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
+              onPress={() => {
+                setShowMoreActions(false);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowConvertModal(true);
+              }}
+            >
+              <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(34,197,94,0.15)' }]}>
+                <Ionicons name="swap-horizontal" size={20} color="#22c55e" />
+              </View>
+              <View style={styles.moreActionText}>
+                <Text style={[styles.moreActionLabel, { color: textColor }]}>Convert Lead</Text>
+                <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Convert to contact and deal</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+            </TouchableOpacity>
+
+            {/* Qualify Lead */}
+            {lead.stage?.type === 'OPEN' && (
+              <TouchableOpacity
+                style={[styles.moreActionItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
+                onPress={() => {
+                  Alert.alert(
+                    'Qualify Lead',
+                    `Mark "${lead.title}" as qualified?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Qualify', onPress: handleQualify },
+                    ]
+                  );
+                }}
+                disabled={qualifyingOrMarking}
+              >
+                <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+                  <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
+                </View>
+                <View style={styles.moreActionText}>
+                  <Text style={[styles.moreActionLabel, { color: textColor }]}>Qualify Lead</Text>
+                  <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Move to qualified stage</Text>
+                </View>
+                {qualifyingOrMarking ? (
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+                )}
+              </TouchableOpacity>
+            )}
+
+            {/* Mark as Lost */}
+            {lead.stage?.type !== 'CLOSED_LOST' && (
+              <TouchableOpacity
+                style={[styles.moreActionItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
+                onPress={() => {
+                  setShowMoreActions(false);
+                  setTimeout(() => setShowMarkLostModal(true), 300);
+                }}
+              >
+                <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+                  <Ionicons name="close-circle" size={20} color="#ef4444" />
+                </View>
+                <View style={styles.moreActionText}>
+                  <Text style={[styles.moreActionLabel, { color: textColor }]}>Mark as Lost</Text>
+                  <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Close lead with reason</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+              </TouchableOpacity>
+            )}
+
+            {/* Delete */}
+            <TouchableOpacity
+              style={[styles.moreActionItem, { borderBottomColor: 'transparent' }]}
+              onPress={() => {
+                setShowMoreActions(false);
+                handleDelete();
+              }}
+              disabled={deleting}
+            >
+              <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
+                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              </View>
+              <View style={styles.moreActionText}>
+                <Text style={[styles.moreActionLabel, { color: '#ef4444' }]}>Delete Lead</Text>
+                <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Permanently remove this lead</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
+            </TouchableOpacity>
+
+            {/* Cancel */}
+            <TouchableOpacity
+              style={[styles.actionSheetCancelButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', marginTop: 12 }]}
+              onPress={() => setShowMoreActions(false)}
+            >
+              <Text style={[styles.actionSheetCancelText, { color: textColor }]}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Mark Lost Modal */}
+      <Modal visible={showMarkLostModal} transparent animationType="slide" onRequestClose={() => setShowMarkLostModal(false)}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <Pressable
+            style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}
+            onPress={() => setShowMarkLostModal(false)}
+          />
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+              <Text style={[styles.modalTitle, { color: textColor }]}>Mark Lead as Lost</Text>
+              <TouchableOpacity onPress={() => setShowMarkLostModal(false)}>
+                <Ionicons name="close" size={24} color={textColor} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputModalBody}>
+              <Text style={[{ fontSize: 13, color: subtitleColor, marginBottom: 8 }]}>
+                Reason (optional)
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                    color: textColor,
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                    minHeight: 80,
+                    textAlignVertical: 'top',
+                  },
+                ]}
+                value={lostReason}
+                onChangeText={setLostReason}
+                placeholder="Why was this lead lost?"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}
+                multiline
+                numberOfLines={3}
+              />
+              <TouchableOpacity
+                style={[styles.modalSaveButton, { backgroundColor: '#ef4444' }, qualifyingOrMarking && { opacity: 0.5 }]}
+                onPress={handleMarkLost}
+                disabled={qualifyingOrMarking}
+              >
+                {qualifyingOrMarking ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.modalSaveButtonText}>Mark as Lost</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -5777,5 +7223,351 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  // Products tab styles
+  productItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  productInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  productName: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  productMeta: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  productQty: {
+    fontSize: 13,
+  },
+  productPrice: {
+    fontSize: 13,
+  },
+  productNotes: {
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  productRight: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  productTotal: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  productRemove: {
+    padding: 2,
+  },
+  productTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    marginTop: 4,
+  },
+  productTotalLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  productTotalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  // Notes tab styles
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addNoteForm: {
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 12,
+    gap: 10,
+  },
+  noteInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    minHeight: 80,
+  },
+  addNoteButton: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  addNoteButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  noteItem: {
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+    gap: 8,
+  },
+  noteContent: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  noteFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  noteDate: {
+    fontSize: 12,
+  },
+  noteTypeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  noteTypeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  // Metadata tab styles
+  metadataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  metadataKey: {
+    fontSize: 13,
+    flex: 1,
+  },
+  metadataValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 2,
+    textAlign: 'right',
+  },
+  codeBlock: {
+    padding: 12,
+    borderRadius: 8,
+  },
+  codeText: {
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    lineHeight: 16,
+  },
+  // More actions styles
+  moreActionsContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: 34,
+    paddingHorizontal: 20,
+  },
+  moreActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    gap: 14,
+  },
+  moreActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreActionText: {
+    flex: 1,
+    gap: 2,
+  },
+  moreActionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  moreActionDesc: {
+    fontSize: 12,
+  },
+  // Product search/add styles
+  productSearchResult: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  productSearchInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  selectedProductBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  productFormRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  // Fixed bottom action bar
+  bottomActionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    paddingTop: 10,
+  },
+  bottomBarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  bottomBarButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Details grid layout (2-column)
+  detailsGrid: {
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  detailsRow: {
+    flexDirection: 'row',
+  },
+  detailsCell: {
+    flex: 1,
+    padding: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: 'rgba(0,0,0,0.05)',
+  },
+  detailsCellLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  detailsCellValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  inquiryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  inquiryBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  companyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  companyAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  requirementsCard: {
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+    maxHeight: 200,
+  },
+  // Score badge style
+  scoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  // Contact address
+  contactAddressCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+  },
+  // Record cards (quotes, invoices)
+  recordCard: {
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+    gap: 2,
+  },
+  recordCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  recordCardNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  recordStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  recordStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  recordCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  recordCardDate: {
+    fontSize: 12,
+  },
+  recordCardAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  // Activity metadata styles
+  activityMetaBox: {
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
 });

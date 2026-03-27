@@ -89,6 +89,12 @@ export interface Lead {
   contactId?: string;
   stage?: LeadStage;
   stageId?: string;
+  pipeline?: {
+    id: string;
+    name: string;
+    isDefault: boolean;
+  };
+  pipelineId?: string;
   owner: LeadOwner;
   ownerMembershipId: string;
   currency?: LeadCurrency;

@@ -26,7 +26,7 @@ type IconName = keyof typeof Ionicons.glyphMap;
 const tabIcons: Record<string, { default: IconName; selected: IconName }> = {
   index: { default: 'home-outline', selected: 'home' },
   leads: { default: 'people-outline', selected: 'people' },
-  deals: { default: 'briefcase-outline', selected: 'briefcase' },
+  quotes: { default: 'document-text-outline', selected: 'document-text' },
   contacts: { default: 'person-circle-outline', selected: 'person-circle' },
   more: { default: 'menu-outline', selected: 'menu' },
 };
@@ -78,20 +78,21 @@ export default function TabLayout() {
           <Label>Leads</Label>
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="deals">
-          <Icon sf={{ default: 'briefcase', selected: 'briefcase.fill' }} />
-          <Label>Deals</Label>
-        </NativeTabs.Trigger>
-
         <NativeTabs.Trigger name="contacts">
           <Icon sf={{ default: 'person.circle', selected: 'person.circle.fill' }} />
           <Label>Contacts</Label>
+        </NativeTabs.Trigger>
+
+        <NativeTabs.Trigger name="quotes">
+          <Icon sf={{ default: 'doc.text', selected: 'doc.text.fill' }} />
+          <Label>Quotes</Label>
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger name="more">
           <Icon sf={{ default: 'line.3.horizontal', selected: 'line.3.horizontal' }} />
           <Label>More</Label>
         </NativeTabs.Trigger>
+
       </NativeTabs>
     );
   }
@@ -144,12 +145,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="deals"
+        name="contacts"
         options={{
-          title: 'Deals',
+          title: 'Contacts',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
-              name={focused ? tabIcons.deals.selected : tabIcons.deals.default}
+              name={focused ? tabIcons.contacts.selected : tabIcons.contacts.default}
               size={size}
               color={color}
             />
@@ -157,12 +158,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="contacts"
+        name="quotes"
         options={{
-          title: 'Contacts',
+          title: 'Quotes',
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
-              name={focused ? tabIcons.contacts.selected : tabIcons.contacts.default}
+              name={focused ? tabIcons.quotes.selected : tabIcons.quotes.default}
               size={size}
               color={color}
             />

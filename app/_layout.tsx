@@ -28,6 +28,8 @@ function RootLayoutNav() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="products" options={{ headerShown: false }} />
+        <Stack.Screen name="deals" options={{ headerShown: false }} />
+        <Stack.Screen name="invoices" options={{ headerShown: false }} />
         <Stack.Screen name="activities" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />

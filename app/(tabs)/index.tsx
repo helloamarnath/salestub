@@ -135,7 +135,7 @@ export default function DashboardScreen() {
 
   // Navigation handlers
   const handleAddLead = () => router.push('/(tabs)/leads/create' as any);
-  const handleAddDeal = () => router.push('/(tabs)/deals/create' as any);
+  const handleAddDeal = () => router.push('/deals/create' as any);
   const handleAddTask = () => router.push('/activities/create' as any);
   const handleAddContact = () => router.push('/(tabs)/contacts/customer/create' as any);
   const handleViewAllActivities = () => router.push('/activities' as any);

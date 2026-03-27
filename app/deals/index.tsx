@@ -444,11 +444,11 @@ export default function DealsScreen() {
 
   // Navigation handlers
   const handleAddNew = () => {
-    router.push('/(tabs)/deals/create' as any);
+    router.push('/deals/create' as any);
   };
 
   const handleDealPress = (deal: Deal) => {
-    router.push(`/(tabs)/deals/${deal.id}` as any);
+    router.push(`/deals/${deal.id}` as any);
   };
 
   // Selection mode handlers
@@ -639,6 +639,12 @@ export default function DealsScreen() {
             // Normal header
             <>
               <View style={styles.headerTop}>
+                <TouchableOpacity
+                  style={{ marginRight: 10 }}
+                  onPress={() => router.back()}
+                >
+                  <Ionicons name="arrow-back" size={24} color={textColor} />
+                </TouchableOpacity>
                 <Text style={[styles.title, { color: textColor }]}>Deals</Text>
                 <View style={styles.headerActions}>
                   <TouchableOpacity

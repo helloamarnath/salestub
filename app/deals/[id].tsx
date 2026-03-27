@@ -269,7 +269,7 @@ export default function DealDetailScreen() {
   };
 
   const handleEdit = () => {
-    router.push(`/(tabs)/deals/create?id=${id}` as any);
+    router.push(`/deals/create?id=${id}` as any);
   };
 
   const handleDelete = () => {
@@ -343,13 +343,13 @@ export default function DealDetailScreen() {
 
   const handleContactPress = () => {
     if (deal?.contact?.id) {
-      router.push(`/(tabs)/contacts/customer/${deal.contact.id}` as any);
+      router.push(`/contacts/customer/${deal.contact.id}` as any);
     }
   };
 
   const handleCompanyPress = () => {
     if (deal?.company?.id) {
-      router.push(`/(tabs)/contacts/organization/${deal.company.id}` as any);
+      router.push(`/contacts/organization/${deal.company.id}` as any);
     }
   };
 
