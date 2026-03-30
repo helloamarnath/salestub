@@ -20,12 +20,20 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { startLocationTracking, stopLocationTracking } from '../../../lib/firebase/location-tracker';
+import { StartVisitSheet } from '../../../components/visits/StartVisitSheet';
+import { ActiveVisitBanner } from '../../../components/visits/ActiveVisitBanner';
+import { VisitCard } from '../../../components/visits/VisitCard';
+import { VisitPhotoCapture } from '../../../components/visits/VisitPhotoCapture';
+import { getActiveVisit, startVisit, completeVisit, cancelVisit, getLeadVisits } from '../../../lib/api/visits';
+import type { Visit, VisitPurpose } from '../../../types/visit';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
@@ -4482,7 +4490,7 @@ function InvoicesTab({
 export default function LeadDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
@@ -4531,6 +4539,13 @@ export default function LeadDetailScreen() {
   const [showMarkLostModal, setShowMarkLostModal] = useState(false);
   const [lostReason, setLostReason] = useState('');
   const [qualifyingOrMarking, setQualifyingOrMarking] = useState(false);
+
+  // Visit state
+  const [showStartVisitSheet, setShowStartVisitSheet] = useState(false);
+  const [activeVisit, setActiveVisit] = useState<Visit | null>(null);
+  const [leadVisits, setLeadVisits] = useState<Visit[]>([]);
+  const [visitsLoading, setVisitsLoading] = useState(false);
+  const [visitActionLoading, setVisitActionLoading] = useState(false);
 
   // Fetch lead sources
   useEffect(() => {
@@ -4644,7 +4659,11 @@ export default function LeadDetailScreen() {
     if (activeTab === 'timeline') {
       fetchActivities();
     }
-  }, [fetchLead, fetchActivities, activeTab]);
+    if (activeTab === 'visits') {
+      fetchLeadVisits();
+    }
+    fetchActiveVisit();
+  }, [fetchLead, fetchActivities, fetchLeadVisits, fetchActiveVisit, activeTab]);
 
   // Back navigation
   const handleBack = () => {
@@ -4708,6 +4727,157 @@ export default function LeadDetailScreen() {
       const cleanPhone = lead.contact.phone.replace(/\D/g, '');
       await Linking.openURL(`https://wa.me/${cleanPhone}`);
     }
+  };
+
+  // Visit handlers
+  const fetchActiveVisit = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const result = await getActiveVisit(accessToken);
+      if (result.success && result.data && result.data.leadId === id) {
+        setActiveVisit(result.data);
+      } else {
+        setActiveVisit(null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch active visit:', error);
+    }
+  }, [accessToken, id]);
+
+  const fetchLeadVisits = useCallback(async () => {
+    if (!accessToken || !id) return;
+    setVisitsLoading(true);
+    try {
+      const result = await getLeadVisits(accessToken, id);
+      if (result.success && result.data) {
+        setLeadVisits(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch lead visits:', error);
+    } finally {
+      setVisitsLoading(false);
+    }
+  }, [accessToken, id]);
+
+  // Load active visit on mount
+  useEffect(() => {
+    fetchActiveVisit();
+  }, [fetchActiveVisit]);
+
+  // Load visits when visits tab is selected
+  useEffect(() => {
+    if (activeTab === 'visits' && leadVisits.length === 0) {
+      fetchLeadVisits();
+    }
+  }, [activeTab]);
+
+  const handleStartVisitPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowStartVisitSheet(true);
+  };
+
+  const handleStartVisit = async (purpose: VisitPurpose) => {
+    if (!accessToken || !id) return;
+    setVisitActionLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to start a visit.');
+        setVisitActionLoading(false);
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      const result = await startVisit(accessToken, {
+        leadId: id,
+        purpose,
+        startLat: location.coords.latitude,
+        startLng: location.coords.longitude,
+      });
+      if (result.success && result.data) {
+        setActiveVisit(result.data);
+        setShowStartVisitSheet(false);
+        fetchLeadVisits();
+        // Start direct Firebase location tracking
+        const firebaseToken = result.data?.firebaseToken ?? null;
+        startLocationTracking(
+          result.data.id,
+          user?.orgId ?? '',
+          firebaseToken,
+        ).catch((err) => console.warn('Failed to start location tracking:', err));
+      } else {
+        Alert.alert('Error', 'Failed to start visit. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to start visit:', error);
+      Alert.alert('Error', 'Failed to start visit. Please try again.');
+    } finally {
+      setVisitActionLoading(false);
+    }
+  };
+
+  const handleCompleteVisit = async () => {
+    if (!accessToken || !activeVisit) return;
+    setVisitActionLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to complete a visit.');
+        setVisitActionLoading(false);
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      const result = await completeVisit(accessToken, activeVisit.id, {
+        endLat: location.coords.latitude,
+        endLng: location.coords.longitude,
+      });
+      // Stop Firebase location tracking
+      await stopLocationTracking();
+      if (result.success) {
+        setActiveVisit(null);
+        fetchLeadVisits();
+      } else {
+        Alert.alert('Error', 'Failed to complete visit. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to complete visit:', error);
+      Alert.alert('Error', 'Failed to complete visit. Please try again.');
+    } finally {
+      setVisitActionLoading(false);
+    }
+  };
+
+  const handleCancelVisit = async () => {
+    if (!accessToken || !activeVisit) return;
+    Alert.alert(
+      'Cancel Visit',
+      'Are you sure you want to cancel this visit?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            setVisitActionLoading(true);
+            try {
+              // Stop Firebase location tracking
+              await stopLocationTracking();
+              const result = await cancelVisit(accessToken, activeVisit.id);
+              if (result.success) {
+                setActiveVisit(null);
+                fetchLeadVisits();
+              } else {
+                Alert.alert('Error', 'Failed to cancel visit.');
+              }
+            } catch (error) {
+              console.error('Failed to cancel visit:', error);
+              Alert.alert('Error', 'Failed to cancel visit.');
+            } finally {
+              setVisitActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Follow-up handlers
@@ -4938,6 +5108,9 @@ export default function LeadDetailScreen() {
                 <Ionicons name="mail" size={20} color="#3b82f6" />
               </TouchableOpacity>
             )}
+            <TouchableOpacity style={[styles.quickActionIcon, { backgroundColor: quickActionBg }]} onPress={handleStartVisitPress}>
+              <Ionicons name="location-outline" size={20} color="#3b82f6" />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.followUpButton} onPress={handleFollowUpPress}>
             <Ionicons name="add-circle" size={18} color="white" />
@@ -4946,6 +5119,16 @@ export default function LeadDetailScreen() {
         </View>
 
         {/* Action Buttons Bar removed - now in fixed bottom bar */}
+
+        {/* Active Visit Banner */}
+        {activeVisit && (
+          <ActiveVisitBanner
+            visit={activeVisit}
+            onComplete={handleCompleteVisit}
+            onCancel={handleCancelVisit}
+            loading={visitActionLoading}
+          />
+        )}
 
         {/* Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsScrollContent}>
@@ -4956,6 +5139,7 @@ export default function LeadDetailScreen() {
           <Tab label="Deals" active={activeTab === 'deals'} onPress={() => setActiveTab('deals')} isDark={isDark} />
           <Tab label="Products" active={activeTab === 'products'} onPress={() => setActiveTab('products')} isDark={isDark} />
           <Tab label="Notes" active={activeTab === 'notes'} onPress={() => setActiveTab('notes')} isDark={isDark} />
+          <Tab label="Visits" active={activeTab === 'visits'} onPress={() => setActiveTab('visits')} isDark={isDark} />
           <Tab label="Quotes" active={activeTab === 'quotes'} onPress={() => setActiveTab('quotes')} isDark={isDark} />
           <Tab label="Invoices" active={activeTab === 'invoices'} onPress={() => setActiveTab('invoices')} isDark={isDark} />
           <Tab label="Metadata" active={activeTab === 'metadata'} onPress={() => setActiveTab('metadata')} isDark={isDark} />
@@ -4991,6 +5175,29 @@ export default function LeadDetailScreen() {
       )}
       {activeTab === 'notes' && (
         <NotesTab leadId={id} accessToken={accessToken} isDark={isDark} />
+      )}
+      {activeTab === 'visits' && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: 16 }}
+          refreshControl={<RefreshControl refreshing={visitsLoading} onRefresh={fetchLeadVisits} />}
+        >
+          {visitsLoading && leadVisits.length === 0 ? (
+            <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 40 }} />
+          ) : leadVisits.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingTop: 60 }}>
+              <Ionicons name="location-outline" size={48} color={emptyIconColor} />
+              <Text style={{ color: emptyTextColor, fontSize: 15, marginTop: 12 }}>No visits yet</Text>
+              <Text style={{ color: emptyTextColor, fontSize: 13, marginTop: 4 }}>
+                Tap the location icon to start a field visit
+              </Text>
+            </View>
+          ) : (
+            leadVisits.map((visit) => (
+              <VisitCard key={visit.id} visit={visit} isDark={isDark} />
+            ))
+          )}
+        </ScrollView>
       )}
       {activeTab === 'quotes' && (
         <QuotesTab leadId={id} accessToken={accessToken} isDark={isDark} />
@@ -5053,6 +5260,15 @@ export default function LeadDetailScreen() {
           </TouchableOpacity>
         </ScrollView>
       </View>
+
+      {/* Start Visit Sheet */}
+      <StartVisitSheet
+        visible={showStartVisitSheet}
+        onStart={handleStartVisit}
+        onClose={() => setShowStartVisitSheet(false)}
+        loading={visitActionLoading}
+        isDark={isDark}
+      />
 
       {/* Follow-up Action Sheet */}
       <FollowUpActionSheet

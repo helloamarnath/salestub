@@ -1,3 +1,4 @@
+import '../lib/firebase/background-task';
 import '../global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';

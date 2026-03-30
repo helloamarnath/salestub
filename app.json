@@ -13,12 +13,18 @@
       "bundleIdentifier": "com.salestub.crm",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "SalesTub needs your location to tag leads and track field visits.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SalesTub needs your location in the background to track field visits."
       }
     },
     "android": {
       "package": "com.salestub.crm",
       "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#3b82f6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -55,7 +61,18 @@
           "color": "#3b82f6",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "SalesTub needs your location in the background to track field visits.",
+          "locationWhenInUsePermission": "SalesTub needs your location to tag leads and track field visits.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
     ],
     "experiments": {
       "typedRoutes": true,
