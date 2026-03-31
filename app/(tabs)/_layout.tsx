@@ -3,6 +3,7 @@ import { Platform, View, ActivityIndicator, StyleSheet, DynamicColorIOS } from '
 import { router, Tabs } from 'expo-router';
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 
@@ -36,6 +37,7 @@ export default function TabLayout() {
   const { resolvedTheme } = useTheme();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
+  const insets = useSafeAreaInsets();
   const isDark = resolvedTheme === 'dark';
   const themeColors = isDark ? colors.dark : colors.light;
 
@@ -109,8 +111,8 @@ export default function TabLayout() {
           borderTopColor: isDark ? '#1e293b' : '#e2e8f0',
           borderTopWidth: 1,
           paddingTop: 4,
-          paddingBottom: 8,
-          height: 60,
+          paddingBottom: Math.max(insets.bottom, 8),
+          height: 60 + Math.max(insets.bottom - 8, 0),
         },
         tabBarLabelStyle: {
           fontSize: 12,
