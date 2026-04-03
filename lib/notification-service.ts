@@ -1,18 +1,30 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { api, ApiResponse } from './api/client';
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Lazy-load expo-notifications to avoid crashes in Expo Go (SDK 53+)
+let Notifications: typeof import('expo-notifications') | null = null;
+let Device: typeof import('expo-device') | null = null;
+
+try {
+  const NotificationsModule = require('expo-notifications');
+  Device = require('expo-device');
+
+  // Test if notifications are actually functional (fails in Expo Go SDK 53+)
+  NotificationsModule.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+
+  Notifications = NotificationsModule;
+} catch (e) {
+  console.warn('Push notifications not available in this environment.');
+  Notifications = null;
+}
 
 export type NotificationType =
   | 'LEAD_CREATED'
@@ -80,6 +92,11 @@ class NotificationService {
   private fcmToken: string | null = null;
 
   async registerForPushNotifications(): Promise<string | null> {
+    if (!Notifications || !Device) {
+      console.log('Push notifications not available in this environment');
+      return null;
+    }
+
     if (!Device.isDevice) {
       console.log('Push notifications require a physical device');
       return null;
@@ -138,6 +155,8 @@ class NotificationService {
   }
 
   async unsubscribeFromPushNotifications(accessToken: string): Promise<void> {
+    if (!Notifications) return;
+
     // Try to get token from memory or fetch fresh one
     let token = this.fcmToken;
 
@@ -181,7 +200,7 @@ class NotificationService {
 
   // Configure Android notification channel
   async setupAndroidChannel(): Promise<void> {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === 'android' && Notifications) {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Default',
         importance: Notifications.AndroidImportance.MAX,
@@ -250,19 +269,22 @@ class NotificationService {
 
   // Add notification received/response listeners
   addNotificationReceivedListener(
-    callback: (notification: Notifications.Notification) => void
-  ): Notifications.EventSubscription {
+    callback: (notification: any) => void
+  ): { remove: () => void } {
+    if (!Notifications) return { remove: () => {} };
     return Notifications.addNotificationReceivedListener(callback);
   }
 
   addNotificationResponseListener(
-    callback: (response: Notifications.NotificationResponse) => void
-  ): Notifications.EventSubscription {
+    callback: (response: any) => void
+  ): { remove: () => void } {
+    if (!Notifications) return { remove: () => {} };
     return Notifications.addNotificationResponseReceivedListener(callback);
   }
 
   // Set badge count
   async setBadgeCount(count: number): Promise<void> {
+    if (!Notifications) return;
     await Notifications.setBadgeCountAsync(count);
   }
 }

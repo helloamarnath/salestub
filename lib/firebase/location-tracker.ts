@@ -1,7 +1,15 @@
-import auth from '@react-native-firebase/auth';
-import database from '@react-native-firebase/database';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+
+// Lazy-load Firebase to avoid crashes in Expo Go
+let auth: any = null;
+let database: any = null;
+try {
+  auth = require('@react-native-firebase/auth').default;
+  database = require('@react-native-firebase/database').default;
+} catch {
+  console.warn('Firebase native modules not available. Location tracking to Firebase disabled.');
+}
 
 const LOCATION_TASK_NAME = 'VISIT_LOCATION_TRACKING';
 const MIN_DISTANCE_METERS = 50; // Only send if moved > 50m
@@ -26,6 +34,7 @@ const state: LocationTrackerState = {
  * Authenticate with Firebase using custom token from backend
  */
 export async function authenticateFirebase(customToken: string): Promise<void> {
+  if (!auth) return;
   try {
     await auth().signInWithCustomToken(customToken);
   } catch (error) {
@@ -82,6 +91,8 @@ export async function sendLocationToFirebase(
   }
 
   const now = Date.now();
+
+  if (!database) return;
 
   try {
     const ref = database().ref(`orgs/${state.orgId}/visits/${state.visitId}/lastLocation`);
@@ -186,10 +197,12 @@ export async function stopLocationTracking(): Promise<void> {
   }
 
   // Sign out of Firebase
-  try {
-    await auth().signOut();
-  } catch {
-    // Ignore
+  if (auth) {
+    try {
+      await auth().signOut();
+    } catch {
+      // Ignore
+    }
   }
 }
 

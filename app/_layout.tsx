@@ -1,9 +1,12 @@
 import '../lib/firebase/background-task';
 import '../global.css';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as NavigationBar from 'expo-navigation-bar';
 import 'react-native-reanimated';
 
 import { ThemeProvider, useTheme } from '@/contexts/theme-context';
@@ -16,6 +19,13 @@ export const unstable_settings = {
 
 function RootLayoutNav() {
   const { resolvedTheme } = useTheme();
+
+  // Style Android system navigation bar buttons to match app theme
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setButtonStyleAsync(resolvedTheme === 'dark' ? 'light' : 'dark');
+    }
+  }, [resolvedTheme]);
 
   return (
     <NavigationThemeProvider value={resolvedTheme === 'dark' ? DarkTheme : DefaultTheme}>

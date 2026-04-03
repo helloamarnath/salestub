@@ -1,5 +1,4 @@
 import * as TaskManager from 'expo-task-manager';
-import { sendLocationToFirebase } from './location-tracker';
 
 const LOCATION_TASK_NAME = 'VISIT_LOCATION_TRACKING';
 
@@ -23,13 +22,19 @@ TaskManager.defineTask(LOCATION_TASK_NAME, ({ data, error }) => {
     };
     const location = locations[0];
     if (location) {
-      sendLocationToFirebase(
-        location.coords.latitude,
-        location.coords.longitude,
-        location.coords.accuracy,
-        location.coords.speed,
-        location.coords.heading,
-      );
+      // Lazy-import to avoid crashing in Expo Go where Firebase native modules aren't available
+      try {
+        const { sendLocationToFirebase } = require('./location-tracker');
+        sendLocationToFirebase(
+          location.coords.latitude,
+          location.coords.longitude,
+          location.coords.accuracy,
+          location.coords.speed,
+          location.coords.heading,
+        );
+      } catch (e) {
+        console.warn('Firebase location tracker not available:', e);
+      }
     }
   }
 });

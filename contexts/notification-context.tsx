@@ -8,7 +8,12 @@ import React, {
   useRef,
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import * as Notifications from 'expo-notifications';
+let Notifications: typeof import('expo-notifications') | null = null;
+try {
+  Notifications = require('expo-notifications');
+} catch {
+  // Not available in Expo Go
+}
 import { useRouter } from 'expo-router';
 import {
   notificationService,
@@ -50,8 +55,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
-  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const notificationListener = useRef<{ remove: () => void } | null>(null);
+  const responseListener = useRef<{ remove: () => void } | null>(null);
   const appState = useRef(AppState.currentState);
 
   const refreshUnreadCount = useCallback(async () => {
