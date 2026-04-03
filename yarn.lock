@@ -6911,10 +6911,10 @@ react-native-mmkv@^4.1.0:
   resolved "https://registry.yarnpkg.com/react-native-mmkv/-/react-native-mmkv-4.3.0.tgz#dbb2817b75270194dd231b4290d3c834f7d6d417"
   integrity sha512-D1wB2ViMrm+0rs7FcbLoct/BV+qugASi+XAZT8MzXy5yl0CI0qxToh2LPnw9UENHrNefpfDZgE5FpMhIB37I5Q==
 
-react-native-nitro-modules@^0.32.0:
-  version "0.32.2"
-  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.32.2.tgz#a7fb81c9e05729686ac9af205674308aa942ae83"
-  integrity sha512-N1F0EgoKEQJDs0clAGZTauXauxBYUN8y8QLEyeBy3WJhXUlzuldllah4CqRu0WVxZGA+5pTcxXsPeXAHDa6Wag==
+react-native-nitro-modules@0.35.3:
+  version "0.35.3"
+  resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.35.3.tgz#26c3e287d3fff780f91d7d87a62e6a9b450e3c17"
+  integrity sha512-pfPfFtGeMfFpLo4HidTFs5zsAs1wRh9qaWGSiF5UeI2YQaAgRHPlson0UNxw25pTCLV9NBrKgSDaMVfPEXXbNw==
 
 react-native-razorpay@^2.3.1:
   version "2.3.1"
