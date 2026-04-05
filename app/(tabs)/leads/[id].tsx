@@ -4778,6 +4778,27 @@ export default function LeadDetailScreen() {
 
   const handleStartVisit = async (purpose: VisitPurpose) => {
     if (!accessToken || !id) return;
+
+    // Prominent disclosure before requesting location permission (Google Play requirement)
+    const userConsent = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        'Location Access Required',
+        'SalesTub will track your location in real-time during this customer visit to:\n\n' +
+        '\u2022 Record your visit route for verification\n' +
+        '\u2022 Provide live location updates to your manager\n' +
+        '\u2022 Calculate distance traveled\n\n' +
+        'Location tracking will run in the background while your visit is active and will stop automatically when you end the visit.\n\n' +
+        'By continuing, you agree to share your location data with your organization.',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Continue', onPress: () => resolve(true) },
+        ],
+        { cancelable: false },
+      );
+    });
+
+    if (!userConsent) return;
+
     setVisitActionLoading(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
