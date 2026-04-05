@@ -354,17 +354,19 @@ export default function MoreScreen() {
           />
         </MenuSection>
 
-        {/* Subscription / Billing */}
-        <MenuSection title="Billing" isDark={isDark}>
-          <MenuItem
-            icon="card-outline"
-            title="Subscription"
-            subtitle="Manage your plan"
-            color="#6366f1"
-            onPress={() => router.push('/subscription' as Href)}
-            isDark={isDark}
-          />
-        </MenuSection>
+        {/* Subscription / Billing - Only visible to ORG_SUPER_ADMIN */}
+        {user?.roles?.includes('ORG_SUPER_ADMIN') && (
+          <MenuSection title="Billing" isDark={isDark}>
+            <MenuItem
+              icon="card-outline"
+              title="Subscription"
+              subtitle="Manage your plan"
+              color="#6366f1"
+              onPress={() => router.push('/subscription' as Href)}
+              isDark={isDark}
+            />
+          </MenuSection>
+        )}
 
         {/* Integrations */}
         <MenuSection title="Integrations" isDark={isDark}>
