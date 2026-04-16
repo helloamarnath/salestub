@@ -364,7 +364,7 @@ export default function QuotesScreen() {
             <QuoteCard
               quote={item}
               isDark={isDark}
-              onPress={() => router.push(`/(tabs)/quotes/${item.id}` as any)}
+              onPress={() => router.push(`/quotes-detail/${item.id}` as any)}
             />
           )}
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}

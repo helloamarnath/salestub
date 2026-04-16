@@ -437,18 +437,18 @@ export default function ContactsScreen() {
   // Navigation handlers
   const handleAddNew = () => {
     if (activeTab === 'customers') {
-      router.push('/(tabs)/contacts/customer/create' as any);
+      router.push('/contacts/customer/create' as any);
     } else {
-      router.push('/(tabs)/contacts/organization/create' as any);
+      router.push('/contacts/organization/create' as any);
     }
   };
 
   const handleCustomerPress = (contact: Contact) => {
-    router.push(`/(tabs)/contacts/customer/${contact.id}` as any);
+    router.push(`/contacts/customer/${contact.id}` as any);
   };
 
   const handleOrganizationPress = (company: Company) => {
-    router.push(`/(tabs)/contacts/organization/${company.id}` as any);
+    router.push(`/contacts/organization/${company.id}` as any);
   };
 
   // Render loading skeleton

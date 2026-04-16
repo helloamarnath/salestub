@@ -550,7 +550,7 @@ export default function CustomerDetailScreen() {
                 label="Company"
                 value={contact.companyName || contact.company?.name}
                 isDark={isDark}
-                onPress={contact.company?.id ? () => router.push(`/(tabs)/contacts/organization/${contact.company!.id}` as any) : undefined}
+                onPress={contact.company?.id ? () => router.push(`/contacts/organization/${contact.company!.id}` as any) : undefined}
               />
             </SectionCard>
 

@@ -659,7 +659,7 @@ export default function OrganizationDetailScreen() {
                     key={contact.id}
                     contact={contact}
                     isDark={isDark}
-                    onPress={() => router.push(`/(tabs)/contacts/customer/${contact.id}` as any)}
+                    onPress={() => router.push(`/contacts/customer/${contact.id}` as any)}
                   />
                 ))}
               </>

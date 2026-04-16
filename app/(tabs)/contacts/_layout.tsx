@@ -19,21 +19,9 @@ export default function ContactsLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen
-        name="customer/[id]"
-        options={{
-          presentation: 'card',
-        }}
-      />
-      <Stack.Screen
         name="customer/create"
         options={{
           presentation: 'modal',
-        }}
-      />
-      <Stack.Screen
-        name="organization/[id]"
-        options={{
-          presentation: 'card',
         }}
       />
       <Stack.Screen
