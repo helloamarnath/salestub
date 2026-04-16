@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,18 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { Calendar as BigCalendar } from 'react-native-big-calendar';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
-import { getActivities, completeActivity, cancelActivity } from '@/lib/api/activities';
+import { getActivities, getCalendarActivities, completeActivity, cancelActivity } from '@/lib/api/activities';
 import type {
   Activity,
   ActivityType,
@@ -216,6 +218,11 @@ export default function ActivitiesScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarMode, setCalendarMode] = useState<'month' | 'week' | 'day'>('week');
+  const [calendarActivities, setCalendarActivities] = useState<Activity[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
 
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
@@ -281,9 +288,51 @@ export default function ActivitiesScreen() {
     fetchActivities(1);
   }, [fetchActivities]);
 
+  // Fetch calendar activities when in calendar mode
+  const fetchCalendarData = useCallback(async () => {
+    if (!accessToken || viewMode !== 'calendar') return;
+    setCalendarLoading(true);
+    try {
+      const startDate = new Date(calendarDate);
+      startDate.setDate(1);
+      startDate.setMonth(startDate.getMonth() - 1);
+      const endDate = new Date(calendarDate);
+      endDate.setMonth(endDate.getMonth() + 2);
+
+      const response = await getCalendarActivities(accessToken, startDate, endDate);
+      if (response.success && response.data) {
+        setCalendarActivities(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch calendar activities:', error);
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [accessToken, calendarDate, viewMode]);
+
+  useEffect(() => {
+    if (viewMode === 'calendar') {
+      fetchCalendarData();
+    }
+  }, [fetchCalendarData]);
+
+  // Map activities to calendar events
+  const calendarEvents = useMemo(() => {
+    return calendarActivities
+      .filter(a => a.dueDate)
+      .map(a => ({
+        title: a.title,
+        start: new Date(a.dueDate!),
+        end: new Date(new Date(a.dueDate!).getTime() + (a.duration || 30) * 60 * 1000),
+        color: ACTIVITY_TYPE_COLORS[a.type] || '#3b82f6',
+        activity: a,
+      }));
+  }, [calendarActivities]);
+
   const handleRefresh = useCallback(() => {
     fetchActivities(1, true);
-  }, [fetchActivities]);
+    if (viewMode === 'calendar') fetchCalendarData();
+  }, [fetchActivities, fetchCalendarData, viewMode]);
 
   const handleLoadMore = useCallback(() => {
     if (!isLoading && hasMore) {
@@ -477,6 +526,21 @@ export default function ActivitiesScreen() {
               {totalCount} total
             </Text>
           </View>
+          {/* View toggle */}
+          <View style={{ flexDirection: 'row', backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', borderRadius: 10, padding: 2 }}>
+            <TouchableOpacity
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setViewMode('list'); }}
+              style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: viewMode === 'list' ? (isDark ? 'rgba(255,255,255,0.15)' : '#fff') : 'transparent' }}
+            >
+              <Ionicons name="list" size={18} color={viewMode === 'list' ? colors.primary : (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setViewMode('calendar'); }}
+              style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: viewMode === 'calendar' ? (isDark ? 'rgba(255,255,255,0.15)' : '#fff') : 'transparent' }}
+            >
+              <Ionicons name="calendar" size={18} color={viewMode === 'calendar' ? colors.primary : (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)')} />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: colors.primary }]}
             onPress={handleCreateActivity}
@@ -485,7 +549,8 @@ export default function ActivitiesScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Search bar */}
+        {/* Search bar — only in list mode */}
+        {viewMode === 'list' && (
         <View
           style={[
             styles.searchContainer,
@@ -525,55 +590,158 @@ export default function ActivitiesScreen() {
             </TouchableOpacity>
           )}
         </View>
+        )}
 
-        {/* Status filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScrollView}
-          contentContainerStyle={styles.filterContent}
-        >
-          {FILTER_TABS.map(renderFilterTab)}
-        </ScrollView>
-
-        {/* Type filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.typeScrollView}
-          contentContainerStyle={styles.typeContent}
-        >
-          {TYPE_TABS.map(renderTypeTab)}
-        </ScrollView>
+        {/* Filters — only show in list mode */}
+        {viewMode === 'list' && (
+          <>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterScrollView}
+              contentContainerStyle={styles.filterContent}
+            >
+              {FILTER_TABS.map(renderFilterTab)}
+            </ScrollView>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.typeScrollView}
+              contentContainerStyle={styles.typeContent}
+            >
+              {TYPE_TABS.map(renderTypeTab)}
+            </ScrollView>
+          </>
+        )}
       </View>
 
       {/* Content */}
-      {isLoading && activities.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+      {viewMode === 'list' ? (
+        // List View
+        isLoading && activities.length === 0 ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={activities}
+            renderItem={renderActivity}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.listContent,
+              activities.length === 0 && styles.emptyList,
+            ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+              />
+            }
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListEmptyComponent={renderEmpty}
+            ListFooterComponent={renderFooter}
+            showsVerticalScrollIndicator={false}
+          />
+        )
       ) : (
-        <FlatList
-          data={activities}
-          renderItem={renderActivity}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[
-            styles.listContent,
-            activities.length === 0 && styles.emptyList,
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
+        // Calendar View
+        <View style={{ flex: 1 }}>
+          {/* Calendar Mode Toggle */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 8, gap: 4 }}>
+            {(['month', 'week', 'day'] as const).map((mode) => (
+              <TouchableOpacity
+                key={mode}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setCalendarMode(mode); }}
+                style={{
+                  paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8,
+                  backgroundColor: calendarMode === mode
+                    ? (isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)')
+                    : 'transparent',
+                }}
+              >
+                <Text style={{
+                  fontSize: 13, fontWeight: calendarMode === mode ? '700' : '500',
+                  color: calendarMode === mode ? colors.primary : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'),
+                  textTransform: 'capitalize',
+                }}>
+                  {mode}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {calendarLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : (
+            <BigCalendar
+              events={calendarEvents}
+              height={Dimensions.get('window').height - 220}
+              mode={calendarMode === 'month' ? 'month' : calendarMode === 'day' ? 'day' : 'week'}
+              date={calendarDate}
+              onPressEvent={(event) => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const activity = (event as any).activity as Activity;
+                if (activity) router.push(`/activities/${activity.id}` as any);
+              }}
+              onPressCell={(date) => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/activities/create' as any);
+              }}
+              onSwipeEnd={(date) => setCalendarDate(date)}
+              swipeEnabled
+              showTime
+              ampm
+              theme={{
+                palette: {
+                  primary: {
+                    main: colors.primary,
+                    contrastText: '#fff',
+                  },
+                  nowIndicator: '#ef4444',
+                  gray: {
+                    '100': isDark ? '#1e293b' : '#f1f5f9',
+                    '200': isDark ? '#334155' : '#e2e8f0',
+                    '300': isDark ? '#475569' : '#cbd5e1',
+                    '500': isDark ? '#94a3b8' : '#64748b',
+                    '800': isDark ? '#f1f5f9' : '#1e293b',
+                  },
+                },
+                typography: {
+                  fontFamily: undefined,
+                  xs: { fontSize: 10, fontWeight: '500' as const },
+                  sm: { fontSize: 12, fontWeight: '500' as const },
+                  xl: { fontSize: 18, fontWeight: '700' as const },
+                },
+              }}
+              eventCellStyle={(event) => ({
+                backgroundColor: (event as any).color || colors.primary,
+                borderRadius: 6,
+                borderWidth: 0,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.15,
+                shadowRadius: 3,
+              })}
+              calendarCellStyle={{
+                borderColor: isDark ? '#1e293b' : '#e2e8f0',
+              }}
+              headerContainerStyle={{
+                backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                borderBottomWidth: 1,
+                borderBottomColor: isDark ? '#1e293b' : '#e2e8f0',
+                overflow: 'visible',
+              }}
+              dayHeaderHighlightColor={isDark ? '#1e40af' : '#dbeafe'}
+              bodyContainerStyle={{
+                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+              }}
             />
-          }
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={renderEmpty}
-          ListFooterComponent={renderFooter}
-          showsVerticalScrollIndicator={false}
-        />
+          )}
+        </View>
       )}
     </View>
   );
