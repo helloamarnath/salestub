@@ -41,6 +41,7 @@ function RootLayoutNav() {
         <Stack.Screen name="products" options={{ headerShown: false }} />
         <Stack.Screen name="deals" options={{ headerShown: false }} />
         <Stack.Screen name="invoices" options={{ headerShown: false }} />
+        <Stack.Screen name="leads" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="activities" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />

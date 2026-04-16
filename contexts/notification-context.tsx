@@ -243,7 +243,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             // Extract lead ID and navigate to leads tab
             const leadMatch = url.match(/\/leads\/([^/?]+)/);
             if (leadMatch) {
-              router.push(`/(tabs)/leads/${leadMatch[1]}` as any);
+              router.push(`/leads/${leadMatch[1]}` as any);
             } else {
               router.push('/(tabs)/leads' as any);
             }

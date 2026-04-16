@@ -11,12 +11,6 @@ export default function LeadsLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen
-        name="[id]"
-        options={{
-          presentation: 'card',
-        }}
-      />
-      <Stack.Screen
         name="create"
         options={{
           presentation: 'modal',

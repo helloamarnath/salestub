@@ -27,13 +27,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { startLocationTracking, stopLocationTracking } from '../../../lib/firebase/location-tracker';
-import { StartVisitSheet } from '../../../components/visits/StartVisitSheet';
-import { ActiveVisitBanner } from '../../../components/visits/ActiveVisitBanner';
-import { VisitCard } from '../../../components/visits/VisitCard';
-import { VisitPhotoCapture } from '../../../components/visits/VisitPhotoCapture';
-import { getActiveVisit, startVisit, completeVisit, cancelVisit, getLeadVisits } from '../../../lib/api/visits';
-import type { Visit, VisitPurpose } from '../../../types/visit';
+import { startLocationTracking, stopLocationTracking } from '@/lib/firebase/location-tracker';
+import { StartVisitSheet } from '@/components/visits/StartVisitSheet';
+import { ActiveVisitBanner } from '@/components/visits/ActiveVisitBanner';
+import { VisitCard } from '@/components/visits/VisitCard';
+import { VisitPhotoCapture } from '@/components/visits/VisitPhotoCapture';
+import { getActiveVisit, startVisit, completeVisit, cancelVisit, getLeadVisits } from '@/lib/api/visits';
+import type { Visit, VisitPurpose } from '@/types/visit';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
@@ -119,6 +119,57 @@ function Tab({
       }}
     >
       <Text style={[styles.tabText, { color: active ? activeTextColor : textColor }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// Collapsible Section Header
+function SectionHeader({
+  title,
+  icon,
+  collapsed,
+  onToggle,
+  isDark,
+  count,
+}: {
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  collapsed: boolean;
+  onToggle: () => void;
+  isDark: boolean;
+  count?: number;
+}) {
+  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+
+  return (
+    <TouchableOpacity
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onToggle();
+      }}
+      activeOpacity={0.7}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderTopWidth: 1,
+        borderTopColor: borderColor,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Ionicons name={icon} size={18} color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'} />
+        <Text style={{ fontSize: 14, fontWeight: '600', color: textColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</Text>
+        {count !== undefined && count > 0 && (
+          <View style={{ backgroundColor: '#3b82f6', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1, minWidth: 20, alignItems: 'center' }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: 'white' }}>{count}</Text>
+          </View>
+        )}
+      </View>
+      <Ionicons name={collapsed ? 'chevron-forward' : 'chevron-down'} size={18} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'} />
     </TouchableOpacity>
   );
 }
@@ -888,10 +939,13 @@ function DetailsTab({
 
   return (
     <>
-      <ScrollView style={styles.tabContent} contentContainerStyle={{ paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
+      <View style={styles.tabContent}>
         {/* Lead Details Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Lead Details</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            <Ionicons name="information-circle-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Lead Details</Text>
+          </View>
           <View style={[styles.detailsGrid, { backgroundColor: cardBg, borderColor }]}>
             {/* Row 1: Title, Score, Stage, Pipeline */}
             <View style={styles.detailsRow}>
@@ -984,7 +1038,10 @@ function DetailsTab({
         {/* Contact Information Section */}
         {lead.contact && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Contact Information</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <Ionicons name="person-outline" size={15} color={sectionTitleColor} />
+              <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Contact Information</Text>
+            </View>
             <View style={[styles.detailsGrid, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.detailsRow}>
                 <View style={styles.detailsCell}>
@@ -1095,15 +1152,15 @@ function DetailsTab({
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="mail-outline" size={16} color={sectionTitleColor} />
+                <Ionicons name="clipboard-outline" size={15} color={sectionTitleColor} />
                 <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Requirements</Text>
               </View>
-              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowDescriptionInput(true); }}>
-                <Ionicons name="pencil-outline" size={16} color={subtitleColor} />
+              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowDescriptionInput(true); }} style={{ padding: 4 }}>
+                <Ionicons name="create-outline" size={16} color={subtitleColor} />
               </TouchableOpacity>
             </View>
             <View style={[styles.requirementsCard, { backgroundColor: cardBg, borderColor }]}>
-              <Text style={[{ fontSize: 13, color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)', lineHeight: 20 }]}>
+              <Text style={[{ fontSize: 13.5, color: isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.7)', lineHeight: 21 }]}>
                 {lead.description}
               </Text>
             </View>
@@ -1113,7 +1170,10 @@ function DetailsTab({
         {/* Custom Fields */}
         {lead.customFieldValues && Object.keys(lead.customFieldValues).length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Additional Information</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <Ionicons name="layers-outline" size={15} color={sectionTitleColor} />
+              <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Additional Information</Text>
+            </View>
             <View style={[styles.detailsGrid, { backgroundColor: cardBg, borderColor }]}>
               {Object.entries(lead.customFieldValues).map(([key, value], idx, arr) => {
                 if (idx % 2 === 1) return null;
@@ -1143,21 +1203,14 @@ function DetailsTab({
           </View>
         )}
 
-        {/* Info Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Info</Text>
-          <View style={[styles.infoRow, { borderBottomColor: borderColor }]}>
-            <Text style={[styles.infoLabel, { color: subtitleColor }]}>Created</Text>
-            <Text style={[styles.infoValue, { color: textColor }]}>{formatDate(lead.createdAt)}</Text>
-          </View>
-          <View style={[styles.infoRow, { borderBottomColor: borderColor }]}>
-            <Text style={[styles.infoLabel, { color: subtitleColor }]}>Updated</Text>
-            <Text style={[styles.infoValue, { color: textColor }]}>{formatDate(lead.updatedAt)}</Text>
-          </View>
+        {/* Timestamps */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 4, opacity: 0.5 }}>
+          <Text style={{ fontSize: 11, color: subtitleColor }}>Created {formatDate(lead.createdAt)}</Text>
+          <Text style={{ fontSize: 11, color: subtitleColor }}>Updated {formatDate(lead.updatedAt)}</Text>
         </View>
 
         <View style={{ height: 100 }} />
-      </ScrollView>
+      </View>
 
       {/* Modals */}
       <PickerModal
@@ -1292,7 +1345,14 @@ function TimelineTab({
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View>
+      {/* Section header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 }}>
+        <Ionicons name="time-outline" size={15} color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'} />
+        <Text style={{ fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.2, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}>
+          Timeline {activityList.length > 0 ? `(${activityList.length})` : ''}
+        </Text>
+      </View>
       {/* Filter chips */}
       <ScrollView
         horizontal
@@ -1328,35 +1388,18 @@ function TimelineTab({
       </ScrollView>
 
       {activityList.length === 0 ? (
-        <ScrollView
-          style={styles.emptyTab}
-          contentContainerStyle={styles.emptyTabContent}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#3b82f6" colors={['#3b82f6']} />
-            ) : undefined
-          }
-        >
-          <Ionicons name="time-outline" size={48} color={emptyIconColor} />
+        <View style={[styles.emptyTab, styles.emptyTabContent]}>
+          <Ionicons name="time-outline" size={36} color={emptyIconColor} />
           <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
             {typeFilter === 'all' ? 'No activities yet' : `No ${typeFilter.toLowerCase()} activities`}
           </Text>
-        </ScrollView>
+        </View>
       ) : (
-        <ScrollView
-          style={styles.tabContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#3b82f6" colors={['#3b82f6']} />
-            ) : undefined
-          }
-        >
+        <View style={styles.tabContent}>
           {activityList.map((activity) => (
             <ActivityItem key={activity.id} activity={activity} isDark={isDark} />
           ))}
-          <View style={{ height: 100 }} />
-        </ScrollView>
+        </View>
       )}
     </View>
   );
@@ -1754,6 +1797,7 @@ function TagsTab({
 
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
   if (loading) {
     return (
@@ -1767,45 +1811,24 @@ function TagsTab({
 
   return (
     <View style={styles.tagsTabContainer}>
-      <ScrollView
-        style={styles.tabContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#3b82f6"
-            colors={['#3b82f6']}
-          />
-        }
-      >
+      <View style={styles.tabContent}>
         {/* Header Section */}
-        <View style={[styles.tagsTabHeader, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.tagsTabHeaderIcon}>
-            <LinearGradient
-              colors={['rgba(59,130,246,0.15)', 'rgba(99,102,241,0.15)']}
-              style={styles.tagsTabIconGradient}
-            >
-              <Ionicons name="pricetags" size={20} color="#3b82f6" />
-            </LinearGradient>
-          </View>
-          <View style={styles.tagsTabHeaderInfo}>
-            <Text style={[styles.tagsTabHeaderTitle, { color: textColor }]}>Lead Tags</Text>
-            <Text style={[styles.tagsTabHeaderSubtitle, { color: subtitleColor }]}>
-              {leadTags.length === 0
-                ? 'No tags assigned'
-                : `${leadTags.length} tag${leadTags.length > 1 ? 's' : ''} assigned`}
+        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="pricetags-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Tags {leadTags.length > 0 ? `(${leadTags.length})` : ''}
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.tagsTabManageBtn, { borderColor }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowPicker(true);
             }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
-            <Ionicons name="settings-outline" size={16} color="#3b82f6" />
-            <Text style={styles.tagsTabManageBtnText}>Manage</Text>
+            <Ionicons name="settings-outline" size={14} color="white" />
+            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Manage</Text>
           </TouchableOpacity>
         </View>
 
@@ -1868,7 +1891,7 @@ function TagsTab({
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </View>
 
       {/* Tag Picker Modal */}
       <TagPickerModal
@@ -2168,6 +2191,7 @@ function DocsTab({
   };
 
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
   if (loading) {
     return (
@@ -2179,50 +2203,29 @@ function DocsTab({
 
   return (
     <View style={styles.docsTabContainer}>
-      <ScrollView
-        style={styles.tabContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#8b5cf6"
-            colors={['#8b5cf6']}
-          />
-        }
-      >
+      <View style={styles.tabContent}>
         {/* Header Section */}
-        <View style={[styles.docsTabHeader, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.docsTabHeaderIcon}>
-            <LinearGradient
-              colors={['rgba(139,92,246,0.15)', 'rgba(168,85,247,0.15)']}
-              style={styles.docsTabIconGradient}
-            >
-              <Ionicons name="folder-open" size={20} color="#8b5cf6" />
-            </LinearGradient>
-          </View>
-          <View style={styles.docsTabHeaderInfo}>
-            <Text style={[styles.docsTabHeaderTitle, { color: textColor }]}>Documents</Text>
-            <Text style={[styles.docsTabHeaderSubtitle, { color: subtitleColor }]}>
-              {documents.length === 0
-                ? 'No files uploaded'
-                : `${documents.length} file${documents.length > 1 ? 's' : ''} uploaded`}
+        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="document-attach-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Documents {documents.length > 0 ? `(${documents.length})` : ''}
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.docsTabUploadBtn, { borderColor }]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowUploadOptions(true);
             }}
             disabled={uploading}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
             {uploading ? (
-              <ActivityIndicator size="small" color="#8b5cf6" />
+              <ActivityIndicator size="small" color="white" />
             ) : (
               <>
-                <Ionicons name="cloud-upload-outline" size={16} color="#8b5cf6" />
-                <Text style={styles.docsTabUploadBtnText}>Upload</Text>
+                <Ionicons name="cloud-upload-outline" size={14} color="white" />
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Upload</Text>
               </>
             )}
           </TouchableOpacity>
@@ -2283,7 +2286,7 @@ function DocsTab({
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </View>
 
       {/* Upload Options Modal */}
       <Modal visible={showUploadOptions} transparent animationType="slide" onRequestClose={() => setShowUploadOptions(false)}>
@@ -2955,6 +2958,7 @@ function DealsTab({
   // Calculate total deal value
   const totalValue = deals.reduce((sum, deal) => sum + Number(deal.value), 0);
   const openDeals = deals.filter(d => d.status === 'OPEN').length;
+  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
   if (loading) {
     return (
@@ -2968,7 +2972,7 @@ function DealsTab({
   if (!hasContact) {
     return (
       <View style={styles.dealsTabContainer}>
-        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.tabContent}>
           <View style={styles.dealsNoContactContainer}>
             <View style={[styles.dealsNoContactIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(234,179,8,0.1)' }]}>
               <Ionicons name="link-outline" size={40} color="#eab308" />
@@ -2984,56 +2988,31 @@ function DealsTab({
               </Text>
             </View>
           </View>
-        </ScrollView>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.dealsTabContainer}>
-      <ScrollView
-        style={styles.tabContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#22c55e"
-            colors={['#22c55e']}
-          />
-        }
-      >
+      <View style={styles.tabContent}>
         {/* Header Section */}
-        <View style={[styles.dealsTabHeader, { backgroundColor: cardBg, borderColor }]}>
-          <View style={styles.dealsTabHeaderIcon}>
-            <LinearGradient
-              colors={['rgba(34,197,94,0.15)', 'rgba(22,163,74,0.15)']}
-              style={styles.dealsTabIconGradient}
-            >
-              <Ionicons name="briefcase" size={20} color="#22c55e" />
-            </LinearGradient>
-          </View>
-          <View style={styles.dealsTabHeaderInfo}>
-            <Text style={[styles.dealsTabHeaderTitle, { color: textColor }]}>Linked Deals</Text>
-            <Text style={[styles.dealsTabHeaderSubtitle, { color: subtitleColor }]}>
-              {deals.length === 0
-                ? 'No deals yet'
-                : `${deals.length} deal${deals.length > 1 ? 's' : ''} • ${openDeals} open`}
+        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="briefcase-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Deals {deals.length > 0 ? `(${deals.length})` : ''}
             </Text>
           </View>
           <TouchableOpacity
-            style={styles.dealsTabAddBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setShowCreateModal(true);
             }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#22c55e', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
-            <LinearGradient
-              colors={['#22c55e', '#16a34a']}
-              style={styles.dealsTabAddBtnGradient}
-            >
-              <Ionicons name="add" size={18} color="white" />
-            </LinearGradient>
+            <Ionicons name="add" size={16} color="white" />
+            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
           </TouchableOpacity>
         </View>
 
@@ -3100,7 +3079,7 @@ function DealsTab({
         )}
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </View>
 
       {/* Create Deal Modal */}
       <CreateDealModal
@@ -3779,12 +3758,15 @@ function ProductsTab({
   }
 
   return (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+    <View style={styles.tabContent}>
       <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            Linked Products ({products.length})
-          </Text>
+        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="cube-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Products {products.length > 0 ? `(${products.length})` : ''}
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -3792,8 +3774,10 @@ function ProductsTab({
               setSelectedProduct(null);
               setProductSearch('');
             }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: showAddProduct ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : '#f59e0b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
-            <Ionicons name={showAddProduct ? 'close' : 'add-circle'} size={24} color="#3b82f6" />
+            <Ionicons name={showAddProduct ? 'close' : 'add'} size={16} color={showAddProduct ? subtitleColor : 'white'} />
+            <Text style={{ color: showAddProduct ? subtitleColor : 'white', fontSize: 12, fontWeight: '600' }}>{showAddProduct ? 'Close' : 'Add'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -4041,7 +4025,7 @@ function ProductsTab({
       </View>
 
       <View style={{ height: 100 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -4123,19 +4107,24 @@ function NotesTab({
   }
 
   return (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.tabContent}>
       <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            Notes ({notes.length})
-          </Text>
+        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="chatbox-ellipses-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Notes {notes.length > 0 ? `(${notes.length})` : ''}
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowAddNote(!showAddNote);
             }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: showAddNote ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
-            <Ionicons name={showAddNote ? 'close' : 'add-circle'} size={24} color="#3b82f6" />
+            <Ionicons name={showAddNote ? 'close' : 'add'} size={16} color={showAddNote ? subtitleColor : 'white'} />
+            <Text style={{ color: showAddNote ? subtitleColor : 'white', fontSize: 12, fontWeight: '600' }}>{showAddNote ? 'Close' : 'Add'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -4202,7 +4191,7 @@ function NotesTab({
       </View>
 
       <View style={{ height: 100 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -4241,7 +4230,7 @@ function MetadataTab({
   }
 
   return (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.tabContent}>
       {/* Custom Fields */}
       {hasCustomFields && (
         <View style={styles.section}>
@@ -4270,7 +4259,7 @@ function MetadataTab({
       )}
 
       <View style={{ height: 100 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -4326,21 +4315,28 @@ function QuotesTab({
   }
 
   return (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.tabContent}>
       <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            Quotes ({quotes.length})
-          </Text>
+        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="document-text-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Quotes {quotes.length > 0 ? `(${quotes.length})` : ''}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId } })}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+          >
+            <Ionicons name="add" size={16} color="white" />
+            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
+          </TouchableOpacity>
         </View>
 
         {quotes.length === 0 ? (
           <View style={styles.emptyTabContent}>
-            <Ionicons name="document-text-outline" size={48} color={emptyIconColor} />
+            <Ionicons name="document-text-outline" size={36} color={emptyIconColor} />
             <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No quotes yet</Text>
-            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
-              Create quotes from the Deals tab
-            </Text>
           </View>
         ) : (
           quotes.map((quote) => {
@@ -4372,7 +4368,7 @@ function QuotesTab({
         )}
       </View>
       <View style={{ height: 100 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -4428,21 +4424,28 @@ function InvoicesTab({
   }
 
   return (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.tabContent}>
       <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
-            Invoices ({invoices.length})
-          </Text>
+        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="receipt-outline" size={15} color={sectionTitleColor} />
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Invoices {invoices.length > 0 ? `(${invoices.length})` : ''}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: '/invoices/create' as any, params: { leadId } })}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ef4444', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+          >
+            <Ionicons name="add" size={16} color="white" />
+            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
+          </TouchableOpacity>
         </View>
 
         {invoices.length === 0 ? (
           <View style={styles.emptyTabContent}>
-            <Ionicons name="receipt-outline" size={48} color={emptyIconColor} />
+            <Ionicons name="receipt-outline" size={36} color={emptyIconColor} />
             <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No invoices yet</Text>
-            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>
-              Create invoices from the web app
-            </Text>
           </View>
         ) : (
           invoices.map((invoice) => {
@@ -4485,7 +4488,7 @@ function InvoicesTab({
         )}
       </View>
       <View style={{ height: 100 }} />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -4516,7 +4519,8 @@ export default function LeadDetailScreen() {
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('details');
+  const [activeTab, setActiveTab] = useState('details'); // kept for compatibility
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [deleting, setDeleting] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -4648,25 +4652,20 @@ export default function LeadDetailScreen() {
     fetchMembers();
   }, []);
 
-  // Load activities when tab changes
+  // Load activities and visits on mount (single page — no lazy tab loading)
   useEffect(() => {
-    if (activeTab === 'timeline' && activities.length === 0) {
-      fetchActivities();
-    }
-  }, [activeTab]);
+    if (activities.length === 0) fetchActivities();
+    if (leadVisits.length === 0) fetchLeadVisits();
+  }, []);
 
   // Refresh
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchLead();
-    if (activeTab === 'timeline') {
-      fetchActivities();
-    }
-    if (activeTab === 'visits') {
-      fetchLeadVisits();
-    }
+    fetchActivities();
+    fetchLeadVisits();
     fetchActiveVisit();
-  }, [fetchLead, fetchActivities, fetchLeadVisits, fetchActiveVisit, activeTab]);
+  }, [fetchLead, fetchActivities, fetchLeadVisits, fetchActiveVisit]);
 
   // Back navigation
   const handleBack = () => {
@@ -4768,11 +4767,6 @@ export default function LeadDetailScreen() {
   }, [fetchActiveVisit]);
 
   // Load visits when visits tab is selected
-  useEffect(() => {
-    if (activeTab === 'visits' && leadVisits.length === 0) {
-      fetchLeadVisits();
-    }
-  }, [activeTab]);
 
   const handleStartVisitPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -5079,70 +5073,76 @@ export default function LeadDetailScreen() {
     <View style={styles.container}>
       <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: headerBorderColor }]}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: buttonBg }]} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color={textColor} />
+      {/* Header — Compact nav bar */}
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, paddingBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <TouchableOpacity onPress={handleBack} style={{ padding: 6 }}>
+            <Ionicons name="chevron-back" size={26} color={textColor} />
           </TouchableOpacity>
-
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={[styles.headerButton, { backgroundColor: buttonBg }]} onPress={handleEdit}>
-              <Ionicons name="pencil" size={20} color={textColor} />
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity onPress={handleEdit} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="create-outline" size={20} color={textColor} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: buttonBg }]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setShowMoreActions(true);
-              }}
-            >
-              <Ionicons name="ellipsis-vertical" size={20} color={textColor} />
+            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowMoreActions(true); }} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="ellipsis-horizontal" size={20} color={textColor} />
             </TouchableOpacity>
           </View>
         </View>
+      </View>
 
-        {/* Lead Info */}
-        <View style={styles.leadInfo}>
-          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
+      {/* Lead Info — Compact inline */}
+      <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+        {/* Name row */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{
+            width: 44, height: 44, borderRadius: 14,
+            backgroundColor: avatarColor,
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '700' }}>{initials}</Text>
           </View>
-          <View style={styles.leadDetails}>
-            <Text style={[styles.displayId, { color: mutedColor }]}>{lead.displayId}</Text>
-            <Text style={[styles.leadTitle, { color: textColor }]}>{lead.title}</Text>
-            {contactName && (
-              <Text style={[styles.contactNameSmall, { color: subtitleColor }]}>{contactName}</Text>
-            )}
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ fontSize: 11, fontWeight: '500', color: mutedColor }}>{lead.displayId}</Text>
+              {lead.stage && (
+                <View style={{ backgroundColor: (lead.stage.color || '#3b82f6') + '18', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                  <Text style={{ fontSize: 9, fontWeight: '700', color: lead.stage.color || '#3b82f6', textTransform: 'uppercase' }}>{lead.stage.name}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: textColor, marginTop: 1 }} numberOfLines={1}>{lead.title}</Text>
+            {contactName && <Text style={{ fontSize: 12, color: subtitleColor }}>{contactName}</Text>}
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsContainer}>
-          <View style={styles.quickActions}>
+        {/* Quick Actions — inline row */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             {lead.contact?.phone && (
-              <TouchableOpacity style={[styles.quickActionIcon, { backgroundColor: quickActionBg }]} onPress={handleCall}>
-                <Ionicons name="call" size={20} color="#22c55e" />
+              <TouchableOpacity onPress={handleCall} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="call" size={18} color="#22c55e" />
               </TouchableOpacity>
             )}
             {lead.contact?.phone && (
-              <TouchableOpacity style={[styles.quickActionIcon, { backgroundColor: quickActionBg }]} onPress={handleWhatsApp}>
-                <Ionicons name="logo-whatsapp" size={20} color="#25d366" />
+              <TouchableOpacity onPress={handleWhatsApp} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(37,211,102,0.12)' : 'rgba(37,211,102,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="logo-whatsapp" size={18} color="#25d366" />
               </TouchableOpacity>
             )}
             {lead.contact?.email && (
-              <TouchableOpacity style={[styles.quickActionIcon, { backgroundColor: quickActionBg }]} onPress={handleEmail}>
-                <Ionicons name="mail" size={20} color="#3b82f6" />
+              <TouchableOpacity onPress={handleEmail} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="mail" size={17} color="#3b82f6" />
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[styles.quickActionIcon, { backgroundColor: quickActionBg }]} onPress={handleStartVisitPress}>
-              <Ionicons name="location-outline" size={20} color="#3b82f6" />
+            <TouchableOpacity onPress={handleStartVisitPress} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="navigate-outline" size={17} color="#8b5cf6" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.followUpButton} onPress={handleFollowUpPress}>
-            <Ionicons name="add-circle" size={18} color="white" />
-            <Text style={styles.followUpButtonText}>Add Follow Up</Text>
+          <TouchableOpacity onPress={handleFollowUpPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#3b82f6', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
+            <Ionicons name="add" size={16} color="white" />
+            <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Follow Up</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
         {/* Active Visit Banner */}
         {activeVisit && (
@@ -5154,84 +5154,49 @@ export default function LeadDetailScreen() {
           />
         )}
 
-        {/* Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={styles.tabsScrollContent}>
-          <Tab label="Details" active={activeTab === 'details'} onPress={() => setActiveTab('details')} isDark={isDark} />
-          <Tab label="Timeline" active={activeTab === 'timeline'} onPress={() => setActiveTab('timeline')} isDark={isDark} />
-          <Tab label="Tags" active={activeTab === 'tags'} onPress={() => setActiveTab('tags')} isDark={isDark} />
-          <Tab label="Docs" active={activeTab === 'docs'} onPress={() => setActiveTab('docs')} isDark={isDark} />
-          <Tab label="Deals" active={activeTab === 'deals'} onPress={() => setActiveTab('deals')} isDark={isDark} />
-          <Tab label="Products" active={activeTab === 'products'} onPress={() => setActiveTab('products')} isDark={isDark} />
-          <Tab label="Notes" active={activeTab === 'notes'} onPress={() => setActiveTab('notes')} isDark={isDark} />
-          <Tab label="Visits" active={activeTab === 'visits'} onPress={() => setActiveTab('visits')} isDark={isDark} />
-          <Tab label="Quotes" active={activeTab === 'quotes'} onPress={() => setActiveTab('quotes')} isDark={isDark} />
-          <Tab label="Invoices" active={activeTab === 'invoices'} onPress={() => setActiveTab('invoices')} isDark={isDark} />
-          <Tab label="Metadata" active={activeTab === 'metadata'} onPress={() => setActiveTab('metadata')} isDark={isDark} />
-        </ScrollView>
-      </View>
+      {/* Single Scrollable Page — All Sections */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
+        {/* Details */}
+        <DetailsTab lead={lead} isDark={isDark} stages={stages} members={members} leadSources={leadSources} onUpdateField={handleUpdateField} updating={updating} />
 
-      {/* Tab Content */}
-      {activeTab === 'details' && (
-        <DetailsTab
-          lead={lead}
-          isDark={isDark}
-          stages={stages}
-          members={members}
-          leadSources={leadSources}
-          onUpdateField={handleUpdateField}
-          updating={updating}
-        />
-      )}
-      {activeTab === 'timeline' && (
+        {/* Timeline */}
         <TimelineTab activities={activities} loading={activitiesLoading} isDark={isDark} onRefresh={fetchActivities} />
-      )}
-      {activeTab === 'tags' && (
+
+        {/* Tags */}
         <TagsTab leadId={id} accessToken={accessToken} isDark={isDark} />
-      )}
-      {activeTab === 'docs' && (
+
+        {/* Documents */}
         <DocsTab leadId={id} accessToken={accessToken} isDark={isDark} />
-      )}
-      {activeTab === 'deals' && (
+
+        {/* Deals */}
         <DealsTab lead={lead} accessToken={accessToken} isDark={isDark} onDealCreated={fetchActivities} />
-      )}
-      {activeTab === 'products' && (
+
+        {/* Products */}
         <ProductsTab leadId={id} accessToken={accessToken} isDark={isDark} />
-      )}
-      {activeTab === 'notes' && (
+
+        {/* Notes */}
         <NotesTab leadId={id} accessToken={accessToken} isDark={isDark} />
-      )}
-      {activeTab === 'visits' && (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ padding: 16 }}
-          refreshControl={<RefreshControl refreshing={visitsLoading} onRefresh={fetchLeadVisits} />}
-        >
-          {visitsLoading && leadVisits.length === 0 ? (
-            <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 40 }} />
-          ) : leadVisits.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <Ionicons name="location-outline" size={48} color={emptyIconColor} />
-              <Text style={{ color: emptyTextColor, fontSize: 15, marginTop: 12 }}>No visits yet</Text>
-              <Text style={{ color: emptyTextColor, fontSize: 13, marginTop: 4 }}>
-                Tap the location icon to start a field visit
-              </Text>
-            </View>
-          ) : (
-            leadVisits.map((visit) => (
+
+        {/* Visits */}
+        {leadVisits.length > 0 && (
+          <View style={{ padding: 16 }}>
+            {leadVisits.map((visit) => (
               <VisitCard key={visit.id} visit={visit} isDark={isDark} />
-            ))
-          )}
-        </ScrollView>
-      )}
-      {activeTab === 'quotes' && (
+            ))}
+          </View>
+        )}
+
+        {/* Quotes */}
         <QuotesTab leadId={id} accessToken={accessToken} isDark={isDark} />
-      )}
-      {activeTab === 'invoices' && (
+
+        {/* Invoices */}
         <InvoicesTab leadId={id} accessToken={accessToken} isDark={isDark} />
-      )}
-      {activeTab === 'metadata' && (
-        <MetadataTab lead={lead} isDark={isDark} />
-      )}
+      </ScrollView>
 
 
       {/* Start Visit Sheet */}
@@ -5260,7 +5225,7 @@ export default function LeadDetailScreen() {
       {fabOpen && (
         <View style={{
           position: 'absolute',
-          bottom: (insets.bottom || 0) + 160,
+          bottom: (insets.bottom || 0) + 80,
           right: 20,
           zIndex: 999,
           gap: 12,
@@ -5327,7 +5292,7 @@ export default function LeadDetailScreen() {
         activeOpacity={0.85}
         style={{
           position: 'absolute',
-          bottom: (insets.bottom || 0) + 90,
+          bottom: (insets.bottom || 0) + 20,
           right: 20,
           width: 56,
           height: 56,
@@ -5665,19 +5630,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabContent: {
-    flex: 1,
-    padding: 20,
+    padding: 16,
     paddingBottom: 0,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
+    letterSpacing: 1.2,
+    marginBottom: 10,
+    paddingLeft: 2,
   },
   statusGrid: {
     flexDirection: 'row',
@@ -5808,10 +5773,11 @@ const styles = StyleSheet.create({
   },
   activityItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 14,
+    paddingBottom: 14,
   },
   activityIcon: {
-    width: 36,
+    width: 34,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
@@ -5850,17 +5816,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyTab: {
-    flex: 1,
   },
   emptyTabContent: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 30,
   },
   emptyTabText: {
-    fontSize: 14,
-    marginTop: 12,
+    fontSize: 13,
+    marginTop: 8,
+    fontWeight: '500',
   },
   errorContainer: {
     flex: 1,
@@ -6121,7 +6086,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   datePickerContainer: {
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 20,
     width: '85%',
   },
@@ -6139,7 +6104,7 @@ const styles = StyleSheet.create({
   },
   // Reminder Picker styles
   reminderPickerContainer: {
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 20,
     width: '85%',
   },
@@ -6190,7 +6155,7 @@ const styles = StyleSheet.create({
   tagPickerCloseBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -6433,14 +6398,14 @@ const styles = StyleSheet.create({
   },
   // Tags Tab styles
   tagsTabContainer: {
-    flex: 1,
+    
     padding: 16,
   },
   tagsTabHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     marginBottom: 16,
   },
@@ -6521,7 +6486,7 @@ const styles = StyleSheet.create({
   },
   tagsTabGrid: {
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
   },
   tagsTabGridLabel: {
@@ -6581,14 +6546,14 @@ const styles = StyleSheet.create({
   },
   // Documents Tab styles
   docsTabContainer: {
-    flex: 1,
+    
     padding: 16,
   },
   docsTabHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     marginBottom: 16,
   },
@@ -6669,7 +6634,7 @@ const styles = StyleSheet.create({
   },
   docsTabList: {
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
   },
   docsTabListLabel: {
@@ -6894,7 +6859,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   convertSectionCard: {
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     padding: 16,
     marginBottom: 12,
@@ -7153,14 +7118,14 @@ const styles = StyleSheet.create({
   },
   // Deals Tab styles
   dealsTabContainer: {
-    flex: 1,
+    
     padding: 16,
   },
   dealsTabHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     marginBottom: 16,
   },
@@ -7199,7 +7164,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     marginBottom: 16,
   },
@@ -7439,7 +7404,7 @@ const styles = StyleSheet.create({
   createDealCloseBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -7741,7 +7706,7 @@ const styles = StyleSheet.create({
   },
   // Details grid layout (2-column)
   detailsGrid: {
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -7750,21 +7715,22 @@ const styles = StyleSheet.create({
   },
   detailsCell: {
     flex: 1,
-    padding: 12,
+    padding: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: 'rgba(0,0,0,0.04)',
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: 'rgba(0,0,0,0.05)',
+    borderRightColor: 'rgba(0,0,0,0.04)',
   },
   detailsCellLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: 5,
+    textTransform: 'uppercase',
   },
   detailsCellValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   inquiryBadge: {
     paddingHorizontal: 8,
@@ -7794,10 +7760,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   requirementsCard: {
-    padding: 14,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 14,
     borderWidth: 1,
     marginTop: 8,
+    lineHeight: 22,
   },
   // Score badge style
   scoreBadge: {

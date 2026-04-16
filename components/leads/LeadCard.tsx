@@ -47,7 +47,7 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true, selectionM
     if (onPress) {
       onPress();
     } else {
-      router.push(`/(tabs)/leads/${lead.id}`);
+      router.push(`/leads/${lead.id}`);
     }
   };
 
