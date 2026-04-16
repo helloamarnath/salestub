@@ -604,7 +604,7 @@ export default function ContactsScreen() {
           onEndReachedThreshold={0.5}
           ListFooterComponent={() => renderFooter(customersLoading && customers.length > 0)}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 160 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -628,7 +628,7 @@ export default function ContactsScreen() {
           onEndReachedThreshold={0.5}
           ListFooterComponent={() => renderFooter(organizationsLoading && organizations.length > 0)}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 160 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,
-    paddingBottom: 100,
+    paddingBottom: 160,
   },
   emptyTitle: {
     fontSize: 20,

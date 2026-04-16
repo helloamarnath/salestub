@@ -295,7 +295,7 @@ export default function MoreScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
       >
         {/* Header */}
         <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 20, marginBottom: 24 }}>
@@ -328,6 +328,14 @@ export default function MoreScreen() {
 
         {/* CRM */}
         <MenuSection title="CRM" isDark={isDark}>
+          <MenuItem
+            icon="checkbox-outline"
+            title="Activities"
+            subtitle="Tasks, calls, meetings & notes"
+            color="#f59e0b"
+            onPress={() => router.push('/activities' as Href)}
+            isDark={isDark}
+          />
           <MenuItem
             icon="briefcase-outline"
             title="Deals"

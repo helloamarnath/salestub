@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   },
   formContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 160,
   },
   sectionHeader: {
     fontSize: 14,

@@ -60,11 +60,10 @@ export default function TabLayout() {
     );
   }
 
-  // iOS: Use NativeTabs for liquid glass effect with SF Symbols
+  // iOS: Use NativeTabs for liquid glass effect
   if (Platform.OS === 'ios') {
     return (
       <NativeTabs
-        minimizeBehavior="onScrollDown"
         tintColor={DynamicColorIOS({
           dark: colors.dark.tint,
           light: colors.light.tint,
@@ -94,7 +93,6 @@ export default function TabLayout() {
           <Icon sf={{ default: 'line.3.horizontal', selected: 'line.3.horizontal' }} />
           <Label>More</Label>
         </NativeTabs.Trigger>
-
       </NativeTabs>
     );
   }

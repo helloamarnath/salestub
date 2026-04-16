@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
   },
   formContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 160,
   },
   sectionHeaderContainer: {
     flexDirection: 'row',

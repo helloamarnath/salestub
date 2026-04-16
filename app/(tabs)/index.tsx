@@ -209,7 +209,7 @@ export default function DashboardScreen() {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 160 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

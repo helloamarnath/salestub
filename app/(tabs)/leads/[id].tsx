@@ -87,6 +87,8 @@ interface ReminderOption {
 const REMINDER_OPTIONS: ReminderOption[] = [
   { value: 'none', label: 'No reminder', minutes: null },
   { value: 'at_time', label: 'At time of event', minutes: 0 },
+  { value: '5min', label: '5 minutes before', minutes: 5 },
+  { value: '10min', label: '10 minutes before', minutes: 10 },
   { value: '15min', label: '15 minutes before', minutes: 15 },
   { value: '30min', label: '30 minutes before', minutes: 30 },
   { value: '1hour', label: '1 hour before', minutes: 60 },
@@ -886,7 +888,7 @@ function DetailsTab({
 
   return (
     <>
-      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.tabContent} contentContainerStyle={{ paddingBottom: 160 }} showsVerticalScrollIndicator={false}>
         {/* Lead Details Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Lead Details</Text>
@@ -4520,6 +4522,7 @@ export default function LeadDetailScreen() {
 
   // Follow-up state
   const [showFollowUpSheet, setShowFollowUpSheet] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [selectedActivityType, setSelectedActivityType] = useState<ActivityType | null>(null);
   const [savingActivity, setSavingActivity] = useState(false);
@@ -4922,6 +4925,8 @@ export default function LeadDetailScreen() {
     const reminderMap: Record<string, string> = {
       'none': 'NONE',
       'at_time': 'AT_TIME',
+      '5min': 'FIVE_MIN',
+      '10min': 'TEN_MIN',
       '15min': 'FIFTEEN_MIN',
       '30min': 'THIRTY_MIN',
       '1hour': 'ONE_HOUR',
@@ -5139,8 +5144,6 @@ export default function LeadDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Action Buttons Bar removed - now in fixed bottom bar */}
-
         {/* Active Visit Banner */}
         {activeVisit && (
           <ActiveVisitBanner
@@ -5230,57 +5233,6 @@ export default function LeadDetailScreen() {
         <MetadataTab lead={lead} isDark={isDark} />
       )}
 
-      {/* Fixed Bottom Action Bar */}
-      <View style={[styles.bottomActionBar, {
-        backgroundColor: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.95)',
-        borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-        paddingBottom: insets.bottom || 8,
-      }]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 6, paddingHorizontal: 16 }}
-        >
-          <TouchableOpacity
-            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.1)' }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowConvertModal(true);
-            }}
-          >
-            <Ionicons name="briefcase-outline" size={16} color="#22c55e" />
-            <Text style={[styles.bottomBarButtonText, { color: '#22c55e' }]}>Deal</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('quotes'); }}
-          >
-            <Ionicons name="document-text-outline" size={16} color="#3b82f6" />
-            <Text style={[styles.bottomBarButtonText, { color: '#3b82f6' }]}>Quotes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('invoices'); }}
-          >
-            <Ionicons name="receipt-outline" size={16} color="#ef4444" />
-            <Text style={[styles.bottomBarButtonText, { color: '#ef4444' }]}>Invoices</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]}
-            onPress={handleFollowUpPress}
-          >
-            <Ionicons name="time-outline" size={16} color="#8b5cf6" />
-            <Text style={[styles.bottomBarButtonText, { color: '#8b5cf6' }]}>Follow Up</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.bottomBarButton, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)' }]}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('products'); }}
-          >
-            <Ionicons name="cube-outline" size={16} color="#f59e0b" />
-            <Text style={[styles.bottomBarButtonText, { color: '#f59e0b' }]}>Products</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
 
       {/* Start Visit Sheet */}
       <StartVisitSheet
@@ -5290,6 +5242,109 @@ export default function LeadDetailScreen() {
         loading={visitActionLoading}
         isDark={isDark}
       />
+
+      {/* FAB Overlay */}
+      {fabOpen && (
+        <Pressable
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)',
+            zIndex: 998,
+          }}
+          onPress={() => setFabOpen(false)}
+        />
+      )}
+
+      {/* FAB Menu Items */}
+      {fabOpen && (
+        <View style={{
+          position: 'absolute',
+          bottom: (insets.bottom || 0) + 160,
+          right: 20,
+          zIndex: 999,
+          gap: 12,
+        }}>
+          {[
+            { icon: 'briefcase-outline' as const, label: 'Deal', color: '#22c55e', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowConvertModal(true); } },
+            { icon: 'document-text-outline' as const, label: 'Quotes', color: '#3b82f6', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('quotes'); } },
+            { icon: 'receipt-outline' as const, label: 'Invoices', color: '#ef4444', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('invoices'); } },
+            { icon: 'location-outline' as const, label: 'Log Visit', color: '#8b5cf6', onPress: () => { setFabOpen(false); handleStartVisitPress(); } },
+            { icon: 'cube-outline' as const, label: 'Products', color: '#f59e0b', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('products'); } },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              onPress={item.onPress}
+              activeOpacity={0.8}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: 12,
+              }}
+            >
+              <View style={{
+                backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 12,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.12,
+                shadowRadius: 6,
+                elevation: 4,
+                minWidth: 90,
+                alignItems: 'center',
+              }}>
+                <Text style={{ color: item.color, fontSize: 14, fontWeight: '600' }}>{item.label}</Text>
+              </View>
+              <View style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: item.color,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.2,
+                shadowRadius: 6,
+                elevation: 6,
+              }}>
+                <Ionicons name={item.icon} size={22} color="white" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* FAB Button */}
+      <TouchableOpacity
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setFabOpen(!fabOpen);
+        }}
+        activeOpacity={0.85}
+        style={{
+          position: 'absolute',
+          bottom: (insets.bottom || 0) + 90,
+          right: 20,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: fabOpen ? '#ef4444' : '#3b82f6',
+          alignItems: 'center',
+          justifyContent: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+          zIndex: 999,
+        }}
+      >
+        <Ionicons name={fabOpen ? 'close' : 'add'} size={28} color="white" />
+      </TouchableOpacity>
 
       {/* Follow-up Action Sheet */}
       <FollowUpActionSheet
@@ -5612,6 +5667,7 @@ const styles = StyleSheet.create({
   tabContent: {
     flex: 1,
     padding: 20,
+    paddingBottom: 0,
   },
   section: {
     marginBottom: 24,
@@ -7742,7 +7798,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     marginTop: 8,
-    maxHeight: 200,
   },
   // Score badge style
   scoreBadge: {
