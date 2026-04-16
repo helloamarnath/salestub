@@ -61,7 +61,7 @@ const ACTIVITY_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
 const ACTIVITY_TYPE_COLORS: Record<string, string> = {
   CALL: '#10b981',
-  EMAIL: '#3b82f6',
+  EMAIL: Colors.light.primary,
   MEETING: '#8b5cf6',
   TASK: '#f59e0b',
   NOTE: '#6b7280',
@@ -69,7 +69,7 @@ const ACTIVITY_TYPE_COLORS: Record<string, string> = {
 
 const ACTIVITY_STATUS_COLORS: Record<string, string> = {
   PENDING: '#f59e0b',
-  IN_PROGRESS: '#3b82f6',
+  IN_PROGRESS: Colors.light.primary,
   COMPLETED: '#10b981',
   CANCELLED: '#ef4444',
 };
@@ -77,7 +77,7 @@ const ACTIVITY_STATUS_COLORS: Record<string, string> = {
 // Deal statuses
 const DEAL_STATUSES = ['OPEN', 'WON', 'LOST'];
 const DEAL_STATUS_COLORS: Record<string, string> = {
-  OPEN: '#3b82f6',
+  OPEN: Colors.light.primary,
   WON: '#10b981',
   LOST: '#ef4444',
 };
@@ -91,6 +91,7 @@ export function ExportFilterModal({
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const [filters, setFilters] = useState<ExportFilters>({});
 
@@ -108,12 +109,12 @@ export function ExportFilterModal({
   const [loadingPipelines, setLoadingPipelines] = useState(false);
 
   // Theme colors
-  const bgColor = isDark ? '#1e293b' : '#ffffff';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const chipActiveBg = '#3b82f6';
+  const chipActiveBg = colors.primary;
 
   // Reset filters when modal opens or data type changes
   useEffect(() => {
@@ -428,7 +429,7 @@ export function ExportFilterModal({
               </TouchableOpacity>
               <Text style={[styles.iosPickerTitle, { color: textColor }]}>From Date</Text>
               <TouchableOpacity onPress={handleFromDateDone}>
-                <Text style={styles.iosPickerDone}>Done</Text>
+                <Text style={[styles.iosPickerDone, { color: colors.primary }]}>Done</Text>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -450,7 +451,7 @@ export function ExportFilterModal({
               </TouchableOpacity>
               <Text style={[styles.iosPickerTitle, { color: textColor }]}>To Date</Text>
               <TouchableOpacity onPress={handleToDateDone}>
-                <Text style={styles.iosPickerDone}>Done</Text>
+                <Text style={[styles.iosPickerDone, { color: colors.primary }]}>Done</Text>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -789,7 +790,7 @@ export function ExportFilterModal({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.applyButton}
+              style={[styles.applyButton, { backgroundColor: colors.primary }]}
               onPress={handleApply}
             >
               <Ionicons name="download-outline" size={18} color="white" style={{ marginRight: 6 }} />
@@ -922,7 +923,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -957,7 +958,7 @@ const styles = StyleSheet.create({
   iosPickerDone: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
   iosPicker: {
     height: 200,

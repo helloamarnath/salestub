@@ -93,7 +93,8 @@ function InfoRow({
   isDark: boolean;
   onPress?: () => void;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const labelColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const iconColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const displayValue = value || '-';
@@ -103,7 +104,7 @@ function InfoRow({
       <Ionicons name={icon} size={20} color={iconColor} style={styles.infoIcon} />
       <View style={styles.infoContent}>
         <Text style={[styles.infoLabel, { color: labelColor }]}>{label}</Text>
-        <Text style={[styles.infoValue, { color: onPress && value ? '#3b82f6' : value ? textColor : labelColor }]}>
+        <Text style={[styles.infoValue, { color: onPress && value ? colors.primary : value ? textColor : labelColor }]}>
           {displayValue}
         </Text>
       </View>
@@ -131,7 +132,8 @@ function SectionCard({
   children: React.ReactNode;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
@@ -155,7 +157,8 @@ function EmptyState({
   subtitle: string;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
 
   return (
@@ -177,11 +180,12 @@ function LeadCard({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const stageColor = lead.stage?.color || '#3b82f6';
+  const stageColor = lead.stage?.color || colors.primary;
 
   return (
     <TouchableOpacity
@@ -233,12 +237,13 @@ function DealCard({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const stageColor = DEAL_STAGE_COLORS[deal.stage as keyof typeof DEAL_STAGE_COLORS] || '#3b82f6';
-  const statusColor = DEAL_STATUS_COLORS[deal.status as keyof typeof DEAL_STATUS_COLORS] || '#3b82f6';
+  const stageColor = DEAL_STAGE_COLORS[deal.stage as keyof typeof DEAL_STAGE_COLORS] || colors.primary;
+  const statusColor = DEAL_STATUS_COLORS[deal.status as keyof typeof DEAL_STATUS_COLORS] || colors.primary;
 
   const formatStage = (stage: string) => {
     return stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).toLowerCase()
@@ -287,12 +292,13 @@ function ActivityCard({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || '#3b82f6';
-  const statusColor = ACTIVITY_STATUS_COLORS[activity.status] || '#3b82f6';
+  const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || colors.primary;
+  const statusColor = ACTIVITY_STATUS_COLORS[activity.status] || colors.primary;
   const typeIcon = ACTIVITY_TYPE_ICONS[activity.type] || 'ellipse-outline';
 
   return (
@@ -345,9 +351,7 @@ export default function CustomerDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('details');
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const headerBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
@@ -696,7 +700,7 @@ export default function CustomerDetailScreen() {
               <InfoRow icon="document-text-outline" label="Postal Code" value={contact.primaryPostalCode} isDark={isDark} />
             </SectionCard>
             {(contact.primaryAddress || contact.primaryCity) && (
-              <TouchableOpacity style={styles.mapButton} onPress={handleMaps}>
+              <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.primary }]} onPress={handleMaps}>
                 <Ionicons name="navigate-outline" size={18} color="white" />
                 <Text style={styles.mapButtonText}>Open in Maps</Text>
               </TouchableOpacity>
@@ -760,7 +764,7 @@ export default function CustomerDetailScreen() {
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
         <Ionicons name="alert-circle-outline" size={64} color={subtitleColor} />
         <Text style={[styles.errorText, { color: textColor }]}>Customer not found</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -836,8 +840,8 @@ export default function CustomerDetailScreen() {
             )}
             {contact.email && (
               <TouchableOpacity style={styles.quickAction} onPress={() => handleEmail(contact.email)}>
-                <View style={[styles.quickActionIcon, { backgroundColor: '#3b82f620' }]}>
-                  <Ionicons name="mail" size={22} color="#3b82f6" />
+                <View style={[styles.quickActionIcon, { backgroundColor: '#34343420' }]}>
+                  <Ionicons name="mail" size={22} color={colors.primary} />
                 </View>
                 <Text style={[styles.quickActionLabel, { color: subtitleColor }]}>Email</Text>
               </TouchableOpacity>
@@ -853,7 +857,7 @@ export default function CustomerDetailScreen() {
             </View>
             <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
             <View style={styles.statItem}>
-              <Ionicons name="briefcase" size={16} color="#3b82f6" />
+              <Ionicons name="briefcase" size={16} color={colors.primary} />
               <Text style={[styles.statValue, { color: textColor }]}>{(deals || []).length}</Text>
               <Text style={[styles.statLabel, { color: subtitleColor }]}>Deals</Text>
             </View>
@@ -894,12 +898,12 @@ export default function CustomerDetailScreen() {
                 <Ionicons
                   name={isActive ? (tab.icon.replace('-outline', '') as any) : tab.icon}
                   size={20}
-                  color={isActive ? '#3b82f6' : subtitleColor}
+                  color={isActive ? colors.primary : subtitleColor}
                 />
                 <Text
                   style={[
                     styles.tabLabel,
-                    { color: isActive ? '#3b82f6' : subtitleColor },
+                    { color: isActive ? colors.primary : subtitleColor },
                     isActive && styles.activeTabLabel,
                   ]}
                 >
@@ -1292,7 +1296,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingVertical: 12,
     borderRadius: 10,
     gap: 8,
@@ -1308,7 +1312,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

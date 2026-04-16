@@ -22,9 +22,7 @@ export function AccessDenied({
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
@@ -41,7 +39,7 @@ export function AccessDenied({
         <Text style={[styles.message, { color: subtitleColor }]}>{message}</Text>
         {showHomeButton && (
           <TouchableOpacity
-            style={styles.homeButton}
+            style={[styles.homeButton, { backgroundColor: colors.primary }]}
             onPress={() => router.replace('/(tabs)')}
           >
             <Ionicons name="home-outline" size={20} color="white" />
@@ -86,7 +84,7 @@ const styles = StyleSheet.create({
   homeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,

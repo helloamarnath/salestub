@@ -1,73 +1,74 @@
 import { Platform } from 'react-native';
 
-// HSL to Hex conversion helper
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100;
-  l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
+// Theme from next-app/globals.css — OKLCH neutral/monochrome (b2fA preset)
+// Converted from oklch(L 0 0) to hex
 
-// Theme colors matching global.css CSS variables
 export const Colors = {
   light: {
-    background: hslToHex(0, 0, 100), // #ffffff
-    foreground: hslToHex(222.2, 84, 4.9), // #020817
-    card: hslToHex(0, 0, 100),
-    cardForeground: hslToHex(222.2, 84, 4.9),
-    popover: hslToHex(0, 0, 100),
-    popoverForeground: hslToHex(222.2, 84, 4.9),
-    primary: hslToHex(221.2, 83.2, 53.3), // #3b82f6
-    primaryForeground: hslToHex(210, 40, 98),
-    secondary: hslToHex(210, 40, 96.1),
-    secondaryForeground: hslToHex(222.2, 47.4, 11.2),
-    muted: hslToHex(210, 40, 96.1),
-    mutedForeground: hslToHex(215.4, 16.3, 46.9),
-    accent: hslToHex(210, 40, 96.1),
-    accentForeground: hslToHex(222.2, 47.4, 11.2),
-    destructive: hslToHex(0, 84.2, 60.2),
-    destructiveForeground: hslToHex(210, 40, 98),
-    border: hslToHex(214.3, 31.8, 91.4),
-    input: hslToHex(214.3, 31.8, 91.4),
-    ring: hslToHex(221.2, 83.2, 53.3),
-    // Legacy support
-    text: hslToHex(222.2, 84, 4.9),
-    tint: hslToHex(221.2, 83.2, 53.3),
-    icon: hslToHex(215.4, 16.3, 46.9),
-    tabIconDefault: hslToHex(215.4, 16.3, 46.9),
-    tabIconSelected: hslToHex(221.2, 83.2, 53.3),
+    background: '#ffffff',         // oklch(1 0 0)
+    foreground: '#252525',         // oklch(0.145 0 0)
+    card: '#ffffff',               // oklch(1 0 0)
+    cardForeground: '#252525',     // oklch(0.145 0 0)
+    popover: '#ffffff',
+    popoverForeground: '#252525',
+    primary: '#343434',            // oklch(0.205 0 0)
+    primaryForeground: '#fbfbfb',  // oklch(0.985 0 0)
+    secondary: '#f7f7f7',          // oklch(0.97 0 0)
+    secondaryForeground: '#343434',// oklch(0.205 0 0)
+    muted: '#f7f7f7',             // oklch(0.97 0 0)
+    mutedForeground: '#8e8e8e',   // oklch(0.556 0 0)
+    accent: '#f7f7f7',            // oklch(0.97 0 0)
+    accentForeground: '#343434',  // oklch(0.205 0 0)
+    destructive: '#e5484d',        // oklch(0.577 0.245 27.325) ≈ red
+    destructiveForeground: '#fbfbfb',
+    border: '#ebebeb',            // oklch(0.922 0 0)
+    input: '#ebebeb',             // oklch(0.922 0 0)
+    ring: '#b5b5b5',              // oklch(0.708 0 0)
+    // Charts
+    chart1: '#dedede',
+    chart2: '#8e8e8e',
+    chart3: '#707070',
+    chart4: '#5f5f5f',
+    chart5: '#454545',
+    // Legacy
+    text: '#252525',
+    tint: '#343434',
+    icon: '#8e8e8e',
+    tabIconDefault: '#b5b5b5',
+    tabIconSelected: '#252525',
   },
   dark: {
-    background: hslToHex(222.2, 84, 4.9), // #020817
-    foreground: hslToHex(210, 40, 98), // #f8fafc
-    card: hslToHex(222.2, 84, 4.9),
-    cardForeground: hslToHex(210, 40, 98),
-    popover: hslToHex(222.2, 84, 4.9),
-    popoverForeground: hslToHex(210, 40, 98),
-    primary: hslToHex(217.2, 91.2, 59.8), // #60a5fa
-    primaryForeground: hslToHex(222.2, 47.4, 11.2),
-    secondary: hslToHex(217.2, 32.6, 17.5),
-    secondaryForeground: hslToHex(210, 40, 98),
-    muted: hslToHex(217.2, 32.6, 17.5),
-    mutedForeground: hslToHex(215, 20.2, 65.1),
-    accent: hslToHex(217.2, 32.6, 17.5),
-    accentForeground: hslToHex(210, 40, 98),
-    destructive: hslToHex(0, 62.8, 30.6),
-    destructiveForeground: hslToHex(210, 40, 98),
-    border: hslToHex(217.2, 32.6, 17.5),
-    input: hslToHex(217.2, 32.6, 17.5),
-    ring: hslToHex(224.3, 76.3, 48),
-    // Legacy support
-    text: hslToHex(210, 40, 98),
-    tint: hslToHex(217.2, 91.2, 59.8),
-    icon: hslToHex(215, 20.2, 65.1),
-    tabIconDefault: hslToHex(215, 20.2, 65.1),
-    tabIconSelected: hslToHex(217.2, 91.2, 59.8),
+    background: '#252525',         // oklch(0.145 0 0)
+    foreground: '#fbfbfb',         // oklch(0.985 0 0)
+    card: '#343434',               // oklch(0.205 0 0)
+    cardForeground: '#fbfbfb',     // oklch(0.985 0 0)
+    popover: '#343434',
+    popoverForeground: '#fbfbfb',
+    primary: '#ebebeb',            // oklch(0.922 0 0)
+    primaryForeground: '#343434',  // oklch(0.205 0 0)
+    secondary: '#454545',          // oklch(0.269 0 0)
+    secondaryForeground: '#fbfbfb',// oklch(0.985 0 0)
+    muted: '#454545',             // oklch(0.269 0 0)
+    mutedForeground: '#b5b5b5',   // oklch(0.708 0 0)
+    accent: '#454545',            // oklch(0.269 0 0)
+    accentForeground: '#fbfbfb',  // oklch(0.985 0 0)
+    destructive: '#c4504a',        // oklch(0.704 0.191 22.216) ≈ muted red
+    destructiveForeground: '#fbfbfb',
+    border: '#2e2e2e',            // oklch(1 0 0 / 10%) on dark
+    input: '#383838',             // oklch(1 0 0 / 15%) on dark
+    ring: '#8e8e8e',              // oklch(0.556 0 0)
+    // Charts
+    chart1: '#dedede',
+    chart2: '#8e8e8e',
+    chart3: '#707070',
+    chart4: '#5f5f5f',
+    chart5: '#454545',
+    // Legacy
+    text: '#fbfbfb',
+    tint: '#ebebeb',
+    icon: '#b5b5b5',
+    tabIconDefault: '#8e8e8e',
+    tabIconSelected: '#fbfbfb',
   },
 };
 
@@ -85,9 +86,9 @@ export const Fonts = Platform.select({
     mono: 'monospace',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "Geist, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
     rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    mono: "Geist Mono, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });

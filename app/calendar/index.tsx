@@ -63,9 +63,7 @@ export default function CalendarScreen() {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
@@ -437,7 +435,7 @@ export default function CalendarScreen() {
         onRequestClose={() => setShowProviderModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Connect Calendar</Text>
               <TouchableOpacity onPress={() => setShowProviderModal(false)}>
@@ -513,7 +511,7 @@ export default function CalendarScreen() {
         onRequestClose={() => setShowSettingsModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Sync Settings</Text>
               <TouchableOpacity onPress={() => setShowSettingsModal(false)}>
@@ -564,7 +562,7 @@ export default function CalendarScreen() {
         onRequestClose={() => setShowConflictsModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white', maxHeight: '80%' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, maxHeight: '80%' }]}>
             <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Sync Conflicts</Text>
               <TouchableOpacity onPress={() => setShowConflictsModal(false)}>

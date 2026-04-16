@@ -57,6 +57,7 @@ export function LeadFilterModal({
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const [filters, setFilters] = useState<LeadFilterState>(currentFilters);
   const [members, setMembers] = useState<OrgMember[]>([]);
@@ -65,12 +66,12 @@ export function LeadFilterModal({
   const [loadingSources, setLoadingSources] = useState(false);
 
   // Theme colors
-  const bgColor = isDark ? '#1e293b' : '#ffffff';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const chipActiveBg = '#3b82f6';
+  const chipActiveBg = colors.primary;
 
   // Fetch members when modal opens
   useEffect(() => {
@@ -362,7 +363,7 @@ export function LeadFilterModal({
               <Text style={[styles.clearButtonText, { color: textColor }]}>Clear All</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.applyButton}
+              style={[styles.applyButton, { backgroundColor: colors.primary }]}
               onPress={handleApply}
             >
               <Text style={styles.applyButtonText}>
@@ -470,7 +471,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
   },
   applyButtonText: {

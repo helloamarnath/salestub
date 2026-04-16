@@ -28,7 +28,7 @@ export function StatCard({
 }: StatCardProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const colors = isDark ? Colors.dark : Colors.light;
+  const colors = Colors[resolvedTheme];
 
   const displayValue = formatValue ? formatValue(value) : value.toString();
   const showChange = typeof changePercent === 'number';

@@ -68,7 +68,8 @@ function InputField({
   isDark: boolean;
   error?: string;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const borderColor = error ? '#ef4444' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
@@ -117,7 +118,8 @@ function PickerField({
   isDark: boolean;
   color?: string;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -170,8 +172,9 @@ function SelectionModal<T>({
   getColor?: (value: T) => string;
   isDark: boolean;
 }) {
-  const bgColor = isDark ? '#1e293b' : '#ffffff';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const itemBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
 
@@ -201,7 +204,7 @@ function SelectionModal<T>({
                 key={index}
                 style={[
                   styles.modalItem,
-                  { backgroundColor: isSelected ? `${color || '#3b82f6'}20` : itemBg },
+                  { backgroundColor: isSelected ? `${color || colors.primary}20` : itemBg },
                   { borderColor },
                 ]}
                 onPress={() => {
@@ -215,7 +218,7 @@ function SelectionModal<T>({
                 )}
                 <Text style={[styles.modalItemText, { color: textColor }]}>{label}</Text>
                 {isSelected && (
-                  <Ionicons name="checkmark" size={20} color={color || '#3b82f6'} />
+                  <Ionicons name="checkmark" size={20} color={color || colors.primary} />
                 )}
               </TouchableOpacity>
             );
@@ -248,12 +251,13 @@ function EntitySearchModal<T extends { id: string }>({
   renderItem: (item: T, isSelected: boolean) => React.ReactNode;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const bgColor = isDark ? '#1e293b' : '#ffffff';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
@@ -339,7 +343,7 @@ function EntitySearchModal<T extends { id: string }>({
         {/* Results */}
         <View style={styles.modalContent}>
           {loading ? (
-            <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 20 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
           ) : searchQuery.length < 2 ? (
             <Text style={[styles.hintText, { color: subtitleColor }]}>
               Type at least 2 characters to search
@@ -357,7 +361,7 @@ function EntitySearchModal<T extends { id: string }>({
                   style={[
                     styles.resultItem,
                     { borderColor },
-                    selectedEntity?.id === item.id && { backgroundColor: '#3b82f620' },
+                    selectedEntity?.id === item.id && { backgroundColor: '#34343420' },
                   ]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -411,9 +415,7 @@ export default function CreateDealScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Theme colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -550,14 +552,14 @@ export default function CreateDealScreen() {
             <Text style={[styles.entitySubtitle, { color: subtitleColor }]}>{item.email}</Text>
           )}
         </View>
-        {isSelected && <Ionicons name="checkmark" size={20} color="#3b82f6" />}
+        {isSelected && <Ionicons name="checkmark" size={20} color={colors.primary} />}
       </View>
     );
   };
 
   const renderCompanyItem = (item: Company, isSelected: boolean) => {
     const initials = getCompanyInitials(item);
-    const typeColor = COMPANY_TYPE_COLORS[item.type] || '#3b82f6';
+    const typeColor = COMPANY_TYPE_COLORS[item.type] || colors.primary;
 
     return (
       <View style={styles.entityItem}>
@@ -570,7 +572,7 @@ export default function CreateDealScreen() {
             <Text style={[styles.entitySubtitle, { color: subtitleColor }]}>{item.industry}</Text>
           )}
         </View>
-        {isSelected && <Ionicons name="checkmark" size={20} color="#3b82f6" />}
+        {isSelected && <Ionicons name="checkmark" size={20} color={colors.primary} />}
       </View>
     );
   };
@@ -599,7 +601,7 @@ export default function CreateDealScreen() {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={loading}
-          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: colors.primary }, loading && styles.saveButtonDisabled]}
         >
           {loading ? (
             <ActivityIndicator size="small" color="white" />
@@ -706,7 +708,7 @@ export default function CreateDealScreen() {
             >
               {company ? (
                 <View style={styles.entityItem}>
-                  <View style={[styles.entityAvatar, { backgroundColor: COMPANY_TYPE_COLORS[company.type] || '#3b82f6', width: 32, height: 32 }]}>
+                  <View style={[styles.entityAvatar, { backgroundColor: COMPANY_TYPE_COLORS[company.type] || colors.primary, width: 32, height: 32 }]}>
                     <Text style={[styles.entityAvatarText, { fontSize: 12 }]}>{getCompanyInitials(company)}</Text>
                   </View>
                   <Text style={[styles.pickerText, { color: textColor }]}>
@@ -816,14 +818,14 @@ export default function CreateDealScreen() {
       {/* Date Picker - iOS: spinner with Done button, Android: native dialog */}
       {showDatePicker && Platform.OS === 'ios' && (
         <View style={styles.datePickerOverlay}>
-          <View style={[styles.datePickerContainer, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+          <View style={[styles.datePickerContainer, { backgroundColor: colors.card }]}>
             <View style={[styles.datePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                 <Text style={styles.datePickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={[styles.datePickerTitle, { color: isDark ? 'white' : '#000' }]}>Select Date</Text>
+              <Text style={[styles.datePickerTitle, { color: colors.foreground }]}>Select Date</Text>
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text style={styles.datePickerDone}>Done</Text>
+                <Text style={[styles.datePickerDone, { color: colors.primary }]}>Done</Text>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -836,8 +838,8 @@ export default function CreateDealScreen() {
                 }
               }}
               minimumDate={new Date()}
-              style={{ backgroundColor: isDark ? '#1e293b' : '#ffffff' }}
-              textColor={isDark ? 'white' : '#000'}
+              style={{ backgroundColor: colors.card }}
+              textColor={colors.foreground}
             />
           </View>
         </View>
@@ -887,7 +889,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1102,6 +1104,6 @@ const styles = StyleSheet.create({
   datePickerDone: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
 });

@@ -19,6 +19,7 @@ interface LeadCardProps {
 }
 
 export function LeadCard({ lead, onPress, onLongPress, isDark = true, selectionMode = false, selected = false, onSelect }: LeadCardProps) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const contactName = lead.contact
     ? getContactFullName(lead.contact)
     : 'No contact';
@@ -32,7 +33,7 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true, selectionM
   // Theme-aware colors
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
   const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const mutedColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const valueColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
@@ -105,7 +106,7 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true, selectionM
           <View style={styles.content}>
             {/* Left: Avatar or Checkbox */}
             {selectionMode ? (
-              <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
+              <View style={[styles.checkbox, selected && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                 {selected && (
                   <Ionicons name="checkmark" size={18} color="white" />
                 )}
@@ -169,7 +170,7 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true, selectionM
                   onPress={handleEmail}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="mail-outline" size={18} color="#3b82f6" />
+                  <Ionicons name="mail-outline" size={18} color={colors.primary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -259,8 +260,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 20,
   },
-  checkboxSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
+  // checkboxSelected styles moved to inline for theme support
 });

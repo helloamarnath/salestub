@@ -45,7 +45,8 @@ function MenuItem({
   destructive?: boolean;
   isDark?: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const arrowColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
@@ -118,10 +119,11 @@ function ThemeOption({
   onPress: () => void;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isSelected
-    ? '#3b82f6'
+    ? colors.primary
     : isDark
     ? 'rgba(255,255,255,0.1)'
     : 'rgba(0,0,0,0.1)';
@@ -137,10 +139,10 @@ function ThemeOption({
     <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
       <View style={[styles.themeOption, { borderColor, backgroundColor: bgColor }]}>
         <View style={styles.themeOptionIcon}>
-          <Ionicons name={icon} size={24} color={isSelected ? '#3b82f6' : textColor} />
+          <Ionicons name={icon} size={24} color={isSelected ? colors.primary : textColor} />
         </View>
         <View style={styles.themeOptionContent}>
-          <Text style={[styles.themeOptionTitle, { color: isSelected ? '#3b82f6' : textColor }]}>
+          <Text style={[styles.themeOptionTitle, { color: isSelected ? colors.primary : textColor }]}>
             {title}
           </Text>
           <Text style={[styles.themeOptionSubtitle, { color: subtitleColor }]}>
@@ -149,7 +151,7 @@ function ThemeOption({
         </View>
         {isSelected && (
           <View style={styles.checkmark}>
-            <Ionicons name="checkmark-circle" size={24} color="#3b82f6" />
+            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
           </View>
         )}
       </View>
@@ -282,9 +284,7 @@ export default function MoreScreen() {
   const initials = `${firstName.charAt(0)}${lastName.charAt(0) || ''}`.toUpperCase();
 
   // Background gradient colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   return (
     <View style={styles.container}>
@@ -311,7 +311,7 @@ export default function MoreScreen() {
           <View style={[styles.profileCard, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
             <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={[styles.profileCardBlur, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
               <View style={styles.profileContent}>
-                <View style={styles.profileAvatar}>
+                <View style={[styles.profileAvatar, { backgroundColor: colors.primary }]}>
                   <Text style={styles.profileAvatarText}>{initials}</Text>
                 </View>
                 <View style={styles.profileInfo}>
@@ -429,7 +429,7 @@ export default function MoreScreen() {
           <MenuItem
             icon="help-circle-outline"
             title="Help Center"
-            color="#3b82f6"
+            color={colors.primary}
             onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URLS.helpCenter)}
             isDark={isDark}
           />
@@ -484,7 +484,7 @@ export default function MoreScreen() {
         >
           <View style={styles.modalContainer}>
             <TouchableOpacity activeOpacity={1}>
-              <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+              <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
                 <Text style={[styles.modalTitle, { color: colors.foreground }]}>Appearance</Text>
                 <Text style={[styles.modalSubtitle, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
                   Choose how SalesTub looks on your device
@@ -518,7 +518,7 @@ export default function MoreScreen() {
                 </View>
 
                 <TouchableOpacity
-                  style={styles.modalCloseButton}
+                  style={[styles.modalCloseButton, { backgroundColor: colors.primary }]}
                   onPress={() => setShowThemeModal(false)}
                 >
                   <Text style={styles.modalCloseButtonText}>Done</Text>
@@ -543,7 +543,7 @@ export default function MoreScreen() {
         >
           <View style={styles.modalContainer}>
             <TouchableOpacity activeOpacity={1}>
-              <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#ffffff', maxHeight: 500 }]}>
+              <View style={[styles.modalContent, { backgroundColor: colors.card, maxHeight: 500 }]}>
                 <Text style={[styles.modalTitle, { color: colors.foreground }]}>Currency</Text>
                 <Text style={[styles.modalSubtitle, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
                   Choose your organization's display currency
@@ -551,7 +551,7 @@ export default function MoreScreen() {
 
                 {loadingCurrencies || updatingCurrency ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={[styles.loadingText, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
                       {updatingCurrency ? 'Updating...' : 'Loading currencies...'}
                     </Text>
@@ -581,7 +581,7 @@ export default function MoreScreen() {
                           </View>
                         </View>
                         {orgSettings?.currencyId === currency.id && (
-                          <Ionicons name="checkmark-circle" size={24} color="#3b82f6" />
+                          <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
                         )}
                       </TouchableOpacity>
                     ))}
@@ -589,7 +589,7 @@ export default function MoreScreen() {
                 )}
 
                 <TouchableOpacity
-                  style={styles.modalCloseButton}
+                  style={[styles.modalCloseButton, { backgroundColor: colors.primary }]}
                   onPress={() => setShowCurrencyModal(false)}
                 >
                   <Text style={styles.modalCloseButtonText}>Cancel</Text>
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
   },
   modalCloseButton: {
     marginTop: 24,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

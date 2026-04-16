@@ -47,7 +47,7 @@ const defaultActions = (props: QuickActionsProps): QuickAction[] => [
     id: 'contact',
     label: 'Contact',
     icon: 'people-outline',
-    color: '#3b82f6',
+    color: Colors.light.primary,
     onPress: props.onAddContact || (() => {}),
   },
 ];
@@ -55,7 +55,7 @@ const defaultActions = (props: QuickActionsProps): QuickAction[] => [
 export function QuickActions(props: QuickActionsProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const colors = isDark ? Colors.dark : Colors.light;
+  const colors = Colors[resolvedTheme];
 
   const actions = props.actions || defaultActions(props);
 

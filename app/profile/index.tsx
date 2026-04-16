@@ -48,9 +48,7 @@ export default function ProfileScreen() {
   const colors = Colors[resolvedTheme];
 
   // Background gradient colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
@@ -282,13 +280,13 @@ export default function ProfileScreen() {
           <View style={styles.avatarSection}>
             <View style={styles.avatarContainer}>
               <LinearGradient
-                colors={['#3b82f6', '#2563eb']}
+                colors={[colors.primary, colors.primary]}
                 style={styles.avatar}
               >
                 <Text style={styles.avatarText}>{getInitials()}</Text>
               </LinearGradient>
               {isEditing && (
-                <TouchableOpacity style={styles.avatarEditButton}>
+                <TouchableOpacity style={[styles.avatarEditButton, { backgroundColor: colors.primary }]}>
                   <Ionicons name="camera" size={16} color="white" />
                 </TouchableOpacity>
               )}
@@ -457,7 +455,7 @@ export default function ProfileScreen() {
                     <View style={styles.rolesContainer}>
                       {user.roles.map((role, index) => (
                         <View key={index} style={styles.roleBadge}>
-                          <Text style={styles.roleBadgeText}>{role}</Text>
+                          <Text style={[styles.roleBadgeText, { color: colors.primary }]}>{role}</Text>
                         </View>
                       ))}
                     </View>
@@ -472,7 +470,7 @@ export default function ProfileScreen() {
         {isEditing && (
           <View style={[styles.saveButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
             <TouchableOpacity
-              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+              style={[styles.saveButton, { backgroundColor: colors.primary }, isSaving && styles.saveButtonDisabled]}
               onPress={handleSave}
               disabled={isSaving}
             >
@@ -565,7 +563,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
@@ -650,7 +648,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   roleBadgeText: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -660,7 +658,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

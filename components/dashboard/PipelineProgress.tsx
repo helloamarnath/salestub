@@ -14,7 +14,7 @@ interface PipelineProgressProps {
 // Stage colors for visual differentiation
 const STAGE_COLORS: Record<string, string> = {
   PROSPECTING: '#8b5cf6',
-  QUALIFICATION: '#3b82f6',
+  QUALIFICATION: Colors.light.primary,
   PROPOSAL: '#06b6d4',
   NEGOTIATION: '#f59e0b',
   CLOSED_WON: '#22c55e',
@@ -43,7 +43,7 @@ function formatCurrency(value: number): string {
 export function PipelineProgress({ stages, totalValue }: PipelineProgressProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const colors = isDark ? Colors.dark : Colors.light;
+  const colors = Colors[resolvedTheme];
 
   // Filter out closed stages for pipeline view
   const activeStages = stages.filter(

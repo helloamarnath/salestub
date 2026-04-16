@@ -43,10 +43,11 @@ function formatDistance(km?: number): string {
 }
 
 export function VisitCard({ visit, onPress, isDark = true }: VisitCardProps) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   // Theme-aware colors (matching LeadCard pattern)
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
   const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const mutedColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const metaBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';

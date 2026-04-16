@@ -44,6 +44,7 @@ export default function CreateInvoiceScreen() {
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
   const isEditMode = !!editId;
 
   // Form state
@@ -72,10 +73,8 @@ export default function CreateInvoiceScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Theme
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const inputBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -210,7 +209,7 @@ export default function CreateInvoiceScreen() {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -364,7 +363,7 @@ export default function CreateInvoiceScreen() {
       {/* Contact Picker */}
       <Modal visible={showContactPicker} transparent animationType="slide" onRequestClose={() => setShowContactPicker(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Select Contact</Text>
               <TouchableOpacity onPress={() => setShowContactPicker(false)}>
@@ -394,7 +393,7 @@ export default function CreateInvoiceScreen() {
                     <Text style={[styles.pickerItemTitle, { color: textColor }]}>{contactName(item)}</Text>
                     <Text style={[styles.pickerItemSub, { color: subtitleColor }]}>{item.email || item.phone || ''}</Text>
                   </View>
-                  {contactId === item.id && <Ionicons name="checkmark-circle" size={22} color="#3b82f6" />}
+                  {contactId === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
                 </TouchableOpacity>
               )}
               ListEmptyComponent={<Text style={[styles.emptyText, { color: subtitleColor }]}>Type to search contacts</Text>}
@@ -407,7 +406,7 @@ export default function CreateInvoiceScreen() {
       {/* Currency Picker */}
       <Modal visible={showCurrencyPicker} transparent animationType="slide" onRequestClose={() => setShowCurrencyPicker(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Select Currency</Text>
               <TouchableOpacity onPress={() => setShowCurrencyPicker(false)}>
@@ -427,7 +426,7 @@ export default function CreateInvoiceScreen() {
                     <Text style={[styles.pickerItemTitle, { color: textColor }]}>{item.code}</Text>
                     <Text style={[styles.pickerItemSub, { color: subtitleColor }]}>{item.name}</Text>
                   </View>
-                  {currencyId === item.id && <Ionicons name="checkmark-circle" size={22} color="#3b82f6" />}
+                  {currencyId === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
                 </TouchableOpacity>
               )}
               style={{ maxHeight: 350 }}
@@ -444,7 +443,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, gap: 12 },
   headerBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: '700' },
-  saveBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+  saveBtn: { backgroundColor: Colors.light.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
   saveBtnText: { color: 'white', fontWeight: '600', fontSize: 14 },
   form: { flex: 1, padding: 16 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },

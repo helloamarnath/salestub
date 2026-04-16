@@ -45,7 +45,8 @@ function InputField({
   required?: boolean;
   error?: string;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const borderColor = error ? '#ef4444' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
@@ -79,7 +80,8 @@ function InputField({
 
 // Section Header
 function SectionHeader({ title, isDark }: { title: string; isDark: boolean }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   return (
     <Text style={[styles.sectionHeader, { color: textColor }]}>{title}</Text>
   );
@@ -95,6 +97,7 @@ function CompanyTypePicker({
   onChange: (type: CompanyType) => void;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -122,7 +125,7 @@ function CompanyTypePicker({
               <Text
                 style={[
                   styles.typeOptionText,
-                  { color: isSelected ? color : (isDark ? 'white' : Colors.light.foreground) },
+                  { color: isSelected ? color : (colors.foreground) },
                 ]}
               >
                 {COMPANY_TYPE_LABELS[type]}
@@ -168,8 +171,9 @@ function IndustryPicker({
   onChange: (industry: string) => void;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [showPicker, setShowPicker] = useState(false);
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -211,13 +215,13 @@ function IndustryPicker({
                 <Text
                   style={[
                     styles.pickerOptionText,
-                    { color: value === industry ? '#3b82f6' : textColor },
+                    { color: value === industry ? colors.primary : textColor },
                   ]}
                 >
                   {industry}
                 </Text>
                 {value === industry && (
-                  <Ionicons name="checkmark" size={18} color="#3b82f6" />
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -260,9 +264,7 @@ export default function CreateOrganizationScreen() {
     numberOfEmployees: undefined,
   });
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = isDark ? 'white' : colors.foreground;
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
@@ -371,7 +373,7 @@ export default function CreateOrganizationScreen() {
         <TouchableOpacity
           onPress={handleSave}
           disabled={saving}
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: colors.primary }, saving && styles.saveButtonDisabled]}
         >
           {saving ? (
             <ActivityIndicator size="small" color="white" />
@@ -565,7 +567,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

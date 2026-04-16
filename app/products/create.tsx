@@ -64,7 +64,8 @@ function FormInput({
   required?: boolean;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const inputBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -109,8 +110,9 @@ function CategoryPicker({
   loading: boolean;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [expanded, setExpanded] = useState(false);
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const inputBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -157,7 +159,7 @@ function CategoryPicker({
             <Text style={[styles.pickerOptionText, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
               None
             </Text>
-            {!value && <Ionicons name="checkmark" size={18} color="#3b82f6" />}
+            {!value && <Ionicons name="checkmark" size={18} color={colors.primary} />}
           </TouchableOpacity>
           {categories.map((category) => (
             <TouchableOpacity
@@ -180,7 +182,7 @@ function CategoryPicker({
               ]}>
                 {category.name}
               </Text>
-              {value === category.id && <Ionicons name="checkmark" size={18} color="#3b82f6" />}
+              {value === category.id && <Ionicons name="checkmark" size={18} color={colors.primary} />}
             </TouchableOpacity>
           ))}
         </View>
@@ -199,7 +201,8 @@ function ActiveToggle({
   onChange: (val: boolean) => void;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const inputBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
@@ -259,7 +262,8 @@ function ImagePickerSection({
   isDark: boolean;
   uploading: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const inputBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -285,7 +289,7 @@ function ImagePickerSection({
           disabled={uploading}
         >
           {uploading ? (
-            <ActivityIndicator size="small" color="#3b82f6" />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : (
             <>
               <Ionicons name="camera-outline" size={28} color={subtitleColor} />
@@ -334,7 +338,7 @@ function ImagePickerSection({
               style={styles.imagePreview}
               resizeMode="cover"
             />
-            <View style={styles.pendingBadge}>
+            <View style={[styles.pendingBadge, { backgroundColor: colors.primary }]}>
               <Text style={styles.pendingBadgeText}>New</Text>
             </View>
             <TouchableOpacity
@@ -363,13 +367,12 @@ export default function CreateProductScreen() {
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
   const isEditing = !!editId;
 
   // Theme colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const textColor = colors.foreground;
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
   // Form state
@@ -644,7 +647,7 @@ export default function CreateProductScreen() {
               {isEditing ? 'Edit Product' : 'New Product'}
             </Text>
             <TouchableOpacity
-              style={[styles.saveButton, (loading || uploadingImages) && styles.saveButtonDisabled]}
+              style={[styles.saveButton, { backgroundColor: colors.primary }, (loading || uploadingImages) && styles.saveButtonDisabled]}
               onPress={handleSave}
               disabled={loading || uploadingImages}
             >
@@ -784,7 +787,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 12,
@@ -974,7 +977,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
   },
   pendingBadgeText: {
     color: 'white',

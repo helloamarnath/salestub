@@ -54,13 +54,14 @@ function DealItem({
   isSelected?: boolean;
   onToggleSelect?: () => void;
 }) {
-  const stageColor = DEAL_STAGE_COLORS[deal.stage] || '#3b82f6';
-  const statusColor = DEAL_STATUS_COLORS[deal.status] || '#3b82f6';
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const stageColor = DEAL_STAGE_COLORS[deal.stage] || colors.primary;
+  const statusColor = DEAL_STATUS_COLORS[deal.status] || colors.primary;
   const currencySymbol = deal.currency?.symbol || '₹';
   const contactName = deal.contact ? getContactFullName(deal.contact) : '';
   const companyName = deal.company?.name || '';
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const actionBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
@@ -101,7 +102,7 @@ function DealItem({
           >
             <View style={[
               styles.checkbox,
-              { borderColor: isSelected ? '#3b82f6' : subtitleColor },
+              { borderColor: isSelected ? colors.primary : subtitleColor },
               isSelected && styles.checkboxSelected,
             ]}>
               {isSelected && <Ionicons name="checkmark" size={14} color="white" />}
@@ -188,7 +189,7 @@ function DealItem({
                 Linking.openURL(`mailto:${deal.contact!.email}`);
               }}
             >
-              <Ionicons name="mail-outline" size={18} color="#3b82f6" />
+              <Ionicons name="mail-outline" size={18} color={colors.primary} />
             </TouchableOpacity>
           )}
           <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
@@ -210,7 +211,8 @@ function EmptyState({
   hasFilters: boolean;
   canCreate: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
 
   return (
@@ -225,7 +227,7 @@ function EmptyState({
           : canCreate ? 'Create your first deal to get started' : 'No deals available'}
       </Text>
       {!hasFilters && canCreate && (
-        <TouchableOpacity style={styles.emptyButton} onPress={onAdd}>
+        <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]} onPress={onAdd}>
           <Ionicons name="add" size={20} color="white" />
           <Text style={styles.emptyButtonText}>Create Deal</Text>
         </TouchableOpacity>
@@ -242,7 +244,8 @@ function StatsSummary({
   stats: DealStats | null;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
 
@@ -322,9 +325,7 @@ export default function DealsScreen() {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // Theme-aware colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const textColor = isDark ? 'white' : colors.foreground;
   const searchBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
@@ -630,7 +631,7 @@ export default function DealsScreen() {
                 style={styles.selectAllBtn}
                 onPress={selectedIds.size === deals.length ? deselectAll : selectAll}
               >
-                <Text style={styles.selectAllText}>
+                <Text style={[styles.selectAllText, { color: colors.primary }]}>
                   {selectedIds.size === deals.length ? 'Deselect All' : 'Select All'}
                 </Text>
               </TouchableOpacity>
@@ -654,7 +655,7 @@ export default function DealsScreen() {
                     <Ionicons name="ellipsis-horizontal" size={20} color={textColor} />
                   </TouchableOpacity>
                   {rbac.canCreate('deals') && (
-                    <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
+                    <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleAddNew}>
                       <Ionicons name="add" size={24} color="white" />
                     </TouchableOpacity>
                   )}
@@ -663,7 +664,7 @@ export default function DealsScreen() {
 
               {/* More menu dropdown */}
               {showMoreMenu && (
-                <View style={[styles.moreMenu, { backgroundColor: isDark ? '#1e293b' : 'white', borderColor }]}>
+                <View style={[styles.moreMenu, { backgroundColor: colors.card, borderColor }]}>
                   {rbac.canExport('deals') && (
                     <TouchableOpacity
                       style={styles.moreMenuItem}
@@ -671,7 +672,7 @@ export default function DealsScreen() {
                       disabled={exporting}
                     >
                       {exporting ? (
-                        <ActivityIndicator size="small" color="#3b82f6" />
+                        <ActivityIndicator size="small" color={colors.primary} />
                       ) : (
                         <Ionicons name="download-outline" size={20} color={textColor} />
                       )}
@@ -780,10 +781,10 @@ export default function DealsScreen() {
 
       {/* Bulk Action Bar */}
       {selectionMode && selectedIds.size > 0 && (
-        <View style={[styles.bulkActionBar, { paddingBottom: insets.bottom + 16, backgroundColor: isDark ? '#1e293b' : 'white', borderColor }]}>
+        <View style={[styles.bulkActionBar, { paddingBottom: insets.bottom + 16, backgroundColor: colors.card, borderColor }]}>
           {bulkActionLoading ? (
             <View style={styles.bulkActionLoading}>
-              <ActivityIndicator size="small" color="#3b82f6" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.bulkActionLoadingText, { color: textColor }]}>Processing...</Text>
             </View>
           ) : (
@@ -793,8 +794,8 @@ export default function DealsScreen() {
                   style={[styles.bulkActionBtn, styles.bulkActionStageBtn]}
                   onPress={handleBulkStageUpdate}
                 >
-                  <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
-                  <Text style={styles.bulkActionStageBtnText}>Change Stage</Text>
+                  <Ionicons name="git-branch-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.bulkActionStageBtnText, { color: colors.primary }]}>Change Stage</Text>
                 </TouchableOpacity>
               )}
               {rbac.canDelete('deals') && (
@@ -849,7 +850,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -903,8 +904,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
   },
   filterBadge: {
     position: 'absolute',
@@ -1035,7 +1036,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1109,7 +1110,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   selectAllText: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1167,11 +1168,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
   },
   dealCardSelected: {
-    borderColor: '#3b82f6',
+    borderColor: Colors.light.primary,
     borderWidth: 2,
   },
   // Bulk action bar
@@ -1211,10 +1212,10 @@ const styles = StyleSheet.create({
   bulkActionStageBtn: {
     backgroundColor: 'rgba(59,130,246,0.1)',
     borderWidth: 1,
-    borderColor: '#3b82f6',
+    borderColor: Colors.light.primary,
   },
   bulkActionStageBtnText: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontWeight: '600',
     fontSize: 15,
   },

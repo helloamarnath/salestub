@@ -47,7 +47,8 @@ function InputField({
   error?: string;
   icon?: keyof typeof Ionicons.glyphMap;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const borderColor = error ? '#ef4444' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
@@ -98,7 +99,8 @@ function SectionHeader({
   icon: keyof typeof Ionicons.glyphMap;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const iconColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
 
   return (
@@ -125,12 +127,13 @@ function CompanyPicker({
   isDark: boolean;
   accessToken: string | null;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Company[]>([]);
   const [searching, setSearching] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -166,7 +169,7 @@ function CompanyPicker({
           }}
         >
           <View style={styles.selectedCompanyInfo}>
-            <Ionicons name="business" size={20} color="#3b82f6" />
+            <Ionicons name="business" size={20} color={colors.primary} />
             <Text style={[styles.selectedCompanyName, { color: textColor }]}>
               {selectedCompany.name}
             </Text>
@@ -193,7 +196,7 @@ function CompanyPicker({
               placeholderTextColor={placeholderColor}
               autoFocus
             />
-            {searching && <ActivityIndicator size="small" color="#3b82f6" />}
+            {searching && <ActivityIndicator size="small" color={colors.primary} />}
           </View>
 
           {searchResults.length > 0 && (
@@ -223,7 +226,7 @@ function CompanyPicker({
             style={styles.createNewButton}
             onPress={() => setShowPicker(false)}
           >
-            <Text style={styles.createNewText}>Or enter company name manually</Text>
+            <Text style={[styles.createNewText, { color: colors.primary }]}>Or enter company name manually</Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -239,7 +242,7 @@ function CompanyPicker({
             />
           </View>
           <TouchableOpacity
-            style={[styles.searchButton, { backgroundColor: '#3b82f6' }]}
+            style={[styles.searchButton, { backgroundColor: colors.primary }]}
             onPress={() => setShowPicker(true)}
           >
             <Ionicons name="search" size={20} color="white" />
@@ -293,9 +296,7 @@ export default function CreateCustomerScreen() {
     notes: '',
   });
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = isDark ? 'white' : colors.foreground;
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
@@ -426,7 +427,7 @@ export default function CreateCustomerScreen() {
         <TouchableOpacity
           onPress={handleSave}
           disabled={saving}
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: colors.primary }, saving && styles.saveButtonDisabled]}
         >
           {saving ? (
             <ActivityIndicator size="small" color="white" />
@@ -749,7 +750,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -885,7 +886,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   createNewText: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontSize: 14,
   },
 });

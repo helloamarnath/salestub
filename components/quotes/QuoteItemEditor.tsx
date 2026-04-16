@@ -40,7 +40,8 @@ export function QuoteItemEditor({
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -253,8 +254,8 @@ export function QuoteItemEditor({
                         style={[
                           styles.taxRateBtn,
                           {
-                            backgroundColor: item.taxRate === rate ? '#3b82f6' : inputBg,
-                            borderColor: item.taxRate === rate ? '#3b82f6' : inputBorder,
+                            backgroundColor: item.taxRate === rate ? colors.primary : inputBg,
+                            borderColor: item.taxRate === rate ? colors.primary : inputBorder,
                           },
                         ]}
                         onPress={() => updateItem(index, 'taxRate', rate)}
@@ -329,8 +330,8 @@ export function QuoteItemEditor({
       {/* Add Item button */}
       {!readOnly && (
         <TouchableOpacity style={[styles.addItemBtn, { borderColor }]} onPress={addItem}>
-          <Ionicons name="add-circle-outline" size={20} color="#3b82f6" />
-          <Text style={styles.addItemBtnText}>Add Item</Text>
+          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+          <Text style={[styles.addItemBtnText, { color: colors.primary }]}>Add Item</Text>
         </TouchableOpacity>
       )}
 
@@ -358,7 +359,7 @@ export function QuoteItemEditor({
           </View>
           <View style={[styles.totalRow, styles.grandTotalRow, { borderTopColor: borderColor }]}>
             <Text style={[styles.grandTotalLabel, { color: textColor }]}>Total</Text>
-            <Text style={[styles.grandTotalValue, { color: '#3b82f6' }]}>{formatAmount(totalAmount)}</Text>
+            <Text style={[styles.grandTotalValue, { color: colors.primary }]}>{formatAmount(totalAmount)}</Text>
           </View>
         </View>
       )}
@@ -379,7 +380,7 @@ export function QuoteItemEditor({
       {/* Product Search Modal */}
       <Modal visible={productModalVisible} transparent animationType="slide" onRequestClose={() => setProductModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Select Product</Text>
               <TouchableOpacity onPress={() => setProductModalVisible(false)}>
@@ -403,7 +404,7 @@ export function QuoteItemEditor({
             </View>
 
             {loadingProducts ? (
-              <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 20 }} />
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
             ) : (
               <FlatList
                 data={products}
@@ -420,7 +421,7 @@ export function QuoteItemEditor({
                         {product.price ? ` · ₹${(Number(product.price) / 100).toFixed(2)}` : ''}
                       </Text>
                     </View>
-                    <Ionicons name="add-circle-outline" size={22} color="#3b82f6" />
+                    <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     marginBottom: 14,
   },
-  addItemBtnText: { color: '#3b82f6', fontSize: 14, fontWeight: '600' },
+  addItemBtnText: { fontSize: 14, fontWeight: '600' },
   totalsBox: { padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 14, gap: 6 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between' },
   totalLabel: { fontSize: 13 },

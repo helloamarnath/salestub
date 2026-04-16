@@ -6,20 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 
-// Color constants for tab bar theming
-const colors = {
-  light: {
-    background: '#ffffff',
-    tint: '#3b82f6', // Primary blue
-    inactive: '#64748b', // Slate gray
-  },
-  dark: {
-    background: '#0f172a', // Dark slate
-    tint: '#60a5fa', // Lighter blue for dark mode
-    inactive: '#94a3b8', // Lighter gray for visibility
-  },
-};
+// Tab bar colors are now derived from theme
 
 // Android tab icon mapping (Ionicons)
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -39,7 +28,12 @@ export default function TabLayout() {
 
   const insets = useSafeAreaInsets();
   const isDark = resolvedTheme === 'dark';
-  const themeColors = isDark ? colors.dark : colors.light;
+  const colors = Colors[resolvedTheme];
+  const themeColors = {
+    background: colors.background,
+    tint: colors.foreground,
+    inactive: colors.mutedForeground,
+  };
 
   // Handle redirect in useEffect to avoid render loops
   useEffect(() => {
@@ -54,7 +48,7 @@ export default function TabLayout() {
   // Show loading spinner while checking auth or redirecting
   if (isLoading || !isAuthenticated) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={themeColors.tint} />
       </View>
     );
@@ -65,8 +59,8 @@ export default function TabLayout() {
     return (
       <NativeTabs
         tintColor={DynamicColorIOS({
-          dark: colors.dark.tint,
-          light: colors.light.tint,
+          dark: Colors.dark.foreground,
+          light: Colors.light.foreground,
         })}
       >
         <NativeTabs.Trigger name="index">
@@ -105,8 +99,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: themeColors.tint,
         tabBarInactiveTintColor: themeColors.inactive,
         tabBarStyle: {
-          backgroundColor: themeColors.background,
-          borderTopColor: isDark ? '#1e293b' : '#e2e8f0',
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           paddingTop: 4,
           paddingBottom: Math.max(insets.bottom, 8),

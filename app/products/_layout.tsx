@@ -1,16 +1,18 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 
 export default function ProductsLayout() {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
         contentStyle: {
-          backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+          backgroundColor: colors.background,
         },
       }}
     >

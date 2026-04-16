@@ -46,11 +46,12 @@ function CustomerItem({
   isDark: boolean;
   onPress: () => void;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const fullName = getContactFullName(contact);
   const initials = getContactInitials(contact);
   const avatarColor = getAvatarColor(fullName);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const actionBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
@@ -104,7 +105,7 @@ function CustomerItem({
                 Linking.openURL(`mailto:${contact.email}`);
               }}
             >
-              <Ionicons name="mail-outline" size={18} color="#3b82f6" />
+              <Ionicons name="mail-outline" size={18} color={colors.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -123,11 +124,12 @@ function OrganizationItem({
   isDark: boolean;
   onPress: () => void;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const initials = getCompanyInitials(company);
-  const typeColor = COMPANY_TYPE_COLORS[company.type] || '#3b82f6';
+  const typeColor = COMPANY_TYPE_COLORS[company.type] || colors.primary;
   const typeLabel = COMPANY_TYPE_LABELS[company.type] || company.type;
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const actionBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
@@ -173,7 +175,7 @@ function OrganizationItem({
           )}
           {company.website && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: actionBg }]}>
-              <Ionicons name="globe-outline" size={18} color="#3b82f6" />
+              <Ionicons name="globe-outline" size={18} color={colors.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -194,7 +196,8 @@ function EmptyState({
   onAdd: () => void;
   canCreate: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
 
   return (
@@ -215,7 +218,7 @@ function EmptyState({
           : 'No contacts available'}
       </Text>
       {canCreate && (
-        <TouchableOpacity style={styles.emptyButton} onPress={onAdd}>
+        <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]} onPress={onAdd}>
           <Ionicons name="add" size={20} color="white" />
           <Text style={styles.emptyButtonText}>
             Add {type === 'customers' ? 'Customer' : 'Organization'}
@@ -274,9 +277,7 @@ export default function ContactsScreen() {
   const [organizationsHasMore, setOrganizationsHasMore] = useState(true);
 
   // Theme-aware colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const textColor = isDark ? 'white' : colors.foreground;
   const searchBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
@@ -489,7 +490,7 @@ export default function ContactsScreen() {
           <View style={styles.headerTop}>
             <Text style={[styles.title, { color: textColor }]}>Contacts</Text>
             {rbac.canCreate('contacts') && (
-              <TouchableOpacity style={styles.addButton} onPress={handleAddNew}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleAddNew}>
                 <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             )}
@@ -678,7 +679,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -736,8 +737,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
   },
   filterBadge: {
     position: 'absolute',
@@ -841,7 +842,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,

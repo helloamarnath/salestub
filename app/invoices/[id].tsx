@@ -34,13 +34,12 @@ export default function InvoiceDetailScreen() {
   const { resolvedTheme } = useTheme();
 
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -181,7 +180,7 @@ export default function InvoiceDetailScreen() {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -192,7 +191,7 @@ export default function InvoiceDetailScreen() {
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
         <Ionicons name="receipt-outline" size={64} color={subtitleColor} />
         <Text style={[styles.emptyTitle, { color: textColor }]}>Invoice not found</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -339,7 +338,7 @@ export default function InvoiceDetailScreen() {
         {(canSend || canMarkPaid || canRemind || canCancel || canDelete) && (
           <View style={styles.actionsContainer}>
             {canSend && (
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6' }]} onPress={handleSend}>
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary }]} onPress={handleSend}>
                 <Ionicons name="send" size={16} color="white" />
                 <Text style={styles.actionBtnText}>Send Invoice</Text>
               </TouchableOpacity>
@@ -526,7 +525,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     borderRadius: 10,
   },
   backBtnText: { color: 'white', fontWeight: '600' },

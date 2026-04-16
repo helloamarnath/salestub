@@ -44,7 +44,7 @@ const notificationIcons: Record<NotificationType, keyof typeof Ionicons.glyphMap
 };
 
 const notificationColors: Record<NotificationType, string> = {
-  LEAD_CREATED: '#3b82f6',
+  LEAD_CREATED: Colors.light.primary,
   LEAD_ASSIGNED: '#8b5cf6',
   LEAD_STAGE_CHANGED: '#06b6d4',
   LEAD_CONVERTED: '#22c55e',
@@ -53,13 +53,13 @@ const notificationColors: Record<NotificationType, string> = {
   DEAL_WON: '#22c55e',
   DEAL_LOST: '#ef4444',
   DEAL_ASSIGNED: '#8b5cf6',
-  CONTACT_CREATED: '#3b82f6',
+  CONTACT_CREATED: Colors.light.primary,
   CONTACT_ASSIGNED: '#8b5cf6',
   ACTIVITY_REMINDER: '#f59e0b',
-  ACTIVITY_ASSIGNED: '#3b82f6',
+  ACTIVITY_ASSIGNED: Colors.light.primary,
   ACTIVITY_COMPLETED: '#22c55e',
   ACTIVITY_OVERDUE: '#ef4444',
-  TASK_ASSIGNED: '#3b82f6',
+  TASK_ASSIGNED: Colors.light.primary,
   TASK_DUE_SOON: '#f59e0b',
   TASK_OVERDUE: '#ef4444',
   SYSTEM_ANNOUNCEMENT: '#8b5cf6',
@@ -96,7 +96,8 @@ function NotificationItem({
   onDelete: () => void;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const bgColor = notification.isRead
@@ -106,7 +107,7 @@ function NotificationItem({
     : 'rgba(59, 130, 246, 0.05)';
 
   const icon = notificationIcons[notification.type] || 'notifications';
-  const color = notificationColors[notification.type] || '#3b82f6';
+  const color = notificationColors[notification.type] || colors.primary;
 
   return (
     <TouchableOpacity
@@ -183,9 +184,7 @@ export default function NotificationsScreen() {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';

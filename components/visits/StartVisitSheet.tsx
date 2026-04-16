@@ -46,6 +46,7 @@ export function StartVisitSheet({
 }: StartVisitSheetProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const [selectedPurpose, setSelectedPurpose] = useState<VisitPurpose | null>(null);
   const [notes, setNotes] = useState('');
@@ -58,15 +59,15 @@ export function StartVisitSheet({
     }
   }, [visible]);
 
-  const bgColor = isDark ? '#1e293b' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
   const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const chipSelectedBg = '#3b82f620';
+  const chipSelectedBg = '#34343420';
 
   const handleStart = () => {
     if (!selectedPurpose) return;
@@ -86,7 +87,7 @@ export function StartVisitSheet({
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: borderColor }]}>
             <View style={styles.headerLeft}>
-              <Ionicons name="navigate" size={20} color="#3b82f6" />
+              <Ionicons name="navigate" size={20} color={colors.primary} />
               <Text style={[styles.headerTitle, { color: textColor }]}>Start Visit</Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -112,7 +113,7 @@ export function StartVisitSheet({
                       styles.chip,
                       {
                         backgroundColor: isSelected ? chipSelectedBg : chipBg,
-                        borderColor: isSelected ? '#3b82f6' : 'transparent',
+                        borderColor: isSelected ? colors.primary : 'transparent',
                         borderWidth: 1,
                       },
                     ]}
@@ -124,12 +125,12 @@ export function StartVisitSheet({
                     <Ionicons
                       name={option.icon}
                       size={16}
-                      color={isSelected ? '#3b82f6' : subtitleColor}
+                      color={isSelected ? colors.primary : subtitleColor}
                     />
                     <Text
                       style={[
                         styles.chipText,
-                        { color: isSelected ? '#3b82f6' : textColor },
+                        { color: isSelected ? colors.primary : textColor },
                       ]}
                     >
                       {option.label}
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingVertical: 14,
     borderRadius: 12,
   },

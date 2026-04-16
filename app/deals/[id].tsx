@@ -77,7 +77,8 @@ function InfoRow({
   onPress?: () => void;
   valueColor?: string;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
 
   const content = (
@@ -114,7 +115,8 @@ function SectionCard({
   children: React.ReactNode;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
 
@@ -138,7 +140,8 @@ function EmptyState({
   subtitle: string;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
 
   return (
@@ -158,10 +161,11 @@ function ActivityCard({
   activity: Activity;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const typeIcon = ACTIVITY_TYPE_ICONS[activity.type] || 'ellipse-outline';
-  const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || '#64748b';
-  const statusColor = ACTIVITY_STATUS_COLORS[activity.status] || '#64748b';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || colors.mutedForeground;
+  const statusColor = ACTIVITY_STATUS_COLORS[activity.status] || colors.mutedForeground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
@@ -205,9 +209,7 @@ export default function DealDetailScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Theme-aware colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -378,20 +380,20 @@ export default function DealDetailScreen() {
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
         <Text style={[styles.errorText, { color: textColor }]}>Deal not found</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>Go Back</Text>
+          <Text style={[styles.backLink, { color: colors.primary }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const stageColor = DEAL_STAGE_COLORS[deal.stage] || '#3b82f6';
-  const statusColor = DEAL_STATUS_COLORS[deal.status] || '#3b82f6';
+  const stageColor = DEAL_STAGE_COLORS[deal.stage] || colors.primary;
+  const statusColor = DEAL_STATUS_COLORS[deal.status] || colors.primary;
   const currencySymbol = deal.currency?.symbol || '₹';
   const contactName = deal.contact ? getContactFullName(deal.contact) : null;
   const contactInitials = deal.contact ? getContactInitials(deal.contact) : '';
-  const contactAvatarColor = contactName ? getAvatarColor(contactName) : '#3b82f6';
+  const contactAvatarColor = contactName ? getAvatarColor(contactName) : colors.primary;
   const companyInitials = deal.company ? getCompanyInitials(deal.company) : '';
-  const companyTypeColor = deal.company?.type ? COMPANY_TYPE_COLORS[deal.company.type] : '#3b82f6';
+  const companyTypeColor = deal.company?.type ? COMPANY_TYPE_COLORS[deal.company.type] : colors.primary;
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
@@ -432,11 +434,11 @@ export default function DealDetailScreen() {
           <View style={styles.actionsRow}>
             {deal.stage !== 'CLOSED_WON' && deal.stage !== 'CLOSED_LOST' && (
               <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: '#3b82f620' }]}
+                style={[styles.actionBtn, { backgroundColor: '#34343420' }]}
                 onPress={handleAdvanceStage}
               >
-                <Ionicons name="arrow-forward" size={20} color="#3b82f6" />
-                <Text style={[styles.actionBtnText, { color: '#3b82f6' }]}>Advance Stage</Text>
+                <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+                <Text style={[styles.actionBtnText, { color: colors.primary }]}>Advance Stage</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -559,11 +561,11 @@ export default function DealDetailScreen() {
           )}
           {deal.contact.email && (
             <TouchableOpacity
-              style={[styles.contactActionBtn, { backgroundColor: '#3b82f620' }]}
+              style={[styles.contactActionBtn, { backgroundColor: '#34343420' }]}
               onPress={() => handleEmail(deal.contact!.email)}
             >
-              <Ionicons name="mail" size={20} color="#3b82f6" />
-              <Text style={[styles.contactActionText, { color: '#3b82f6' }]}>Email</Text>
+              <Ionicons name="mail" size={20} color={colors.primary} />
+              <Text style={[styles.contactActionText, { color: colors.primary }]}>Email</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -656,7 +658,7 @@ export default function DealDetailScreen() {
                 : `https://${deal.company!.website}`;
               Linking.openURL(url);
             }}
-            valueColor="#3b82f6"
+            valueColor={colors.primary}
           />
         )}
       </SectionCard>
@@ -735,18 +737,18 @@ export default function DealDetailScreen() {
                 <Ionicons
                   name={tab.icon}
                   size={18}
-                  color={isActive ? '#3b82f6' : subtitleColor}
+                  color={isActive ? colors.primary : subtitleColor}
                 />
                 <Text
                   style={[
                     styles.tabText,
-                    { color: isActive ? '#3b82f6' : subtitleColor },
+                    { color: isActive ? colors.primary : subtitleColor },
                   ]}
                 >
                   {tab.label}
                 </Text>
                 {badge !== undefined && (
-                  <View style={styles.tabBadge}>
+                  <View style={[styles.tabBadge, { backgroundColor: colors.primary }]}>
                     <Text style={styles.tabBadgeText}>{badge}</Text>
                   </View>
                 )}
@@ -791,7 +793,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backLink: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -847,7 +849,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabBadge: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 10,

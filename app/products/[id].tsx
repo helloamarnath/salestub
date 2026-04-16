@@ -28,6 +28,7 @@ export default function ProductDetailScreen() {
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,10 +37,8 @@ export default function ProductDetailScreen() {
   const [deleting, setDeleting] = useState(false);
 
   // Theme colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -153,7 +152,7 @@ export default function ProductDetailScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
           <Text style={[styles.errorTitle, { color: textColor }]}>Failed to load product</Text>
           <Text style={[styles.errorMessage, { color: subtitleColor }]}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchProduct}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchProduct}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -249,7 +248,7 @@ export default function ProductDetailScreen() {
             )}
             {product.category && (
               <View style={[styles.categoryBadge, { backgroundColor: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)' }]}>
-                <Text style={styles.categoryText}>{product.category.name}</Text>
+                <Text style={[styles.categoryText, { color: colors.primary }]}>{product.category.name}</Text>
               </View>
             )}
           </View>
@@ -455,7 +454,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   categoryText: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -573,7 +572,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   retryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,

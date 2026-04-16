@@ -19,6 +19,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 import { createLead, updateLead, getLead, getLeadSources } from '@/lib/api/leads';
 import { searchContacts } from '@/lib/api/contacts';
 import { LEAD_SOURCES, SOURCE_COLORS } from '@/types/lead';
@@ -175,7 +177,7 @@ function SourcePicker({
         <View style={styles.sourceList}>
           {loading ? (
             <View style={styles.sourceLoading}>
-              <ActivityIndicator size="small" color="#3b82f6" />
+              <ActivityIndicator size="small" color={Colors.dark.primary} />
             </View>
           ) : (
             sources.map((source) => (
@@ -206,7 +208,7 @@ function SourcePicker({
                   {source}
                 </Text>
                 {value === source && (
-                  <Ionicons name="checkmark" size={18} color="#3b82f6" />
+                  <Ionicons name="checkmark" size={18} color={Colors.dark.primary} />
                 )}
               </TouchableOpacity>
             ))
@@ -239,6 +241,8 @@ function ContactPicker({
   onNewContactDataChange: (data: typeof newContactData) => void;
   accessToken: string | null;
 }) {
+  const { resolvedTheme: pickerTheme } = useTheme();
+  const colors = Colors[pickerTheme];
   const [mode, setMode] = useState<'search' | 'new'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Contact[]>([]);
@@ -397,7 +401,7 @@ function ContactPicker({
                   placeholderTextColor="rgba(255,255,255,0.3)"
                 />
                 {searching && (
-                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 )}
               </View>
 
@@ -440,8 +444,8 @@ function ContactPicker({
                     style={styles.createNewButton}
                     onPress={() => handleModeChange('new')}
                   >
-                    <Ionicons name="add" size={18} color="#3b82f6" />
-                    <Text style={styles.createNewButtonText}>Create new contact</Text>
+                    <Ionicons name="add" size={18} color={colors.primary} />
+                    <Text style={[styles.createNewButtonText, { color: colors.primary }]}>Create new contact</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -555,6 +559,9 @@ function ContactPicker({
 }
 
 export default function CreateLeadScreen() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
   const insets = useSafeAreaInsets();
   const { editId } = useLocalSearchParams<{ editId?: string }>();
   const { accessToken } = useAuth();
@@ -732,11 +739,11 @@ export default function CreateLeadScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={['#0f172a', '#1e293b', '#0f172a']}
+          colors={[colors.background, colors.primary, colors.background]}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading lead...</Text>
         </View>
       </View>
@@ -746,7 +753,7 @@ export default function CreateLeadScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0f172a', '#1e293b', '#0f172a']}
+        colors={[colors.background, colors.primary, colors.background]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -764,7 +771,7 @@ export default function CreateLeadScreen() {
               {isEditing ? 'Edit Lead' : 'New Lead'}
             </Text>
             <TouchableOpacity
-              style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+              style={[styles.saveButton, { backgroundColor: colors.primary }, loading && styles.saveButtonDisabled]}
               onPress={handleSave}
               disabled={loading}
             >
@@ -875,7 +882,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 12,
@@ -1061,7 +1068,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   modeButtonActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
   },
   modeButtonText: {
     color: 'rgba(255,255,255,0.5)',
@@ -1188,7 +1195,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   createNewButtonText: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontSize: 14,
     fontWeight: '500',
   },

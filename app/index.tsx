@@ -13,6 +13,8 @@ import { router, Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/contexts/theme-context';
+import { Colors } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Brand Icon Component - white icon on gradient background
@@ -20,7 +22,7 @@ function LogoIcon({ size = 88 }: { size?: number }) {
   return (
     <View style={[logoIconStyles.container, { width: size, height: size, borderRadius: size * 0.22 }]}>
       <LinearGradient
-        colors={['#3b82f6', '#2563eb', '#1d4ed8']}
+        colors={[Colors.dark.primary, Colors.dark.primary, '#1d4ed8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -56,6 +58,7 @@ const { width, height } = Dimensions.get('window');
 
 // Splash Screen Component - shown while checking auth state
 function SplashScreen() {
+  const colors = Colors.dark; // Splash is always dark themed
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0.5)).current;
@@ -111,7 +114,7 @@ function SplashScreen() {
   return (
     <View style={styles.splashContainer}>
       <LinearGradient
-        colors={['#0a0f1a', '#0f172a', '#1e293b', '#0f172a', '#0a0f1a']}
+        colors={[colors.background, colors.background, colors.primary, colors.background, colors.background]}
         locations={[0, 0.2, 0.5, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -139,7 +142,7 @@ function SplashScreen() {
           ]}
         >
           <LinearGradient
-            colors={['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#3b82f6']}
+            colors={[colors.primary, '#8b5cf6', '#06b6d4', '#10b981', colors.primary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.splashRingGradient}
@@ -173,6 +176,7 @@ function SplashScreen() {
 
 // Animated loading progress bar
 function LoadingProgress() {
+  const colors = Colors.dark; // Used in splash screen which is always dark
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -200,7 +204,7 @@ function LoadingProgress() {
   return (
     <Animated.View style={[styles.loadingProgress, { width: progressWidth }]}>
       <LinearGradient
-        colors={['#3b82f6', '#8b5cf6']}
+        colors={[colors.primary, '#8b5cf6']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={StyleSheet.absoluteFill}
@@ -211,6 +215,7 @@ function LoadingProgress() {
 
 // Welcome Screen Component - shown when not authenticated
 function WelcomeScreen() {
+  const colors = Colors.dark; // Welcome screen is always dark themed
   const insets = useSafeAreaInsets();
   const logoScale = useRef(new Animated.Value(0.5)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -412,7 +417,7 @@ function WelcomeScreen() {
     <View style={{ flex: 1 }}>
       {/* Animated gradient background */}
       <LinearGradient
-        colors={['#0a0f1a', '#0f172a', '#162033', '#0f172a', '#0a0f1a']}
+        colors={[colors.background, colors.background, '#162033', colors.background, colors.background]}
         locations={[0, 0.25, 0.5, 0.75, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -438,7 +443,7 @@ function WelcomeScreen() {
         ]}
       >
         <LinearGradient
-          colors={['#3b82f6', '#60a5fa', '#93c5fd']}
+          colors={[colors.primary, colors.border, '#93c5fd']}
           style={styles.orbGradient}
         />
       </Animated.View>
@@ -503,7 +508,7 @@ function WelcomeScreen() {
             {/* Rotating ring */}
             <Animated.View style={[styles.logoRing, { transform: [{ rotate: logoSpin }] }]}>
               <LinearGradient
-                colors={['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#3b82f6']}
+                colors={[colors.primary, '#8b5cf6', '#06b6d4', '#10b981', colors.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.logoRingGradient}
@@ -511,7 +516,7 @@ function WelcomeScreen() {
             </Animated.View>
 
             {/* Logo container */}
-            <View style={styles.logoContainer}>
+            <View style={[styles.logoContainer, { shadowColor: colors.primary }]}>
               <LogoIcon size={88} />
             </View>
           </Animated.View>
@@ -554,7 +559,7 @@ function WelcomeScreen() {
                     icon="people"
                     title="Manage Leads"
                     description="Capture, organize & nurture leads"
-                    color="#3b82f6"
+                    color={colors.primary}
                     bgColor="rgba(59, 130, 246, 0.15)"
                   />
                 </Animated.View>
@@ -617,7 +622,7 @@ function WelcomeScreen() {
             </View>
             <View style={styles.trustDot} />
             <View style={styles.trustBadge}>
-              <Ionicons name="cloud-done" size={14} color="#3b82f6" />
+              <Ionicons name="cloud-done" size={14} color={colors.primary} />
               <Text style={styles.trustText}>Cloud Sync</Text>
             </View>
           </View>
@@ -626,10 +631,10 @@ function WelcomeScreen() {
           <TouchableOpacity
             onPress={handleGetStarted}
             activeOpacity={0.9}
-            style={styles.buttonContainer}
+            style={[styles.buttonContainer, { shadowColor: colors.primary }]}
           >
             <LinearGradient
-              colors={['#3b82f6', '#2563eb', '#1d4ed8']}
+              colors={[colors.primary, colors.primary, '#1d4ed8']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.getStartedButton}
@@ -645,7 +650,7 @@ function WelcomeScreen() {
           <TouchableOpacity onPress={handleGetStarted} style={styles.signInContainer}>
             <Text style={styles.signInText}>
               Already have an account?{' '}
-              <Text style={styles.signInLink}>Sign In</Text>
+              <Text style={[styles.signInLink, { color: colors.border }]}>Sign In</Text>
             </Text>
           </TouchableOpacity>
         </Animated.View>
@@ -770,7 +775,7 @@ const styles = StyleSheet.create({
   splashLogoContainer: {
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#3b82f6',
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 30,
@@ -873,7 +878,7 @@ const styles = StyleSheet.create({
   logoContainer: {
     borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#3b82f6',
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 25,
@@ -966,7 +971,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#3b82f6',
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 20,
@@ -1002,7 +1007,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   signInLink: {
-    color: '#60a5fa',
+    color: Colors.light.border,
     fontWeight: '600',
   },
 });

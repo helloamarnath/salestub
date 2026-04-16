@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Device from 'expo-device';
 import { useAuth } from '@/contexts/auth-context';
+import { Colors } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
@@ -29,7 +30,7 @@ function LogoIcon({ size = 72 }: { size?: number }) {
   return (
     <View style={[logoIconStyles.container, { width: size, height: size, borderRadius: size * 0.22 }]}>
       <LinearGradient
-        colors={['#3b82f6', '#2563eb', '#1d4ed8']}
+        colors={[Colors.dark.primary, Colors.dark.primary, '#1d4ed8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -62,6 +63,7 @@ const logoIconStyles = StyleSheet.create({
 });
 
 export default function LoginScreen() {
+  const colors = Colors.dark; // Login screen is always dark themed
   const { login, isAuthenticated } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
@@ -280,7 +282,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       {/* Dark gradient background */}
       <LinearGradient
-        colors={['#0a0f1a', '#0f172a', '#162033', '#0f172a', '#0a0f1a']}
+        colors={[colors.background, colors.background, '#162033', colors.background, colors.background]}
         locations={[0, 0.25, 0.5, 0.75, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -306,7 +308,7 @@ export default function LoginScreen() {
         ]}
       >
         <LinearGradient
-          colors={['#3b82f6', '#60a5fa', '#93c5fd']}
+          colors={[colors.primary, colors.border, '#93c5fd']}
           style={styles.orbGradient}
         />
       </Animated.View>
@@ -372,7 +374,7 @@ export default function LoginScreen() {
               },
             ]}
           >
-            <View style={styles.logoWrapper}>
+            <View style={[styles.logoWrapper, { shadowColor: colors.primary }]}>
               <LogoIcon size={72} />
             </View>
           </Animated.View>
@@ -414,7 +416,7 @@ export default function LoginScreen() {
                       <Ionicons
                         name="mail-outline"
                         size={20}
-                        color={focusedInput === 'email' ? '#3b82f6' : 'rgba(255,255,255,0.4)'}
+                        color={focusedInput === 'email' ? colors.primary : 'rgba(255,255,255,0.4)'}
                         style={styles.inputIcon}
                       />
                       <TextInput
@@ -444,7 +446,7 @@ export default function LoginScreen() {
                       <Ionicons
                         name="lock-closed-outline"
                         size={20}
-                        color={focusedInput === 'password' ? '#3b82f6' : 'rgba(255,255,255,0.4)'}
+                        color={focusedInput === 'password' ? colors.primary : 'rgba(255,255,255,0.4)'}
                         style={styles.inputIcon}
                       />
                       <TextInput
@@ -484,7 +486,7 @@ export default function LoginScreen() {
                         <Ionicons
                           name="keypad-outline"
                           size={20}
-                          color={focusedInput === 'mfa' ? '#3b82f6' : 'rgba(255,255,255,0.4)'}
+                          color={focusedInput === 'mfa' ? colors.primary : 'rgba(255,255,255,0.4)'}
                           style={styles.inputIcon}
                         />
                         <TextInput
@@ -513,7 +515,7 @@ export default function LoginScreen() {
 
                   {/* Forgot password */}
                   <TouchableOpacity style={styles.forgotPassword} onPress={handleForgotPassword}>
-                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    <Text style={[styles.forgotPasswordText, { color: colors.border }]}>Forgot Password?</Text>
                   </TouchableOpacity>
 
                   {/* Login button */}
@@ -522,10 +524,10 @@ export default function LoginScreen() {
                       onPress={handleLogin}
                       disabled={isLoading}
                       activeOpacity={0.9}
-                      style={styles.buttonContainer}
+                      style={[styles.buttonContainer, { shadowColor: colors.primary }]}
                     >
                       <LinearGradient
-                        colors={['#3b82f6', '#2563eb', '#1d4ed8']}
+                        colors={[colors.primary, colors.primary, '#1d4ed8']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.loginButton}
@@ -555,7 +557,7 @@ export default function LoginScreen() {
           <Animated.View style={[styles.footer, { opacity: footerOpacity }]}>
             <Text style={styles.footerText}>Don't have an account? </Text>
             <TouchableOpacity onPress={handleSignUp}>
-              <Text style={styles.footerLink}>Sign Up</Text>
+              <Text style={[styles.footerLink, { color: colors.border }]}>Sign Up</Text>
             </TouchableOpacity>
           </Animated.View>
         </ScrollView>
@@ -609,7 +611,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoWrapper: {
-    shadowColor: '#3b82f6',
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 20,
@@ -697,12 +699,12 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#60a5fa',
+    color: Colors.light.border,
   },
   buttonContainer: {
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#3b82f6',
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -749,6 +751,6 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#60a5fa',
+    color: Colors.light.border,
   },
 });

@@ -43,7 +43,7 @@ const DATA_TYPES: DataType[] = [
     title: 'Leads',
     description: 'Lead data with contact info, stage, and source',
     icon: 'people-outline',
-    color: '#3b82f6',
+    color: Colors.light.primary,
     exportEnabled: true,
     importEnabled: false, // Coming soon
   },
@@ -99,7 +99,8 @@ function DataTypeCard({
   isExporting: boolean;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -217,9 +218,7 @@ export default function ExportImportScreen() {
   const [selectedDataType, setSelectedDataType] = useState<ExportDataType | null>(null);
 
   // Background gradient colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   // Open filter modal for export
   const handleExport = (dataType: DataType) => {
@@ -349,7 +348,7 @@ export default function ExportImportScreen() {
       >
         {/* Info card */}
         <View style={[styles.infoCard, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}>
-          <Ionicons name="information-circle-outline" size={20} color="#3b82f6" />
+          <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
           <Text style={[styles.infoText, { color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)' }]}>
             Export your CRM data as CSV files. Import functionality coming soon.
           </Text>

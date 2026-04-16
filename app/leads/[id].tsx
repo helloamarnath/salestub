@@ -71,7 +71,7 @@ interface ActivityTypeOption {
 
 const ACTIVITY_OPTIONS: ActivityTypeOption[] = [
   { type: 'CALL', label: 'Log Call', icon: 'call-outline', color: '#22c55e' },
-  { type: 'EMAIL', label: 'Log Email', icon: 'mail-outline', color: '#3b82f6' },
+  { type: 'EMAIL', label: 'Log Email', icon: 'mail-outline', color: Colors.light.primary },
   { type: 'MEETING', label: 'Schedule Meeting', icon: 'calendar-outline', color: '#8b5cf6' },
   { type: 'TASK', label: 'Add Task', icon: 'checkbox-outline', color: '#f59e0b' },
   { type: 'NOTE', label: 'Add Note', icon: 'document-text-outline', color: '#6b7280' },
@@ -107,8 +107,9 @@ function Tab({
   onPress: () => void;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const textColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const activeTextColor = isDark ? 'white' : Colors.light.foreground;
+  const activeTextColor = colors.foreground;
 
   return (
     <TouchableOpacity
@@ -139,7 +140,8 @@ function SectionHeader({
   isDark: boolean;
   count?: number;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
 
   return (
@@ -164,7 +166,7 @@ function SectionHeader({
         <Ionicons name={icon} size={18} color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'} />
         <Text style={{ fontSize: 14, fontWeight: '600', color: textColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</Text>
         {count !== undefined && count > 0 && (
-          <View style={{ backgroundColor: '#3b82f6', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1, minWidth: 20, alignItems: 'center' }}>
+          <View style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1, minWidth: 20, alignItems: 'center' }}>
             <Text style={{ fontSize: 11, fontWeight: '700', color: 'white' }}>{count}</Text>
           </View>
         )}
@@ -176,9 +178,10 @@ function SectionHeader({
 
 // Activity item component
 function ActivityItem({ activity, isDark }: { activity: LeadActivity; isDark: boolean }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const color = ACTIVITY_TYPE_COLORS[activity.type] || '#6b7280';
   const iconName = (ACTIVITY_TYPE_ICONS[activity.type] || 'ellipse-outline') as keyof typeof Ionicons.glyphMap;
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const mutedColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
   const metaBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
@@ -202,6 +205,7 @@ function ActivityItem({ activity, isDark }: { activity: LeadActivity; isDark: bo
   let displayIcon = iconName;
   let displayColor: string = color;
   if (activityType === 'stage_change') {
+    const colors = Colors[isDark ? 'dark' : 'light'];
     displayIcon = 'swap-horizontal-outline';
     displayColor = '#8b5cf6';
   } else if (activityType === 'owner_change') {
@@ -276,8 +280,9 @@ function PickerModal({
   onClose: () => void;
   isDark: boolean;
 }) {
-  const bgColor = isDark ? '#1e293b' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
 
@@ -311,7 +316,7 @@ function PickerModal({
                 )}
                 <Text style={[styles.modalOptionText, { color: textColor }]}>{option.label}</Text>
                 {selectedValue === option.value && (
-                  <Ionicons name="checkmark" size={20} color="#3b82f6" />
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -342,9 +347,10 @@ function ValueInputModal({
   keyboardType?: 'numeric' | 'decimal-pad';
   placeholder?: string;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [inputValue, setInputValue] = useState(value);
-  const bgColor = isDark ? '#1e293b' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
@@ -379,7 +385,7 @@ function ValueInputModal({
               autoFocus
             />
             <TouchableOpacity
-              style={styles.modalSaveButton}
+              style={[styles.modalSaveButton, { backgroundColor: colors.primary }]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 onSave(inputValue);
@@ -407,8 +413,9 @@ function FollowUpActionSheet({
   onClose: () => void;
   isDark: boolean;
 }) {
-  const bgColor = isDark ? '#1e293b' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
@@ -468,6 +475,7 @@ function ActivityFormModal({
   isDark: boolean;
   saving: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState(new Date());
@@ -478,8 +486,8 @@ function ActivityFormModal({
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [formErrors, setFormErrors] = useState<{ title?: string }>({});
 
-  const bgColor = isDark ? '#1e293b' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -687,7 +695,7 @@ function ActivityFormModal({
           {/* Submit Button */}
           <View style={styles.activityFormFooter}>
             <TouchableOpacity
-              style={[styles.formSubmitButton, saving && styles.formSubmitButtonDisabled]}
+              style={[styles.formSubmitButton, { backgroundColor: colors.primary }, saving && styles.formSubmitButtonDisabled]}
               onPress={handleSubmit}
               disabled={saving}
             >
@@ -718,7 +726,7 @@ function ActivityFormModal({
                   textColor={textColor}
                 />
                 <TouchableOpacity
-                  style={styles.datePickerDone}
+                  style={[styles.datePickerDone, { backgroundColor: colors.primary }]}
                   onPress={() => setShowDatePicker(false)}
                 >
                   <Text style={styles.datePickerDoneText}>Done</Text>
@@ -757,7 +765,7 @@ function ActivityFormModal({
                   textColor={textColor}
                 />
                 <TouchableOpacity
-                  style={styles.datePickerDone}
+                  style={[styles.datePickerDone, { backgroundColor: colors.primary }]}
                   onPress={() => setShowTimePicker(false)}
                 >
                   <Text style={styles.datePickerDoneText}>Done</Text>
@@ -798,7 +806,7 @@ function ActivityFormModal({
                   >
                     <Text style={[styles.reminderOptionText, { color: textColor }]}>{option.label}</Text>
                     {reminder === option.value && (
-                      <Ionicons name="checkmark" size={20} color="#3b82f6" />
+                      <Ionicons name="checkmark" size={20} color={colors.primary} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -863,6 +871,7 @@ function DetailsTab({
   onUpdateField: (field: keyof UpdateLeadDto, value: unknown) => void;
   updating: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [showStagePicker, setShowStagePicker] = useState(false);
   const [showSourcePicker, setShowSourcePicker] = useState(false);
   const [showValueInput, setShowValueInput] = useState(false);
@@ -871,7 +880,7 @@ function DetailsTab({
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [showDescriptionInput, setShowDescriptionInput] = useState(false);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const labelColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)';
@@ -880,7 +889,7 @@ function DetailsTab({
 
   const getScoreBadgeColor = (score: number): string => {
     if (score >= 80) return '#22c55e';
-    if (score >= 60) return '#3b82f6';
+    if (score >= 60) return colors.primary;
     if (score >= 40) return '#f59e0b';
     return '#ef4444';
   };
@@ -1029,7 +1038,7 @@ function DetailsTab({
           </View>
           {updating && (
             <View style={styles.updatingIndicator}>
-              <ActivityIndicator size="small" color="#3b82f6" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.updatingText, { color: subtitleColor }]}>Saving...</Text>
             </View>
           )}
@@ -1060,10 +1069,10 @@ function DetailsTab({
                     {lead.contact.email ? (
                       <>
                         <TouchableOpacity onPress={() => Linking.openURL(`mailto:${lead.contact!.email}`)} style={{ flex: 1 }}>
-                          <Text style={[{ fontSize: 13, color: '#3b82f6' }]} numberOfLines={1}>{lead.contact.email}</Text>
+                          <Text style={[{ fontSize: 13, color: colors.primary }]} numberOfLines={1}>{lead.contact.email}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => Linking.openURL(`mailto:${lead.contact!.email}`)}>
-                          <Ionicons name="mail" size={16} color="#3b82f6" />
+                          <Ionicons name="mail" size={16} color={colors.primary} />
                         </TouchableOpacity>
                       </>
                     ) : (
@@ -1307,6 +1316,7 @@ function TimelineTab({
   isDark: boolean;
   onRefresh?: () => Promise<void>;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [refreshing, setRefreshing] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
@@ -1339,7 +1349,7 @@ function TimelineTab({
   if (loading) {
     return (
       <View style={styles.loadingTab}>
-        <ActivityIndicator size="small" color="#3b82f6" />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
@@ -1362,7 +1372,7 @@ function TimelineTab({
       >
         {FILTER_OPTIONS.map((opt) => {
           const isActive = typeFilter === opt.key;
-          const activeColor = opt.color || '#3b82f6';
+          const activeColor = opt.color || colors.primary;
           return (
             <TouchableOpacity
               key={opt.key}
@@ -1425,15 +1435,16 @@ function TagPickerModal({
   isDark: boolean;
   loading: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState('#3b82f6');
+  const [newTagColor, setNewTagColor] = useState(colors.primary);
 
-  const bgColor = isDark ? '#0f172a' : '#f8fafc';
+  const bgColor = colors.background;
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'white';
@@ -1441,7 +1452,7 @@ function TagPickerModal({
   const placeholderColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
 
   const TAG_COLORS = [
-    { color: '#3b82f6', name: 'Blue' },
+    { color: colors.primary, name: 'Blue' },
     { color: '#22c55e', name: 'Green' },
     { color: '#f59e0b', name: 'Amber' },
     { color: '#ef4444', name: 'Red' },
@@ -1459,7 +1470,7 @@ function TagPickerModal({
     if (!newTagName.trim()) return;
     onCreateTag(newTagName.trim(), newTagColor);
     setNewTagName('');
-    setNewTagColor('#3b82f6');
+    setNewTagColor(colors.primary);
     setShowCreateForm(false);
   };
 
@@ -1475,7 +1486,7 @@ function TagPickerModal({
         <View style={[styles.tagPickerContent, { backgroundColor: bgColor, paddingBottom: insets.bottom + 20 }]}>
           {/* Gradient Header */}
           <LinearGradient
-            colors={['#3b82f6', '#6366f1']}
+            colors={[colors.primary, '#6366f1']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.tagPickerHeader}
@@ -1520,7 +1531,7 @@ function TagPickerModal({
           {/* Tags List */}
           {loading ? (
             <View style={styles.tagLoadingContainer}>
-              <ActivityIndicator size="small" color="#3b82f6" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.tagLoadingText, { color: subtitleColor }]}>Loading tags...</Text>
             </View>
           ) : (
@@ -1600,9 +1611,9 @@ function TagPickerModal({
                   style={styles.tagPickerCreateBtnGradient}
                 >
                   <View style={styles.tagPickerCreateBtnIcon}>
-                    <Ionicons name="add" size={20} color="#3b82f6" />
+                    <Ionicons name="add" size={20} color={colors.primary} />
                   </View>
-                  <Text style={styles.tagPickerCreateBtnText}>Create New Tag</Text>
+                  <Text style={[styles.tagPickerCreateBtnText, { color: colors.primary }]}>Create New Tag</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
@@ -1667,7 +1678,7 @@ function TagPickerModal({
                     disabled={!newTagName.trim()}
                   >
                     <LinearGradient
-                      colors={newTagName.trim() ? ['#3b82f6', '#2563eb'] : ['#94a3b8', '#94a3b8']}
+                      colors={newTagName.trim() ? [colors.primary, colors.primary] : [colors.ring, colors.ring]}
                       style={styles.tagPickerSaveBtnGradient}
                     >
                       <Ionicons name="add" size={18} color="white" />
@@ -1694,6 +1705,7 @@ function TagsTab({
   accessToken: string | null;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [allTags, setAllTags] = useState<LeadTag[]>([]);
   const [leadTags, setLeadTags] = useState<LeadTag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1701,7 +1713,7 @@ function TagsTab({
   const [showPicker, setShowPicker] = useState(false);
   const [updating, setUpdating] = useState(false);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
   const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
@@ -1802,7 +1814,7 @@ function TagsTab({
   if (loading) {
     return (
       <View style={styles.loadingTab}>
-        <ActivityIndicator size="small" color="#3b82f6" />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
@@ -1825,7 +1837,7 @@ function TagsTab({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowPicker(true);
             }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
             <Ionicons name="settings-outline" size={14} color="white" />
             <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Manage</Text>
@@ -1850,7 +1862,7 @@ function TagsTab({
               }}
             >
               <LinearGradient
-                colors={['#3b82f6', '#2563eb']}
+                colors={[colors.primary, colors.primary]}
                 style={styles.tagsTabAddBtnGradient}
               >
                 <Ionicons name="add" size={18} color="white" />
@@ -1884,8 +1896,8 @@ function TagsTab({
                 setShowPicker(true);
               }}
             >
-              <Ionicons name="add-circle-outline" size={18} color="#3b82f6" />
-              <Text style={styles.tagsTabAddMoreText}>Add more tags</Text>
+              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+              <Text style={[styles.tagsTabAddMoreText, { color: colors.primary }]}>Add more tags</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1922,7 +1934,8 @@ function DocumentItem({
   onDownload: () => void;
   onDelete: () => void;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -1938,7 +1951,7 @@ function DocumentItem({
   const getFileIconColor = (fileType: string): string => {
     if (fileType.startsWith('image/')) return '#8b5cf6';
     if (fileType.includes('pdf')) return '#ef4444';
-    if (fileType.includes('word') || fileType.includes('document')) return '#3b82f6';
+    if (fileType.includes('word') || fileType.includes('document')) return colors.primary;
     if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '#22c55e';
     return '#6b7280';
   };
@@ -2002,7 +2015,7 @@ function DocumentItem({
           style={[styles.docItemActionBtn, { backgroundColor: 'rgba(59,130,246,0.1)' }]}
           onPress={onDownload}
         >
-          <Ionicons name="download-outline" size={18} color="#3b82f6" />
+          <Ionicons name="download-outline" size={18} color={colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.docItemActionBtn, { backgroundColor: 'rgba(239,68,68,0.1)' }]}
@@ -2025,6 +2038,7 @@ function DocsTab({
   accessToken: string | null;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [documents, setDocuments] = useState<LeadDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -2034,10 +2048,10 @@ function DocsTab({
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
   const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
-  const bgColor = isDark ? '#1e293b' : 'white';
+  const bgColor = colors.card;
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
 
   const fetchDocuments = useCallback(async () => {
     if (!accessToken || !leadId) return;
@@ -2196,7 +2210,7 @@ function DocsTab({
   if (loading) {
     return (
       <View style={styles.loadingTab}>
-        <ActivityIndicator size="small" color="#3b82f6" />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
@@ -2316,7 +2330,7 @@ function DocsTab({
                 onPress={handlePickDocument}
               >
                 <View style={[styles.uploadModalOptionIcon, { backgroundColor: 'rgba(59,130,246,0.12)' }]}>
-                  <Ionicons name="document-text" size={24} color="#3b82f6" />
+                  <Ionicons name="document-text" size={24} color={colors.primary} />
                 </View>
                 <View style={styles.uploadModalOptionInfo}>
                   <Text style={[styles.uploadModalOptionTitle, { color: textColor }]}>Choose File</Text>
@@ -2365,7 +2379,8 @@ function DealItem({
   onPress: () => void;
   onDelete: () => void;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -2477,6 +2492,7 @@ function CreateDealModal({
   defaultValue?: number;
   currencySymbol?: string;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -2484,9 +2500,9 @@ function CreateDealModal({
   const [expectedCloseDate, setExpectedCloseDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const bgColor = isDark ? '#1e293b' : '#f8fafc';
+  const bgColor = colors.card;
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'white';
@@ -2628,7 +2644,7 @@ function CreateDealModal({
                           textColor={textColor}
                         />
                         <TouchableOpacity
-                          style={styles.datePickerDone}
+                          style={[styles.datePickerDone, { backgroundColor: colors.primary }]}
                           onPress={() => setShowDatePicker(false)}
                         >
                           <Text style={styles.datePickerDoneText}>Done</Text>
@@ -2709,13 +2725,14 @@ function DealsTab({
   isDark: boolean;
   onDealCreated?: () => void;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -3032,7 +3049,7 @@ function DealsTab({
             </View>
             <View style={[styles.dealsStatDivider, { backgroundColor: borderColor }]} />
             <View style={styles.dealsStatItem}>
-              <Text style={[styles.dealsStatValue, { color: '#3b82f6' }]}>{openDeals}</Text>
+              <Text style={[styles.dealsStatValue, { color: colors.primary }]}>{openDeals}</Text>
               <Text style={[styles.dealsStatLabel, { color: subtitleColor }]}>Open</Text>
             </View>
           </View>
@@ -3124,6 +3141,7 @@ function ConvertLeadModal({
   converting: boolean;
   token: string | null;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const insets = useSafeAreaInsets();
   const [accountName, setAccountName] = useState('');
   const [accountWebsite, setAccountWebsite] = useState('');
@@ -3140,9 +3158,9 @@ function ConvertLeadModal({
   const [searching, setSearching] = useState(false);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-  const bgColor = isDark ? '#1e293b' : '#f8fafc';
+  const bgColor = colors.card;
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'white';
@@ -3289,7 +3307,7 @@ function ConvertLeadModal({
             <View style={[styles.convertSectionCard, { backgroundColor: cardBg, borderColor }]}>
               <View style={styles.convertSectionHeader}>
                 <View style={[styles.convertSectionIcon, { backgroundColor: 'rgba(59,130,246,0.1)' }]}>
-                  <Ionicons name="business-outline" size={18} color="#3b82f6" />
+                  <Ionicons name="business-outline" size={18} color={colors.primary} />
                 </View>
                 <Text style={[styles.convertSectionTitle, { color: textColor }]}>Account Details</Text>
               </View>
@@ -3307,7 +3325,7 @@ function ConvertLeadModal({
                     activeOpacity={0.7}
                   >
                     <View style={styles.convertSelectedCompanyInfo}>
-                      <View style={[styles.convertCompanyAvatar, { backgroundColor: '#3b82f6' }]}>
+                      <View style={[styles.convertCompanyAvatar, { backgroundColor: colors.primary }]}>
                         <Text style={styles.convertCompanyAvatarText}>
                           {selectedCompany.name.substring(0, 2).toUpperCase()}
                         </Text>
@@ -3413,7 +3431,7 @@ function ConvertLeadModal({
                                 onPress={() => handleSelectCompany(company)}
                                 activeOpacity={0.7}
                               >
-                                <View style={[styles.convertCompanyAvatar, { backgroundColor: '#3b82f6' }]}>
+                                <View style={[styles.convertCompanyAvatar, { backgroundColor: colors.primary }]}>
                                   <Text style={styles.convertCompanyAvatarText}>
                                     {company.name.substring(0, 2).toUpperCase()}
                                   </Text>
@@ -3621,6 +3639,7 @@ function ProductsTab({
   accessToken: string | null;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [products, setProducts] = useState<LeadProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -3639,7 +3658,7 @@ function ProductsTab({
   const [creatingProduct, setCreatingProduct] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -3752,7 +3771,7 @@ function ProductsTab({
   if (loading) {
     return (
       <View style={styles.tabContent}>
-        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 40 }} />
       </View>
     );
   }
@@ -3793,7 +3812,7 @@ function ProductsTab({
                   placeholder="Search products..."
                   placeholderTextColor={placeholderColor}
                 />
-                {searching && <ActivityIndicator size="small" color="#3b82f6" />}
+                {searching && <ActivityIndicator size="small" color={colors.primary} />}
                 {searchResults.map((product) => (
                   <TouchableOpacity
                     key={product.id}
@@ -3824,8 +3843,8 @@ function ProductsTab({
                         }}
                         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 6 }}
                       >
-                        <Ionicons name="add-circle" size={18} color="#3b82f6" />
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#3b82f6' }}>Create Quick Product</Text>
+                        <Ionicons name="add-circle" size={18} color={colors.primary} />
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>Create Quick Product</Text>
                       </TouchableOpacity>
                     ) : (
                       <View style={[{ padding: 12, borderRadius: 8, borderWidth: 1, gap: 8, backgroundColor: inputBg, borderColor }]}>
@@ -3874,7 +3893,7 @@ function ProductsTab({
                             <Text style={{ fontSize: 13, fontWeight: '500', color: textColor }}>Cancel</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={[styles.addNoteButton, { flex: 1 }, (!quickProductName.trim() || creatingProduct) && { opacity: 0.5 }]}
+                            style={[styles.addNoteButton, { backgroundColor: colors.primary }, { flex: 1 }, (!quickProductName.trim() || creatingProduct) && { opacity: 0.5 }]}
                             onPress={async () => {
                               if (!quickProductName.trim() || !accessToken) return;
                               setCreatingProduct(true);
@@ -3914,8 +3933,8 @@ function ProductsTab({
               </>
             ) : (
               <>
-                <View style={[styles.selectedProductBanner, { backgroundColor: '#3b82f610', borderColor: '#3b82f630' }]}>
-                  <Ionicons name="cube" size={18} color="#3b82f6" />
+                <View style={[styles.selectedProductBanner, { backgroundColor: '#34343410', borderColor: '#34343430' }]}>
+                  <Ionicons name="cube" size={18} color={colors.primary} />
                   <Text style={[{ flex: 1, fontSize: 14, fontWeight: '600', color: textColor }]}>{selectedProduct.name}</Text>
                   <TouchableOpacity onPress={() => setSelectedProduct(null)}>
                     <Ionicons name="close" size={18} color={subtitleColor} />
@@ -3953,7 +3972,7 @@ function ProductsTab({
                   placeholderTextColor={placeholderColor}
                 />
                 <TouchableOpacity
-                  style={[styles.addNoteButton, adding && { opacity: 0.5 }]}
+                  style={[styles.addNoteButton, { backgroundColor: colors.primary }, adding && { opacity: 0.5 }]}
                   onPress={handleAddProduct}
                   disabled={adding}
                 >
@@ -4039,13 +4058,14 @@ function NotesTab({
   accessToken: string | null;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [notes, setNotes] = useState<{ id: string; content: string; type: string; createdBy: string; createdAt: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddNote, setShowAddNote] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -4101,7 +4121,7 @@ function NotesTab({
   if (loading) {
     return (
       <View style={styles.tabContent}>
-        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 40 }} />
       </View>
     );
   }
@@ -4142,7 +4162,7 @@ function NotesTab({
               textAlignVertical="top"
             />
             <TouchableOpacity
-              style={[styles.addNoteButton, !noteContent.trim() && { opacity: 0.5 }]}
+              style={[styles.addNoteButton, { backgroundColor: colors.primary }, !noteContent.trim() && { opacity: 0.5 }]}
               onPress={handleAddNote}
               disabled={!noteContent.trim() || saving}
             >
@@ -4180,8 +4200,8 @@ function NotesTab({
                   </Text>
                 </View>
                 {note.type && note.type !== 'GENERAL' && (
-                  <View style={[styles.noteTypeBadge, { backgroundColor: '#3b82f620' }]}>
-                    <Text style={[styles.noteTypeText, { color: '#3b82f6' }]}>{note.type}</Text>
+                  <View style={[styles.noteTypeBadge, { backgroundColor: '#34343420' }]}>
+                    <Text style={[styles.noteTypeText, { color: colors.primary }]}>{note.type}</Text>
                   </View>
                 )}
               </View>
@@ -4203,7 +4223,8 @@ function MetadataTab({
   lead: Lead;
   isDark: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -4273,10 +4294,11 @@ function QuotesTab({
   accessToken: string | null;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -4309,7 +4331,7 @@ function QuotesTab({
   if (loading) {
     return (
       <View style={styles.tabContent}>
-        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 40 }} />
       </View>
     );
   }
@@ -4326,7 +4348,7 @@ function QuotesTab({
           </View>
           <TouchableOpacity
             onPress={() => router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId } })}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
             <Ionicons name="add" size={16} color="white" />
             <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
@@ -4344,7 +4366,7 @@ function QuotesTab({
             return (
               <View key={quote.id} style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}>
                 <View style={styles.recordCardHeader}>
-                  <Text style={[styles.recordCardNumber, { color: '#3b82f6' }]}>#{quote.quoteNumber}</Text>
+                  <Text style={[styles.recordCardNumber, { color: colors.primary }]}>#{quote.quoteNumber}</Text>
                   <View style={[styles.recordStatusBadge, { backgroundColor: statusColor + '20' }]}>
                     <Text style={[styles.recordStatusText, { color: statusColor }]}>
                       {QUOTE_STATUS_LABELS[quote.status]}
@@ -4382,10 +4404,11 @@ function InvoicesTab({
   accessToken: string | null;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -4418,7 +4441,7 @@ function InvoicesTab({
   if (loading) {
     return (
       <View style={styles.tabContent}>
-        <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 40 }} />
       </View>
     );
   }
@@ -4457,7 +4480,7 @@ function InvoicesTab({
             return (
               <View key={invoice.id} style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}>
                 <View style={styles.recordCardHeader}>
-                  <Text style={[styles.recordCardNumber, { color: '#3b82f6' }]}>#{invoice.invoiceNumber}</Text>
+                  <Text style={[styles.recordCardNumber, { color: colors.primary }]}>#{invoice.invoiceNumber}</Text>
                   <View style={[styles.recordStatusBadge, { backgroundColor: statusColor + '20' }]}>
                     <Text style={[styles.recordStatusText, { color: statusColor }]}>
                       {INVOICE_STATUS_LABELS[invoice.status]}
@@ -4498,12 +4521,11 @@ export default function LeadDetailScreen() {
   const { accessToken, user } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   // Theme colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const mutedColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
@@ -5036,7 +5058,7 @@ export default function LeadDetailScreen() {
       <View style={styles.container}>
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -5055,7 +5077,7 @@ export default function LeadDetailScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
           <Text style={[styles.errorTitle, { color: textColor }]}>Failed to load lead</Text>
           <Text style={[styles.errorMessage, { color: subtitleColor }]}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchLead}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchLead}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -5105,8 +5127,8 @@ export default function LeadDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={{ fontSize: 11, fontWeight: '500', color: mutedColor }}>{lead.displayId}</Text>
               {lead.stage && (
-                <View style={{ backgroundColor: (lead.stage.color || '#3b82f6') + '18', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
-                  <Text style={{ fontSize: 9, fontWeight: '700', color: lead.stage.color || '#3b82f6', textTransform: 'uppercase' }}>{lead.stage.name}</Text>
+                <View style={{ backgroundColor: (lead.stage.color || colors.primary) + '18', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                  <Text style={{ fontSize: 9, fontWeight: '700', color: lead.stage.color || colors.primary, textTransform: 'uppercase' }}>{lead.stage.name}</Text>
                 </View>
               )}
             </View>
@@ -5130,14 +5152,14 @@ export default function LeadDetailScreen() {
             )}
             {lead.contact?.email && (
               <TouchableOpacity onPress={handleEmail} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="mail" size={17} color="#3b82f6" />
+                <Ionicons name="mail" size={17} color={colors.primary} />
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={handleStartVisitPress} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)', alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="navigate-outline" size={17} color="#8b5cf6" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={handleFollowUpPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#3b82f6', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
+          <TouchableOpacity onPress={handleFollowUpPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
             <Ionicons name="add" size={16} color="white" />
             <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Follow Up</Text>
           </TouchableOpacity>
@@ -5232,7 +5254,7 @@ export default function LeadDetailScreen() {
         }}>
           {[
             { icon: 'briefcase-outline' as const, label: 'Deal', color: '#22c55e', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowConvertModal(true); } },
-            { icon: 'document-text-outline' as const, label: 'Quotes', color: '#3b82f6', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('quotes'); } },
+            { icon: 'document-text-outline' as const, label: 'Quotes', color: colors.primary, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('quotes'); } },
             { icon: 'receipt-outline' as const, label: 'Invoices', color: '#ef4444', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('invoices'); } },
             { icon: 'location-outline' as const, label: 'Log Visit', color: '#8b5cf6', onPress: () => { setFabOpen(false); handleStartVisitPress(); } },
             { icon: 'cube-outline' as const, label: 'Products', color: '#f59e0b', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('products'); } },
@@ -5249,7 +5271,7 @@ export default function LeadDetailScreen() {
               }}
             >
               <View style={{
-                backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                backgroundColor: colors.card,
                 paddingHorizontal: 16,
                 paddingVertical: 10,
                 borderRadius: 12,
@@ -5297,7 +5319,7 @@ export default function LeadDetailScreen() {
           width: 56,
           height: 56,
           borderRadius: 28,
-          backgroundColor: fabOpen ? '#ef4444' : '#3b82f6',
+          backgroundColor: fabOpen ? '#ef4444' : colors.primary,
           alignItems: 'center',
           justifyContent: 'center',
           shadowColor: '#000',
@@ -5349,7 +5371,7 @@ export default function LeadDetailScreen() {
           style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}
           onPress={() => setShowMoreActions(false)}
         >
-          <Pressable style={[styles.moreActionsContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <Pressable style={[styles.moreActionsContent, { backgroundColor: colors.card }]}>
             <View style={[styles.actionSheetHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' }]} />
             <Text style={[styles.actionSheetTitle, { color: textColor }]}>Lead Actions</Text>
 
@@ -5389,14 +5411,14 @@ export default function LeadDetailScreen() {
                 disabled={qualifyingOrMarking}
               >
                 <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
-                  <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />
+                  <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.moreActionText}>
                   <Text style={[styles.moreActionLabel, { color: textColor }]}>Qualify Lead</Text>
                   <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Move to qualified stage</Text>
                 </View>
                 {qualifyingOrMarking ? (
-                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
                   <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
                 )}
@@ -5463,7 +5485,7 @@ export default function LeadDetailScreen() {
             style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}
             onPress={() => setShowMarkLostModal(false)}
           />
-          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={[styles.modalHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
               <Text style={[styles.modalTitle, { color: textColor }]}>Mark Lead as Lost</Text>
               <TouchableOpacity onPress={() => setShowMarkLostModal(false)}>
@@ -5493,7 +5515,7 @@ export default function LeadDetailScreen() {
                 numberOfLines={3}
               />
               <TouchableOpacity
-                style={[styles.modalSaveButton, { backgroundColor: '#ef4444' }, qualifyingOrMarking && { opacity: 0.5 }]}
+                style={[styles.modalSaveButton, { backgroundColor: colors.primary }, { backgroundColor: '#ef4444' }, qualifyingOrMarking && { opacity: 0.5 }]}
                 onPress={handleMarkLost}
                 disabled={qualifyingOrMarking}
               >
@@ -5600,7 +5622,7 @@ const styles = StyleSheet.create({
   followUpButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 22,
@@ -5623,7 +5645,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: '#3b82f6',
+    borderBottomColor: Colors.light.primary,
   },
   tabText: {
     fontSize: 14,
@@ -5746,7 +5768,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   contactEmail: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontSize: 13,
     marginTop: 4,
   },
@@ -5844,7 +5866,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   retryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -5913,7 +5935,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalSaveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -5928,7 +5950,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     borderRadius: 28,
-    shadowColor: '#3b82f6',
+    shadowColor: Colors.light.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -6066,7 +6088,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   formSubmitButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -6091,7 +6113,7 @@ const styles = StyleSheet.create({
     width: '85%',
   },
   datePickerDone: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
@@ -6292,7 +6314,7 @@ const styles = StyleSheet.create({
   tagPickerCreateBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
   tagPickerCreateForm: {
     gap: 12,
@@ -6442,7 +6464,7 @@ const styles = StyleSheet.create({
   tagsTabManageBtnText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
   tagsTabEmptyContainer: {
     alignItems: 'center',
@@ -6542,7 +6564,7 @@ const styles = StyleSheet.create({
   tagsTabAddMoreText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
   // Documents Tab styles
   docsTabContainer: {
@@ -7562,7 +7584,7 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   addNoteButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',

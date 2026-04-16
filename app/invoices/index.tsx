@@ -34,7 +34,7 @@ interface FilterTab {
 const FILTER_TABS: FilterTab[] = [
   { id: 'all', label: 'All', color: '#6b7280' },
   { id: 'draft', label: 'Draft', status: 'DRAFT', color: '#6b7280' },
-  { id: 'sent', label: 'Sent', status: 'SENT', color: '#3b82f6' },
+  { id: 'sent', label: 'Sent', status: 'SENT', color: Colors.light.primary },
   { id: 'paid', label: 'Paid', status: 'PAID', color: '#22c55e' },
   { id: 'overdue', label: 'Overdue', status: 'OVERDUE', color: '#ef4444' },
   { id: 'partial', label: 'Partial', status: 'PARTIALLY_PAID', color: '#f59e0b' },
@@ -51,7 +51,8 @@ function InvoiceCard({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -86,7 +87,7 @@ function InvoiceCard({
     >
       <View style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.cardNumber, { color: '#3b82f6' }]}>#{invoice.invoiceNumber}</Text>
+          <Text style={[styles.cardNumber, { color: colors.primary }]}>#{invoice.invoiceNumber}</Text>
           {invoice.subject && (
             <Text style={[styles.cardSubject, { color: textColor }]} numberOfLines={1}>
               {invoice.subject}
@@ -177,9 +178,7 @@ export default function InvoicesScreen() {
   const [totalCount, setTotalCount] = useState(0);
 
   // Theme colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -274,7 +273,7 @@ export default function InvoicesScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            style={{ backgroundColor: '#3b82f6', width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
+            style={{ backgroundColor: colors.primary, width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
             onPress={() => router.push('/invoices/create' as any)}
           >
             <Ionicons name="add" size={24} color="white" />
@@ -351,7 +350,7 @@ export default function InvoicesScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
           <Text style={[styles.emptyTitle, { color: textColor }]}>Something went wrong</Text>
           <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => fetchInvoices(1)}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => fetchInvoices(1)}>
             <Ionicons name="refresh" size={18} color="white" />
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
@@ -374,7 +373,7 @@ export default function InvoicesScreen() {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator size="small" color="#3b82f6" style={{ padding: 16 }} /> : null
+            loadingMore ? <ActivityIndicator size="small" color={colors.primary} style={{ padding: 16 }} /> : null
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
@@ -479,7 +478,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,

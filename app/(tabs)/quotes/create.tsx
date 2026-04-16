@@ -45,6 +45,7 @@ export default function CreateQuoteScreen() {
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const isEditMode = !!editId;
 
@@ -82,10 +83,8 @@ export default function CreateQuoteScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Theme
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -257,7 +256,7 @@ export default function CreateQuoteScreen() {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -485,7 +484,7 @@ export default function CreateQuoteScreen() {
                   </Text>
                 )}
               </View>
-              {dealId === item.id && <Ionicons name="checkmark-circle" size={22} color="#3b82f6" />}
+              {dealId === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
             </TouchableOpacity>
           )}
           ListEmptyComponent={<Text style={[styles.emptyPickerText, { color: subtitleColor }]}>No deals found</Text>}
@@ -522,7 +521,7 @@ export default function CreateQuoteScreen() {
                   {item.email || item.phone || ''}
                 </Text>
               </View>
-              {contactId === item.id && <Ionicons name="checkmark-circle" size={22} color="#3b82f6" />}
+              {contactId === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
             </TouchableOpacity>
           )}
           ListEmptyComponent={<Text style={[styles.emptyPickerText, { color: subtitleColor }]}>Type to search contacts</Text>}
@@ -555,7 +554,7 @@ export default function CreateQuoteScreen() {
                 <Text style={[styles.pickerItemTitle, { color: textColor }]}>{item.code}</Text>
                 <Text style={[styles.pickerItemSub, { color: subtitleColor }]}>{item.name}</Text>
               </View>
-              {currencyId === item.id && <Ionicons name="checkmark-circle" size={22} color="#3b82f6" />}
+              {currencyId === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
             </TouchableOpacity>
           )}
           style={{ maxHeight: 350 }}
@@ -595,10 +594,11 @@ function PickerModal({
   searchPlaceholder?: string;
   children: React.ReactNode;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: textColor }]}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
   },
   headerBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: '700' },
-  saveBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+  saveBtn: { backgroundColor: Colors.light.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
   saveBtnText: { color: 'white', fontWeight: '600', fontSize: 14 },
   form: { flex: 1, padding: 16 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },

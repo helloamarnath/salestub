@@ -54,9 +54,7 @@ export default function ActivityDetailScreen() {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const fetchActivity = useCallback(async () => {
     if (!accessToken || !id) return;
@@ -205,7 +203,7 @@ export default function ActivityDetailScreen() {
             Activity not found
           </Text>
           <TouchableOpacity
-            style={styles.backToListButton}
+            style={[styles.backToListButton, { backgroundColor: colors.primary }]}
             onPress={() => router.back()}
           >
             <Text style={styles.backToListText}>Go Back</Text>
@@ -584,8 +582,8 @@ export default function ActivityDetailScreen() {
                   style={styles.relatedItem}
                   onPress={() => router.push(`/(tabs)/contacts/customer/${activity.contactId}` as any)}
                 >
-                  <View style={[styles.relatedIcon, { backgroundColor: '#3b82f615' }]}>
-                    <Ionicons name="person-outline" size={16} color="#3b82f6" />
+                  <View style={[styles.relatedIcon, { backgroundColor: '#34343415' }]}>
+                    <Ionicons name="person-outline" size={16} color={colors.primary} />
                   </View>
                   <Text style={[styles.relatedName, { color: colors.foreground }]}>
                     {`${activity.contact.firstName} ${activity.contact.lastName}`.trim()}
@@ -741,7 +739,7 @@ export default function ActivityDetailScreen() {
             ]}
           >
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#64748b' }]}
+              style={[styles.actionButton, { backgroundColor: colors.mutedForeground }]}
               onPress={handleCancel}
             >
               <Ionicons name="close-circle-outline" size={20} color="white" />
@@ -782,7 +780,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   backToListButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,

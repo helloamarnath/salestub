@@ -31,7 +31,7 @@ import {
 const ACTIVITY_TYPES: ActivityType[] = ['TASK', 'CALL', 'MEETING', 'EMAIL', 'NOTE'];
 const PRIORITIES: ActivityPriority[] = ['LOW', 'MEDIUM', 'HIGH'];
 const PRIORITY_COLORS: Record<ActivityPriority, string> = {
-  LOW: '#64748b',
+  LOW: Colors.light.mutedForeground,
   MEDIUM: '#f59e0b',
   HIGH: '#ef4444',
 };
@@ -67,9 +67,7 @@ export default function CreateActivityScreen() {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const handleSubmit = useCallback(async () => {
     if (!accessToken) return;
@@ -592,14 +590,14 @@ export default function CreateActivityScreen() {
       {/* Date Picker - iOS: Modal with Done button, Android: Native dialog */}
       {showDatePicker && Platform.OS === 'ios' && (
         <View style={styles.datePickerOverlay}>
-          <View style={[styles.datePickerContainer, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+          <View style={[styles.datePickerContainer, { backgroundColor: colors.card }]}>
             <View style={[styles.datePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                 <Text style={styles.datePickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={[styles.datePickerTitle, { color: isDark ? 'white' : '#000' }]}>Select Date</Text>
+              <Text style={[styles.datePickerTitle, { color: colors.foreground }]}>Select Date</Text>
               <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                <Text style={styles.datePickerDone}>Done</Text>
+                <Text style={[styles.datePickerDone, { color: colors.primary }]}>Done</Text>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -608,8 +606,8 @@ export default function CreateActivityScreen() {
               display="spinner"
               onChange={handleDateChange}
               minimumDate={new Date()}
-              style={{ backgroundColor: isDark ? '#1e293b' : '#ffffff' }}
-              textColor={isDark ? 'white' : '#000'}
+              style={{ backgroundColor: colors.card }}
+              textColor={colors.foreground}
             />
           </View>
         </View>
@@ -627,14 +625,14 @@ export default function CreateActivityScreen() {
       {/* Time Picker - iOS: Modal with Done button, Android: Native dialog */}
       {showTimePicker && Platform.OS === 'ios' && (
         <View style={styles.datePickerOverlay}>
-          <View style={[styles.datePickerContainer, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+          <View style={[styles.datePickerContainer, { backgroundColor: colors.card }]}>
             <View style={[styles.datePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
               <TouchableOpacity onPress={() => setShowTimePicker(false)}>
                 <Text style={styles.datePickerCancel}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={[styles.datePickerTitle, { color: isDark ? 'white' : '#000' }]}>Select Time</Text>
+              <Text style={[styles.datePickerTitle, { color: colors.foreground }]}>Select Time</Text>
               <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                <Text style={styles.datePickerDone}>Done</Text>
+                <Text style={[styles.datePickerDone, { color: colors.primary }]}>Done</Text>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -642,8 +640,8 @@ export default function CreateActivityScreen() {
               mode="time"
               display="spinner"
               onChange={handleTimeChange}
-              style={{ backgroundColor: isDark ? '#1e293b' : '#ffffff' }}
-              textColor={isDark ? 'white' : '#000'}
+              style={{ backgroundColor: colors.card }}
+              textColor={colors.foreground}
             />
           </View>
         </View>
@@ -679,7 +677,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -845,6 +843,6 @@ const styles = StyleSheet.create({
   datePickerDone: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
 });

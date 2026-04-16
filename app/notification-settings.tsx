@@ -27,7 +27,7 @@ function NotificationToggle({
   value,
   onValueChange,
   isDark,
-  color = '#3b82f6',
+  color = Colors.light.primary,
   disabled = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -39,7 +39,8 @@ function NotificationToggle({
   color?: string;
   disabled?: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -60,9 +61,9 @@ function NotificationToggle({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: isDark ? '#374151' : '#d1d5db', true: color }}
+        trackColor={{ false: isDark ? '#374151' : colors.ring, true: color }}
         thumbColor={value ? '#ffffff' : '#f4f4f5'}
-        ios_backgroundColor={isDark ? '#374151' : '#d1d5db'}
+        ios_backgroundColor={isDark ? '#374151' : colors.ring}
         disabled={disabled}
       />
     </View>
@@ -87,9 +88,7 @@ export default function NotificationSettingsScreen() {
   const colors = Colors[resolvedTheme];
 
   // Background gradient colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   // Fetch preferences when accessToken is available
   useEffect(() => {
@@ -237,14 +236,14 @@ export default function NotificationSettingsScreen() {
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Notifications</Text>
         <View style={styles.headerRight}>
           {isSaving && (
-            <ActivityIndicator size="small" color="#3b82f6" />
+            <ActivityIndicator size="small" color={colors.primary} />
           )}
         </View>
       </View>
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)' }]}>
             Loading preferences...
           </Text>
@@ -301,7 +300,7 @@ export default function NotificationSettingsScreen() {
                   value={preferences.pushNotificationsEnabled}
                   onValueChange={(value) => updatePreference('pushNotificationsEnabled', value)}
                   isDark={isDark}
-                  color="#3b82f6"
+                  color={colors.primary}
                   disabled={isSaving}
                 />
                 <NotificationToggle

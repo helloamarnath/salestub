@@ -7,11 +7,13 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  useColorScheme,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Colors } from '@/constants/theme';
 import { uploadVisitPhoto } from '@/lib/api/visits';
 import type { VisitPhoto } from '@/types/visit';
 
@@ -28,6 +30,8 @@ export function VisitPhotoCapture({
   onPhotoUploaded,
   disabled = false,
 }: VisitPhotoCaptureProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const colors = Colors[scheme];
   const [isCapturing, setIsCapturing] = useState(false);
   const [lastPhoto, setLastPhoto] = useState<string | null>(null);
 
@@ -113,7 +117,7 @@ export function VisitPhotoCapture({
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.captureButton, disabled && styles.captureButtonDisabled]}
+        style={[styles.captureButton, { backgroundColor: colors.primary }, disabled && styles.captureButtonDisabled]}
         onPress={capturePhoto}
         disabled={isCapturing || disabled}
         activeOpacity={0.7}
@@ -151,7 +155,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#3b82f6',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,

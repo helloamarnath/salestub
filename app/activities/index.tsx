@@ -45,15 +45,15 @@ interface FilterTab {
 }
 
 const FILTER_TABS: FilterTab[] = [
-  { id: 'all', label: 'All', status: 'ALL', color: '#6b7280' },
+  { id: 'all', label: 'All', status: 'ALL', color: Colors.light.mutedForeground },
   { id: 'pending', label: 'Pending', status: 'PENDING', color: '#f59e0b' },
-  { id: 'in_progress', label: 'In Progress', status: 'IN_PROGRESS', color: '#3b82f6' },
+  { id: 'in_progress', label: 'In Progress', status: 'IN_PROGRESS', color: Colors.light.primary },
   { id: 'completed', label: 'Completed', status: 'COMPLETED', color: '#22c55e' },
 ];
 
 // Activity type filter tabs
 const TYPE_TABS: { id: ActivityType | 'ALL'; label: string; color: string }[] = [
-  { id: 'ALL', label: 'All Types', color: '#6b7280' },
+  { id: 'ALL', label: 'All Types', color: Colors.light.mutedForeground },
   { id: 'TASK', label: 'Tasks', color: ACTIVITY_TYPE_COLORS.TASK },
   { id: 'CALL', label: 'Calls', color: ACTIVITY_TYPE_COLORS.CALL },
   { id: 'MEETING', label: 'Meetings', color: ACTIVITY_TYPE_COLORS.MEETING },
@@ -227,9 +227,7 @@ export default function ActivitiesScreen() {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const fetchActivities = useCallback(
     async (pageNum = 1, isRefresh = false) => {
@@ -324,7 +322,7 @@ export default function ActivitiesScreen() {
         title: a.title,
         start: new Date(a.dueDate!),
         end: new Date(new Date(a.dueDate!).getTime() + (a.duration || 30) * 60 * 1000),
-        color: ACTIVITY_TYPE_COLORS[a.type] || '#3b82f6',
+        color: ACTIVITY_TYPE_COLORS[a.type] || colors.primary,
         activity: a,
       }));
   }, [calendarActivities]);
@@ -482,7 +480,7 @@ export default function ActivitiesScreen() {
         Create your first activity to get started
       </Text>
       <TouchableOpacity
-        style={styles.emptyButton}
+        style={[styles.emptyButton, { backgroundColor: colors.primary }]}
         onPress={handleCreateActivity}
       >
         <Ionicons name="add" size={20} color="white" />
@@ -703,11 +701,11 @@ export default function ActivitiesScreen() {
                   },
                   nowIndicator: '#ef4444',
                   gray: {
-                    '100': isDark ? '#1e293b' : '#f1f5f9',
-                    '200': isDark ? '#334155' : '#e2e8f0',
-                    '300': isDark ? '#475569' : '#cbd5e1',
-                    '500': isDark ? '#94a3b8' : '#64748b',
-                    '800': isDark ? '#f1f5f9' : '#1e293b',
+                    '100': colors.muted,
+                    '200': colors.border,
+                    '300': colors.ring,
+                    '500': colors.mutedForeground,
+                    '800': colors.foreground,
                   },
                 },
                 typography: {
@@ -727,17 +725,17 @@ export default function ActivitiesScreen() {
                 shadowRadius: 3,
               })}
               calendarCellStyle={{
-                borderColor: isDark ? '#1e293b' : '#e2e8f0',
+                borderColor: colors.border,
               }}
               headerContainerStyle={{
-                backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                backgroundColor: colors.background,
                 borderBottomWidth: 1,
-                borderBottomColor: isDark ? '#1e293b' : '#e2e8f0',
+                borderBottomColor: colors.border,
                 overflow: 'visible',
               }}
-              dayHeaderHighlightColor={isDark ? '#1e40af' : '#dbeafe'}
+              dayHeaderHighlightColor={colors.border}
               bodyContainerStyle={{
-                backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                backgroundColor: colors.background,
               }}
             />
           )}
@@ -960,7 +958,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,

@@ -24,7 +24,7 @@ function formatCurrency(value: number): string {
 export function RevenueChart({ data }: RevenueChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const colors = isDark ? Colors.dark : Colors.light;
+  const colors = Colors[resolvedTheme];
 
   const screenWidth = Dimensions.get('window').width;
   const chartWidth = screenWidth - 64; // Account for padding

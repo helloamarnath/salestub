@@ -81,7 +81,7 @@ function ActivityItem({
   const statusColors = {
     overdue: '#ef4444',
     today: '#f59e0b',
-    upcoming: '#3b82f6',
+    upcoming: colors.primary,
     completed: '#22c55e',
   };
 
@@ -150,7 +150,7 @@ export function ActivityFeed({
 }: ActivityFeedProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const colors = isDark ? Colors.dark : Colors.light;
+  const colors = Colors[resolvedTheme];
 
   const totalPending =
     activities.counts.overdue +
@@ -197,7 +197,7 @@ export function ActivityFeed({
               Activities
             </Text>
             {totalPending > 0 && (
-              <View style={styles.badge}>
+              <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                 <Text style={styles.badgeText}>{totalPending}</Text>
               </View>
             )}
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   badge: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,

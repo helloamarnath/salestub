@@ -12,7 +12,7 @@ export default function ContactsLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: {
-          backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+          backgroundColor: colors.background,
         },
         animation: 'slide_from_right',
       }}

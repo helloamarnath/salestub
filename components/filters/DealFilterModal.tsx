@@ -74,6 +74,7 @@ export function DealFilterModal({
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
 
   const [filters, setFilters] = useState<DealFilterState>(currentFilters);
   const [members, setMembers] = useState<OrgMember[]>([]);
@@ -88,12 +89,12 @@ export function DealFilterModal({
   const [showToDatePicker, setShowToDatePicker] = useState(false);
 
   // Theme colors
-  const bgColor = isDark ? '#1e293b' : '#ffffff';
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const bgColor = colors.card;
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
   const chipBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const chipActiveBg = '#3b82f6';
+  const chipActiveBg = colors.primary;
 
   // Check if user can see owner filter
   const canSeeOwnerFilter = showOwnerFilter || isSuperAdmin(userRoleKey);
@@ -233,7 +234,7 @@ export function DealFilterModal({
             <Text
               style={[
                 styles.clearText,
-                { color: hasActiveFilters ? '#3b82f6' : subtitleColor },
+                { color: hasActiveFilters ? colors.primary : subtitleColor },
               ]}
             >
               Clear
@@ -415,7 +416,7 @@ export function DealFilterModal({
                   </TouchableOpacity>
                   <Text style={[styles.iosPickerTitle, { color: textColor }]}>From Date</Text>
                   <TouchableOpacity onPress={() => setShowFromDatePicker(false)}>
-                    <Text style={styles.iosPickerDone}>Done</Text>
+                    <Text style={[styles.iosPickerDone, { color: colors.primary }]}>Done</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -444,7 +445,7 @@ export function DealFilterModal({
                   </TouchableOpacity>
                   <Text style={[styles.iosPickerTitle, { color: textColor }]}>To Date</Text>
                   <TouchableOpacity onPress={() => setShowToDatePicker(false)}>
-                    <Text style={styles.iosPickerDone}>Done</Text>
+                    <Text style={[styles.iosPickerDone, { color: colors.primary }]}>Done</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -472,7 +473,7 @@ export function DealFilterModal({
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Owner</Text>
               {loadingMembers ? (
-                <ActivityIndicator size="small" color="#3b82f6" style={{ marginTop: 12 }} />
+                <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
               ) : (
                 <View style={styles.chipContainer}>
                   {members.map((member) => {
@@ -508,7 +509,7 @@ export function DealFilterModal({
 
         {/* Apply Button */}
         <View style={[styles.footer, { borderTopColor: borderColor }]}>
-          <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
+          <TouchableOpacity style={[styles.applyButton, { backgroundColor: colors.primary }]} onPress={handleApply}>
             <Text style={styles.applyButtonText}>Apply Filters</Text>
           </TouchableOpacity>
         </View>
@@ -574,7 +575,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   applyButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
   iosPickerDone: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
   iosPicker: {
     height: 180,

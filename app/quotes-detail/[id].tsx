@@ -31,13 +31,12 @@ export default function QuoteDetailScreen() {
   const { resolvedTheme } = useTheme();
 
   const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const sectionBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
@@ -178,7 +177,7 @@ export default function QuoteDetailScreen() {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -189,7 +188,7 @@ export default function QuoteDetailScreen() {
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
         <Ionicons name="document-text-outline" size={64} color={subtitleColor} />
         <Text style={[styles.emptyTitle, { color: textColor }]}>Quote not found</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -314,7 +313,7 @@ export default function QuoteDetailScreen() {
 
         {/* Primary Actions */}
         {canSend && (
-          <TouchableOpacity style={[styles.actionBtnFull, { backgroundColor: '#3b82f6' }]} onPress={handleSend}>
+          <TouchableOpacity style={[styles.actionBtnFull, { backgroundColor: colors.primary }]} onPress={handleSend}>
             <Ionicons name="send" size={16} color="white" />
             <Text style={styles.actionBtnText}>Send Quote</Text>
           </TouchableOpacity>
@@ -329,8 +328,8 @@ export default function QuoteDetailScreen() {
         {/* Secondary Actions */}
         <View style={styles.actionsRow}>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]} onPress={handleDownloadPDF}>
-            <Ionicons name="download-outline" size={16} color="#3b82f6" />
-            <Text style={[styles.actionBtnText, { color: '#3b82f6' }]}>PDF</Text>
+            <Ionicons name="download-outline" size={16} color={colors.primary} />
+            <Text style={[styles.actionBtnText, { color: colors.primary }]}>PDF</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]} onPress={handleCopyLink}>
             <Ionicons name="link-outline" size={16} color="#8b5cf6" />
@@ -512,7 +511,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     borderRadius: 10,
   },
   backBtnText: { color: 'white', fontWeight: '600' },

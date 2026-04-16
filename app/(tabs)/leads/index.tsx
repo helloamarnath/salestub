@@ -45,7 +45,7 @@ interface FilterTab {
 // Category filter colors
 const CATEGORY_COLORS = {
   all: '#6b7280',       // Gray
-  open: '#3b82f6',      // Blue
+  open: Colors.light.primary,      // Blue
   closed: '#8b5cf6',    // Purple
   untouched: '#f59e0b', // Amber/Orange
 };
@@ -145,7 +145,8 @@ function LeadSkeleton({ isDark }: { isDark: boolean }) {
 
 // Empty state component
 function EmptyState({ searchQuery, filterLabel, isDark, canCreate }: { searchQuery: string; filterLabel: string; isDark: boolean; canCreate: boolean }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const iconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
 
@@ -166,7 +167,7 @@ function EmptyState({ searchQuery, filterLabel, isDark, canCreate }: { searchQue
       </Text>
       {!searchQuery && canCreate && (
         <TouchableOpacity
-          style={styles.emptyButton}
+          style={[styles.emptyButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/(tabs)/leads/create')}
         >
           <Ionicons name="add" size={20} color="white" />
@@ -179,7 +180,8 @@ function EmptyState({ searchQuery, filterLabel, isDark, canCreate }: { searchQue
 
 // Error state component
 function ErrorState({ message, onRetry, isDark }: { message: string; onRetry: () => void; isDark: boolean }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
 
   return (
@@ -187,7 +189,7 @@ function ErrorState({ message, onRetry, isDark }: { message: string; onRetry: ()
       <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
       <Text style={[styles.errorTitle, { color: textColor }]}>Something went wrong</Text>
       <Text style={[styles.errorMessage, { color: subtitleColor }]}>{message}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+      <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={onRetry}>
         <Ionicons name="refresh" size={18} color="white" />
         <Text style={styles.retryButtonText}>Try Again</Text>
       </TouchableOpacity>
@@ -250,9 +252,7 @@ export default function LeadsScreen() {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Theme-aware colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const textColor = isDark ? 'white' : colors.foreground;
@@ -267,7 +267,7 @@ export default function LeadsScreen() {
     // Fallback colors based on stage type
     switch (stage.type) {
       case 'OPEN':
-        return '#3b82f6'; // Blue
+        return colors.primary; // Blue
       case 'CLOSED_WON':
         return '#22c55e'; // Green
       case 'CLOSED_LOST':
@@ -675,7 +675,7 @@ export default function LeadsScreen() {
             </View>
             {rbac.canCreate('leads') && (
               <TouchableOpacity
-                style={styles.addButton}
+                style={[styles.addButton, { backgroundColor: colors.primary }]}
                 onPress={handleCreatePress}
               >
                 <Ionicons name="add" size={24} color="white" />
@@ -803,7 +803,7 @@ export default function LeadsScreen() {
 
       {/* Bulk Action Bar */}
       {selectionMode && (
-        <View style={[styles.bulkActionBar, { paddingBottom: insets.bottom + 10, backgroundColor: isDark ? '#1e293b' : 'white', borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+        <View style={[styles.bulkActionBar, { paddingBottom: insets.bottom + 10, backgroundColor: colors.card, borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
           <View style={styles.bulkActionBarContent}>
             <View style={styles.bulkSelectionInfo}>
               <TouchableOpacity onPress={exitSelectionMode} style={styles.bulkCloseButton}>
@@ -824,11 +824,11 @@ export default function LeadsScreen() {
                   disabled={bulkUpdatingStage}
                 >
                   {bulkUpdatingStage ? (
-                    <ActivityIndicator size="small" color="#3b82f6" />
+                    <ActivityIndicator size="small" color={colors.primary} />
                   ) : (
                     <>
-                      <Ionicons name="git-branch-outline" size={20} color="#3b82f6" />
-                      <Text style={styles.bulkActionText}>Stage</Text>
+                      <Ionicons name="git-branch-outline" size={20} color={colors.primary} />
+                      <Text style={[styles.bulkActionText, { color: colors.primary }]}>Stage</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -844,7 +844,7 @@ export default function LeadsScreen() {
                   ) : (
                     <>
                       <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                      <Text style={[styles.bulkActionText, { color: '#ef4444' }]}>Delete</Text>
+                      <Text style={[styles.bulkActionText, { color: colors.primary }, { color: '#ef4444' }]}>Delete</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -857,7 +857,7 @@ export default function LeadsScreen() {
       {/* Bulk Stage Picker Modal */}
       <Modal visible={showStagePickerForBulk} transparent animationType="slide" onRequestClose={() => setShowStagePickerForBulk(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowStagePickerForBulk(false)}>
-          <View style={[styles.stagePickerContent, { backgroundColor: isDark ? '#1e293b' : 'white' }]}>
+          <View style={[styles.stagePickerContent, { backgroundColor: colors.card }]}>
             <View style={[styles.stagePickerHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
               <Text style={[styles.stagePickerTitle, { color: textColor }]}>Move to Stage</Text>
               <TouchableOpacity onPress={() => setShowStagePickerForBulk(false)}>
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -944,8 +944,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
   },
   filterBadge: {
     position: 'absolute',
@@ -1056,7 +1056,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1087,7 +1087,7 @@ const styles = StyleSheet.create({
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
   bulkActionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: Colors.light.primary,
   },
   // Stage Picker Modal styles
   modalOverlay: {

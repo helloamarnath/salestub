@@ -40,7 +40,8 @@ function ProductCard({
   onDelete: () => void;
   canDelete: boolean;
 }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const cardBg = isDark ? 'rgba(255,255,255,0.03)' : 'white';
@@ -100,7 +101,7 @@ function ProductCard({
             )}
             {product.category && (
               <View style={[styles.categoryBadge, { backgroundColor: isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)' }]}>
-                <Text style={[styles.categoryText, { color: '#3b82f6' }]}>
+                <Text style={[styles.categoryText, { color: colors.primary }]}>
                   {product.category.name}
                 </Text>
               </View>
@@ -159,7 +160,8 @@ function ProductSkeleton({ isDark }: { isDark: boolean }) {
 
 // Empty State
 function EmptyState({ isDark, searchQuery, canCreate }: { isDark: boolean; searchQuery: string; canCreate: boolean }) {
-  const textColor = isDark ? 'white' : Colors.light.foreground;
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const iconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
 
@@ -180,7 +182,7 @@ function EmptyState({ isDark, searchQuery, canCreate }: { isDark: boolean; searc
       </Text>
       {!searchQuery && canCreate && (
         <TouchableOpacity
-          style={styles.emptyButton}
+          style={[styles.emptyButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/products/create')}
         >
           <Ionicons name="add" size={20} color="white" />
@@ -224,9 +226,7 @@ export default function ProductsScreen() {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Theme colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -386,7 +386,7 @@ export default function ProductsScreen() {
               )}
             </View>
             {rbac.canCreate('products') && (
-              <TouchableOpacity style={styles.addButton} onPress={handleCreate}>
+              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleCreate}>
                 <Ionicons name="add" size={24} color="white" />
               </TouchableOpacity>
             )}
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,

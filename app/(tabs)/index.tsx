@@ -123,9 +123,7 @@ export default function DashboardScreen() {
   const firstName = user?.firstName || 'User';
 
   // Background gradient colors
-  const gradientColors: [string, string, string] = isDark
-    ? ['#0f172a', '#1e293b', '#0f172a']
-    : ['#f8fafc', '#f1f5f9', '#f8fafc'];
+  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
 
   const headerBorderColor = isDark
     ? 'rgba(255,255,255,0.05)'
@@ -197,7 +195,7 @@ export default function DashboardScreen() {
                 </View>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push('/profile' as any)}>
-                <View style={styles.avatar}>
+                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
                   <Text style={styles.avatarText}>
                     {firstName.charAt(0).toUpperCase()}
                   </Text>
@@ -225,7 +223,7 @@ export default function DashboardScreen() {
                 {error}
               </Text>
               <TouchableOpacity
-                style={styles.retryButton}
+                style={[styles.retryButton, { backgroundColor: colors.primary }]}
                 onPress={fetchDashboardData}
               >
                 <Text style={styles.retryText}>Retry</Text>
@@ -244,7 +242,7 @@ export default function DashboardScreen() {
                     value={stats?.totalLeads || 0}
                     changePercent={stats?.contactsCreated?.changePercent}
                     icon="people-outline"
-                    iconColor="#3b82f6"
+                    iconColor={colors.primary}
                     onPress={() => router.push('/leads' as any)}
                   />
                   <StatCard
@@ -328,7 +326,7 @@ export default function DashboardScreen() {
                     {stats.topCompanies.map((company, index) => (
                       <View key={company.id} style={styles.companyItem}>
                         <View style={styles.companyRank}>
-                          <Text style={styles.companyRankText}>{index + 1}</Text>
+                          <Text style={[styles.companyRankText, { color: colors.primary }]}>{index + 1}</Text>
                         </View>
                         <Text
                           style={[styles.companyName, { color: textColor }]}
@@ -415,7 +413,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -454,7 +452,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -491,7 +489,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   companyRankText: {
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontSize: 12,
     fontWeight: '600',
   },
