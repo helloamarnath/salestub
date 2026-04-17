@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontWeight: 'bold',
     fontSize: 20,
   },
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalCloseButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },

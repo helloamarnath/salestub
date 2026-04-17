@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   largeAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 28,
     fontWeight: '600',
   },
@@ -1008,7 +1008,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopColor: '#ebebeb',
     width: '100%',
     justifyContent: 'center',
   },
@@ -1069,7 +1069,7 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'white',
+    color: '#252525',
   },
   tabContent: {
     paddingHorizontal: 16,
@@ -1302,7 +1302,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mapButtonText: {
-    color: 'white',
+    color: '#252525',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1318,7 +1318,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   backButtonText: {
-    color: 'white',
+    color: '#252525',
     fontWeight: '600',
     fontSize: 16,
   },

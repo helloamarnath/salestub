@@ -67,7 +67,7 @@ function FormInput({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor={Colors.light.mutedForeground}
           keyboardType={keyboardType}
           multiline={multiline}
           numberOfLines={multiline ? 4 : 1}
@@ -112,7 +112,7 @@ function ScoreSlider({
             style={styles.scoreButton}
             onPress={() => onChange(Math.max(0, value - 10))}
           >
-            <Ionicons name="remove" size={20} color="white" />
+            <Ionicons name="remove" size={20} color="#252525" />
           </TouchableOpacity>
           <Text style={[styles.scoreValue, { color: getScoreColor(value) }]}>
             {value}
@@ -121,7 +121,7 @@ function ScoreSlider({
             style={styles.scoreButton}
             onPress={() => onChange(Math.min(100, value + 10))}
           >
-            <Ionicons name="add" size={20} color="white" />
+            <Ionicons name="add" size={20} color="#252525" />
           </TouchableOpacity>
         </View>
       </View>
@@ -169,7 +169,7 @@ function SourcePicker({
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color="rgba(255,255,255,0.5)"
+          color="#8e8e8e"
         />
       </TouchableOpacity>
 
@@ -381,7 +381,7 @@ function ContactPicker({
                   onSelectContact(null);
                 }}
               >
-                <Ionicons name="close" size={20} color="rgba(255,255,255,0.5)" />
+                <Ionicons name="close" size={20} color="#8e8e8e" />
               </TouchableOpacity>
             </View>
           ) : (
@@ -391,14 +391,14 @@ function ContactPicker({
                 <Ionicons
                   name="search"
                   size={18}
-                  color="rgba(255,255,255,0.4)"
+                  color="#8e8e8e"
                 />
                 <TextInput
                   style={styles.searchInput}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Search contacts by name or email..."
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={Colors.light.mutedForeground}
                 />
                 {searching && (
                   <ActivityIndicator size="small" color={colors.primary} />
@@ -471,7 +471,7 @@ function ContactPicker({
                     })
                   }
                   placeholder="First name"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={Colors.light.mutedForeground}
                 />
               </View>
             </View>
@@ -490,7 +490,7 @@ function ContactPicker({
                     })
                   }
                   placeholder="Last name"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={Colors.light.mutedForeground}
                 />
               </View>
             </View>
@@ -509,7 +509,7 @@ function ContactPicker({
                   })
                 }
                 placeholder="email@example.com"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={Colors.light.mutedForeground}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -529,7 +529,7 @@ function ContactPicker({
                   })
                 }
                 placeholder="+91 98765 43210"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={Colors.light.mutedForeground}
                 keyboardType="phone-pad"
               />
             </View>
@@ -548,7 +548,7 @@ function ContactPicker({
                   })
                 }
                 placeholder="e.g., Sales Manager"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={Colors.light.mutedForeground}
               />
             </View>
           </View>
@@ -739,7 +739,7 @@ export default function CreateLeadScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={[colors.background, colors.primary, colors.background]}
+          colors={[colors.background, colors.card, colors.background]}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.loadingContainer}>
@@ -753,7 +753,7 @@ export default function CreateLeadScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[colors.background, colors.primary, colors.background]}
+        colors={[colors.background, colors.card, colors.background]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -764,10 +764,10 @@ export default function CreateLeadScreen() {
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <View style={styles.headerRow}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <Ionicons name="close" size={24} color="white" />
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.secondary }]} onPress={handleBack}>
+              <Ionicons name="close" size={24} color={colors.foreground} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>
               {isEditing ? 'Edit Lead' : 'New Lead'}
             </Text>
             <TouchableOpacity
@@ -861,7 +861,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: Colors.light.border,
   },
   headerRow: {
     flexDirection: 'row',
@@ -872,12 +872,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.light.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: 'white',
+    color: Colors.light.foreground,
     fontSize: 18,
     fontWeight: '600',
   },
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: 'white',
+    color: Colors.light.primaryForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionHeader: {
-    color: 'rgba(255,255,255,0.4)',
+    color: Colors.light.mutedForeground,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: 'rgba(255,255,255,0.6)',
+    color: Colors.light.mutedForeground,
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
@@ -925,10 +925,10 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   inputWrapper: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.light.border,
   },
   inputError: {
     borderColor: '#ef4444',
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: 'white',
+    color: Colors.light.foreground,
   },
   inputMultiline: {
     minHeight: 100,
@@ -953,13 +953,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   scoreContainer: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.muted,
     borderRadius: 12,
     padding: 16,
   },
   scoreSliderTrack: {
     height: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.light.border,
     borderRadius: 4,
     marginBottom: 16,
     overflow: 'hidden',
@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -992,19 +992,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.light.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   pickerButtonText: {
-    color: 'white',
+    color: Colors.light.foreground,
     fontSize: 16,
   },
   pickerPlaceholder: {
-    color: 'rgba(255,255,255,0.3)',
+    color: Colors.light.mutedForeground,
     fontSize: 16,
   },
   sourceChipSelected: {
@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   },
   sourceList: {
     marginTop: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1033,19 +1033,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: Colors.light.border,
     gap: 10,
   },
   sourceOptionSelected: {
     backgroundColor: 'rgba(59,130,246,0.1)',
   },
   sourceOptionText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.light.foreground,
     fontSize: 15,
     flex: 1,
   },
   sourceOptionTextSelected: {
-    color: 'white',
+    color: Colors.light.foreground,
     fontWeight: '500',
   },
   contactPickerContainer: {
@@ -1053,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
@@ -1071,17 +1071,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary,
   },
   modeButtonText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: Colors.light.mutedForeground,
     fontSize: 14,
     fontWeight: '500',
   },
   modeButtonTextActive: {
-    color: 'white',
+    color: Colors.light.primaryForeground,
   },
   selectedContactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     padding: 14,
   },
@@ -1094,7 +1094,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   contactAvatarText: {
-    color: 'white',
+    color: Colors.light.foreground,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -1107,7 +1107,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   contactAvatarTextSmall: {
-    color: 'white',
+    color: Colors.light.foreground,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -1115,17 +1115,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactName: {
-    color: 'white',
+    color: Colors.light.foreground,
     fontSize: 16,
     fontWeight: '600',
   },
   contactEmail: {
-    color: 'rgba(255,255,255,0.5)',
+    color: Colors.light.mutedForeground,
     fontSize: 13,
     marginTop: 2,
   },
   contactPhone: {
-    color: 'rgba(255,255,255,0.5)',
+    color: Colors.light.mutedForeground,
     fontSize: 13,
     marginTop: 1,
   },
@@ -1133,29 +1133,29 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.light.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.light.border,
     gap: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: 'white',
+    color: Colors.light.foreground,
   },
   searchResults: {
     marginTop: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1165,18 +1165,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: Colors.light.border,
   },
   searchResultInfo: {
     flex: 1,
   },
   searchResultName: {
-    color: 'white',
+    color: Colors.light.foreground,
     fontSize: 15,
     fontWeight: '500',
   },
   searchResultMeta: {
-    color: 'rgba(255,255,255,0.4)',
+    color: Colors.light.mutedForeground,
     fontSize: 13,
     marginTop: 2,
   },
@@ -1185,7 +1185,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   noResultsText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: Colors.light.mutedForeground,
     fontSize: 14,
   },
   createNewButton: {
@@ -1212,7 +1212,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: Colors.light.mutedForeground,
     fontSize: 14,
     marginTop: 16,
   },

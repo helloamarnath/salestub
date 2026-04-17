@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   saveButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 15,
     fontWeight: '600',
   },

@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   ownerAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   retryButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },

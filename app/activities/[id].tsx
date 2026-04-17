@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   backToListText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -996,7 +996,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#22c55e',
   },
   actionButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 15,
     fontWeight: '600',
   },

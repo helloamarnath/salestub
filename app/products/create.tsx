@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -980,7 +980,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary,
   },
   pendingBadgeText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 10,
     fontWeight: '600',
   },

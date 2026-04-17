@@ -114,7 +114,7 @@ function SplashScreen() {
   return (
     <View style={styles.splashContainer}>
       <LinearGradient
-        colors={[colors.background, colors.background, colors.primary, colors.background, colors.background]}
+        colors={[colors.background, colors.background, colors.card, colors.background, colors.background]}
         locations={[0, 0.2, 0.5, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />

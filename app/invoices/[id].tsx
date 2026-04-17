@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 12,
   },
-  actionBtnText: { fontSize: 14, fontWeight: '600', color: 'white' },
+  actionBtnText: { fontSize: 14, fontWeight: '600', color: '#252525' },
   actionsSecondary: { flexDirection: 'row', gap: 10 },
   actionBtnSmall: {
     flex: 1,
@@ -528,5 +528,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary,
     borderRadius: 10,
   },
-  backBtnText: { color: 'white', fontWeight: '600' },
+  backBtnText: { color: '#252525', fontWeight: '600' },
 });

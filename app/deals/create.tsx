@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: 'white',
+    color: '#252525',
     fontWeight: '600',
     fontSize: 15,
   },
@@ -1056,7 +1056,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   entityAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontWeight: '600',
     fontSize: 14,
   },

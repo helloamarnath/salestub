@@ -5581,7 +5581,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -5629,7 +5629,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   followUpButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -5723,7 +5723,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   ownerAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -5752,7 +5752,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   contactAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -5873,7 +5873,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   retryButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -5941,7 +5941,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalSaveButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -5965,7 +5965,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   fabText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -6097,7 +6097,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   formSubmitButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -6120,7 +6120,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   datePickerDoneText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -6167,12 +6167,12 @@ const styles = StyleSheet.create({
   tagPickerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: 'white',
+    color: '#252525',
     marginBottom: 4,
   },
   tagPickerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#454545',
   },
   tagPickerCloseBtn: {
     width: 32,
@@ -6416,7 +6416,7 @@ const styles = StyleSheet.create({
   tagPickerSaveBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'white',
+    color: '#252525',
   },
   // Tags Tab styles
   tagsTabContainer: {
@@ -6504,7 +6504,7 @@ const styles = StyleSheet.create({
   tagsTabAddBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: 'white',
+    color: '#252525',
   },
   tagsTabGrid: {
     padding: 16,
@@ -6652,7 +6652,7 @@ const styles = StyleSheet.create({
   docsTabAddBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: 'white',
+    color: '#252525',
   },
   docsTabList: {
     padding: 16,
@@ -6713,7 +6713,7 @@ const styles = StyleSheet.create({
   docItemTypeBadgeText: {
     fontSize: 8,
     fontWeight: '700',
-    color: 'white',
+    color: '#252525',
     letterSpacing: 0.3,
   },
   docItemContent: {
@@ -6775,11 +6775,11 @@ const styles = StyleSheet.create({
   uploadModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: 'white',
+    color: '#252525',
   },
   uploadModalSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#454545',
     marginTop: 2,
   },
   uploadModalOptions: {
@@ -7010,7 +7010,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   convertSubmitText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -7040,7 +7040,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   convertCompanyAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -7247,7 +7247,7 @@ const styles = StyleSheet.create({
   dealsCreateBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: 'white',
+    color: '#252525',
   },
   dealsList: {
     gap: 12,
@@ -7416,12 +7416,12 @@ const styles = StyleSheet.create({
   createDealTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: 'white',
+    color: '#252525',
     marginBottom: 4,
   },
   createDealSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#454545',
   },
   createDealCloseBtn: {
     width: 32,
@@ -7502,7 +7502,7 @@ const styles = StyleSheet.create({
   createDealSaveBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: '#252525',
   },
   // Products tab styles
   productItem: {
@@ -7590,7 +7590,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addNoteButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 14,
     fontWeight: '600',
   },

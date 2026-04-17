@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   headerBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: '700' },
   saveBtn: { backgroundColor: Colors.light.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
-  saveBtnText: { color: 'white', fontWeight: '600', fontSize: 14 },
+  saveBtnText: { color: '#fbfbfb', fontWeight: '600', fontSize: 14 },
   form: { flex: 1, padding: 16 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
   pickerBtn: {

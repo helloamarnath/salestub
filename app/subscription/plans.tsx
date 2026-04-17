@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   saveBadgeText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subscribeButtonText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },

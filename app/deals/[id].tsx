@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabBadgeText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -969,7 +969,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   entityAvatarText: {
-    color: 'white',
+    color: '#252525',
     fontSize: 18,
     fontWeight: '600',
   },
