@@ -379,14 +379,6 @@ export default function MoreScreen() {
         {/* Integrations */}
         <MenuSection title="Integrations" isDark={isDark}>
           <MenuItem
-            icon="calendar-outline"
-            title="Calendar"
-            subtitle="Sync your calendar"
-            color="#06b6d4"
-            onPress={() => router.push('/calendar' as Href)}
-            isDark={isDark}
-          />
-          <MenuItem
             icon="cloud-outline"
             title="Import/Export"
             subtitle="CSV and data sync"
