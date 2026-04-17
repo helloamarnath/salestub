@@ -218,7 +218,7 @@ export default function ActivitiesScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarMode, setCalendarMode] = useState<'month' | 'week' | 'day'>('week');
   const [calendarActivities, setCalendarActivities] = useState<Activity[]>([]);
@@ -513,7 +513,7 @@ export default function ActivitiesScreen() {
           </TouchableOpacity>
           <View style={styles.headerTitle}>
             <Text style={[styles.title, { color: colors.foreground }]}>
-              Activities
+              Calendar
             </Text>
             <Text
               style={[
@@ -646,8 +646,56 @@ export default function ActivitiesScreen() {
       ) : (
         // Calendar View
         <View style={{ flex: 1 }}>
+          {/* Month/Year Header + Navigation */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const prev = new Date(calendarDate);
+                if (calendarMode === 'month') prev.setMonth(prev.getMonth() - 1);
+                else if (calendarMode === 'week') prev.setDate(prev.getDate() - 7);
+                else prev.setDate(prev.getDate() - 1);
+                setCalendarDate(prev);
+              }}
+              style={{ padding: 8 }}
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.foreground} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setCalendarDate(new Date()); }}
+              style={{ alignItems: 'center' }}
+            >
+              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.foreground }}>
+                {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </Text>
+              {calendarMode !== 'month' && (
+                <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 1 }}>
+                  {calendarMode === 'week'
+                    ? `Week of ${calendarDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                    : calendarDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+                  }
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const next = new Date(calendarDate);
+                if (calendarMode === 'month') next.setMonth(next.getMonth() + 1);
+                else if (calendarMode === 'week') next.setDate(next.getDate() + 7);
+                else next.setDate(next.getDate() + 1);
+                setCalendarDate(next);
+              }}
+              style={{ padding: 8 }}
+            >
+              <Ionicons name="chevron-forward" size={20} color={colors.foreground} />
+            </TouchableOpacity>
+          </View>
+
           {/* Calendar Mode Toggle */}
-          <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 8, gap: 4 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 6, gap: 4 }}>
             {(['month', 'week', 'day'] as const).map((mode) => (
               <TouchableOpacity
                 key={mode}
@@ -655,13 +703,13 @@ export default function ActivitiesScreen() {
                 style={{
                   paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8,
                   backgroundColor: calendarMode === mode
-                    ? (isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.1)')
+                    ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)')
                     : 'transparent',
                 }}
               >
                 <Text style={{
                   fontSize: 13, fontWeight: calendarMode === mode ? '700' : '500',
-                  color: calendarMode === mode ? colors.primary : (isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'),
+                  color: calendarMode === mode ? colors.foreground : colors.mutedForeground,
                   textTransform: 'capitalize',
                 }}>
                   {mode}

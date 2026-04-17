@@ -329,8 +329,8 @@ export default function MoreScreen() {
         {/* CRM */}
         <MenuSection title="CRM" isDark={isDark}>
           <MenuItem
-            icon="checkbox-outline"
-            title="Activities"
+            icon="calendar-outline"
+            title="Calendar"
             subtitle="Tasks, calls, meetings & notes"
             color="#f59e0b"
             onPress={() => router.push('/activities' as Href)}
