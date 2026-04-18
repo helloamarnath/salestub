@@ -32,11 +32,11 @@ export async function getActivities(
 }
 
 /**
- * Get activities for a specific entity (contact, deal, company)
+ * Get activities for a specific entity (contact, company)
  */
 export async function getEntityActivities(
   token: string | null,
-  entityType: 'contact' | 'deal' | 'company',
+  entityType: 'contact' | 'company',
   entityId: string
 ): Promise<ApiResponse<Activity[]>> {
   return api.get<Activity[]>(
@@ -53,16 +53,6 @@ export async function getContactActivities(
   contactId: string
 ): Promise<ApiResponse<Activity[]>> {
   return getEntityActivities(token, 'contact', contactId);
-}
-
-/**
- * Get activities for a deal
- */
-export async function getDealActivities(
-  token: string | null,
-  dealId: string
-): Promise<ApiResponse<Activity[]>> {
-  return getEntityActivities(token, 'deal', dealId);
 }
 
 /**

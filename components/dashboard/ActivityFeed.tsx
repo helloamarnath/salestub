@@ -54,9 +54,6 @@ function getRelatedName(activity: DashboardActivity): string | null {
   if (activity.company?.name) {
     return activity.company.name;
   }
-  if (activity.deal?.title) {
-    return activity.deal.title;
-  }
   if (activity.lead?.title) {
     return activity.lead.title;
   }

@@ -133,7 +133,6 @@ export default function DashboardScreen() {
 
   // Navigation handlers
   const handleAddLead = () => router.push('/(tabs)/leads/create' as any);
-  const handleAddDeal = () => router.push('/deals/create' as any);
   const handleAddTask = () => router.push('/activities/create' as any);
   const handleAddContact = () => router.push('/(tabs)/contacts/customer/create' as any);
   const handleViewAllActivities = () => router.push('/activities' as any);
@@ -246,12 +245,12 @@ export default function DashboardScreen() {
                     onPress={() => router.push('/leads' as any)}
                   />
                   <StatCard
-                    title="Open Deals"
-                    value={stats?.totalOpenDeals || 0}
-                    changePercent={stats?.dealsWon?.changePercent}
+                    title="Open Leads"
+                    value={stats?.totalOpenLeads || 0}
+                    changePercent={stats?.leadsWon?.changePercent}
                     icon="briefcase-outline"
                     iconColor="#8b5cf6"
-                    onPress={() => router.push('/deals' as any)}
+                    onPress={() => router.push('/leads' as any)}
                   />
                   <StatCard
                     title="Contacts"
@@ -266,7 +265,7 @@ export default function DashboardScreen() {
                     value={formatCurrency(stats?.totalPipelineValue || 0)}
                     icon="cash-outline"
                     iconColor="#f59e0b"
-                    onPress={() => router.push('/deals' as any)}
+                    onPress={() => router.push('/leads' as any)}
                   />
                 </View>
               </View>
@@ -275,7 +274,6 @@ export default function DashboardScreen() {
               <View style={styles.section}>
                 <QuickActions
                   onAddLead={handleAddLead}
-                  onAddDeal={handleAddDeal}
                   onAddTask={handleAddTask}
                   onAddContact={handleAddContact}
                 />
@@ -293,10 +291,10 @@ export default function DashboardScreen() {
               )}
 
               {/* Pipeline Overview */}
-              {stats && stats.openDealsByStage.length > 0 && (
+              {stats && stats.openLeadsByStage.length > 0 && (
                 <View style={styles.section}>
                   <PipelineProgress
-                    stages={stats.openDealsByStage}
+                    stages={stats.openLeadsByStage}
                     totalValue={stats.totalPipelineValue}
                   />
                 </View>
@@ -336,7 +334,7 @@ export default function DashboardScreen() {
                         </Text>
                         <View style={styles.dealBadge}>
                           <Text style={styles.dealBadgeText}>
-                            {company.dealCount} deals
+                            {company.leadCount} leads
                           </Text>
                         </View>
                       </View>

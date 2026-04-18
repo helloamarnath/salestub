@@ -337,14 +337,6 @@ export default function MoreScreen() {
             isDark={isDark}
           />
           <MenuItem
-            icon="briefcase-outline"
-            title="Deals"
-            subtitle="Manage your deals pipeline"
-            color="#22c55e"
-            onPress={() => router.push('/deals' as Href)}
-            isDark={isDark}
-          />
-          <MenuItem
             icon="receipt-outline"
             title="Invoices"
             subtitle="Track invoices & payments"

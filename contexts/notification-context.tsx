@@ -247,14 +247,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             } else {
               router.push('/(tabs)/leads' as any);
             }
-          } else if (url.includes('/deals/')) {
-            // Extract deal ID and navigate to deals tab
-            const dealMatch = url.match(/\/deals\/([^/?]+)/);
-            if (dealMatch) {
-              router.push(`/(tabs)/deals/${dealMatch[1]}` as any);
-            } else {
-              router.push('/(tabs)/deals' as any);
-            }
           } else if (url.includes('/contacts/')) {
             // Extract contact ID and navigate to contacts tab
             const contactMatch = url.match(/\/contacts\/([^/?]+)/);

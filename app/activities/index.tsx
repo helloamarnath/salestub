@@ -91,7 +91,6 @@ function ActivityCard({
     activity.contact
       ? `${activity.contact.firstName || ''} ${activity.contact.lastName || ''}`.trim()
       : activity.company?.name ||
-        activity.deal?.title ||
         activity.lead?.title ||
         null;
 

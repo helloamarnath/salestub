@@ -23,12 +23,12 @@ import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
 import { createQuote, updateQuote, getQuote } from '@/lib/api/quotes';
-import { getDeals } from '@/lib/api/deals';
+import { getLeads } from '@/lib/api/leads';
 import { searchContacts } from '@/lib/api/contacts';
 import { getCurrencies } from '@/lib/api/organization';
 import { QuoteItemEditor } from '@/components/quotes/QuoteItemEditor';
 import type { CreateQuoteDto, CreateQuoteItemDto } from '@/types/quote';
-import type { Deal } from '@/types/deal';
+import type { Lead } from '@/types/lead';
 import type { Contact } from '@/types/contact';
 
 interface Currency {
@@ -39,7 +39,7 @@ interface Currency {
 }
 
 export default function CreateQuoteScreen() {
-  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const { editId, leadId: paramLeadId } = useLocalSearchParams<{ editId?: string; leadId?: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { accessToken } = useAuth();
@@ -50,7 +50,7 @@ export default function CreateQuoteScreen() {
   const isEditMode = !!editId;
 
   // Form state
-  const [dealId, setDealId] = useState('');
+  const [leadId, setLeadId] = useState('');
   const [contactId, setContactId] = useState('');
   const [currencyId, setCurrencyId] = useState('');
   const [validUntil, setValidUntil] = useState(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
@@ -65,20 +65,20 @@ export default function CreateQuoteScreen() {
   const [items, setItems] = useState<CreateQuoteItemDto[]>([]);
 
   // Data
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   // UI state
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showDealPicker, setShowDealPicker] = useState(false);
+  const [showLeadPicker, setShowLeadPicker] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<'quoteDate' | 'validUntil' | null>(null);
-  const [dealSearch, setDealSearch] = useState('');
+  const [leadSearch, setLeadSearch] = useState('');
   const [contactSearch, setContactSearch] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -97,11 +97,28 @@ export default function CreateQuoteScreen() {
   useEffect(() => {
     const loadData = async () => {
       if (!accessToken) return;
-      const [dealsRes, currRes] = await Promise.all([
-        getDeals(accessToken, { limit: 50 }),
+      const [leadsRes, currRes] = await Promise.all([
+        getLeads(accessToken, { limit: 50 }),
         getCurrencies(accessToken),
       ]);
-      if (dealsRes.success && dealsRes.data) setDeals(dealsRes.data.data || []);
+      if (leadsRes.success && leadsRes.data) {
+        const leadList = leadsRes.data.data || [];
+        setLeads(leadList);
+        // Pre-select lead if provided via param
+        if (paramLeadId && !leadId) {
+          const preLead = leadList.find((l) => l.id === paramLeadId);
+          if (preLead) {
+            setLeadId(preLead.id);
+            setSelectedLead(preLead);
+            if (preLead.contact) {
+              setContactId(preLead.contact.id);
+              setSelectedContact(preLead.contact as any);
+            }
+          } else {
+            setLeadId(paramLeadId);
+          }
+        }
+      }
       if (currRes.success && currRes.data) {
         setCurrencies(currRes.data);
         const inr = currRes.data.find((c: Currency) => c.code === 'INR');
@@ -109,7 +126,7 @@ export default function CreateQuoteScreen() {
       }
     };
     loadData();
-  }, [accessToken]);
+  }, [accessToken, paramLeadId]);
 
   // Load quote for editing
   useEffect(() => {
@@ -119,7 +136,7 @@ export default function CreateQuoteScreen() {
       const res = await getQuote(accessToken, editId);
       if (res.success && res.data) {
         const q = res.data;
-        setDealId(q.dealId);
+        setLeadId(q.leadId);
         setContactId(q.contactId);
         setCurrencyId(q.currencyId);
         setValidUntil(new Date(q.validUntil));
@@ -146,7 +163,7 @@ export default function CreateQuoteScreen() {
             sortOrder: i.sortOrder || 0,
           }))
         );
-        if (q.deal) setSelectedDeal(q.deal as any);
+        if (q.lead) setSelectedLead(q.lead as any);
         if (q.contact) setSelectedContact(q.contact as any);
       }
       setLoading(false);
@@ -154,10 +171,10 @@ export default function CreateQuoteScreen() {
     loadQuote();
   }, [accessToken, editId]);
 
-  // Search deals
-  const filteredDeals = dealSearch
-    ? deals.filter((d) => d.title?.toLowerCase().includes(dealSearch.toLowerCase()))
-    : deals;
+  // Search leads
+  const filteredLeads = leadSearch
+    ? leads.filter((l) => l.title?.toLowerCase().includes(leadSearch.toLowerCase()))
+    : leads;
 
   // Search contacts
   const handleContactSearch = useCallback(
@@ -170,16 +187,16 @@ export default function CreateQuoteScreen() {
     [accessToken]
   );
 
-  // Select deal -> auto-set contact
-  const selectDeal = (deal: Deal) => {
-    setDealId(deal.id);
-    setSelectedDeal(deal);
-    if (deal.contact) {
-      setContactId(deal.contact.id);
-      setSelectedContact(deal.contact as any);
+  // Select lead -> auto-set contact
+  const selectLead = (lead: Lead) => {
+    setLeadId(lead.id);
+    setSelectedLead(lead);
+    if (lead.contact) {
+      setContactId(lead.contact.id);
+      setSelectedContact(lead.contact as any);
     }
-    setShowDealPicker(false);
-    setErrors((e) => ({ ...e, dealId: '' }));
+    setShowLeadPicker(false);
+    setErrors((e) => ({ ...e, leadId: '' }));
   };
 
   const selectContact = (contact: Contact) => {
@@ -197,7 +214,7 @@ export default function CreateQuoteScreen() {
   // Validate
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!dealId) newErrors.dealId = 'Deal is required';
+    if (!leadId) newErrors.leadId = 'Lead is required';
     if (!contactId) newErrors.contactId = 'Contact is required';
     if (!currencyId) newErrors.currencyId = 'Currency is required';
     if (items.length === 0) newErrors.items = 'At least one item is required';
@@ -214,7 +231,7 @@ export default function CreateQuoteScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const data: CreateQuoteDto = {
-      dealId,
+      leadId,
       contactId,
       currencyId,
       validUntil: validUntil.toISOString(),
@@ -291,20 +308,20 @@ export default function CreateQuoteScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-          {/* Deal Selection */}
-          <Text style={[styles.sectionLabel, { color: subtitleColor }]}>DEAL & CONTACT</Text>
+          {/* Lead Selection */}
+          <Text style={[styles.sectionLabel, { color: subtitleColor }]}>LEAD & CONTACT</Text>
 
           <TouchableOpacity
-            style={[styles.pickerBtn, { backgroundColor: inputBg, borderColor: errors.dealId ? '#ef4444' : inputBorder }]}
-            onPress={() => setShowDealPicker(true)}
+            style={[styles.pickerBtn, { backgroundColor: inputBg, borderColor: errors.leadId ? '#ef4444' : inputBorder }]}
+            onPress={() => setShowLeadPicker(true)}
           >
-            <Ionicons name="briefcase-outline" size={18} color={selectedDeal ? textColor : subtitleColor} />
-            <Text style={[styles.pickerBtnText, { color: selectedDeal ? textColor : subtitleColor }]} numberOfLines={1}>
-              {selectedDeal ? selectedDeal.title : 'Select Deal *'}
+            <Ionicons name="briefcase-outline" size={18} color={selectedLead ? textColor : subtitleColor} />
+            <Text style={[styles.pickerBtnText, { color: selectedLead ? textColor : subtitleColor }]} numberOfLines={1}>
+              {selectedLead ? selectedLead.title : 'Select Lead *'}
             </Text>
             <Ionicons name="chevron-down" size={18} color={subtitleColor} />
           </TouchableOpacity>
-          {errors.dealId ? <Text style={styles.errorText}>{errors.dealId}</Text> : null}
+          {errors.leadId ? <Text style={styles.errorText}>{errors.leadId}</Text> : null}
 
           <TouchableOpacity
             style={[styles.pickerBtn, { backgroundColor: inputBg, borderColor: errors.contactId ? '#ef4444' : inputBorder }]}
@@ -453,28 +470,28 @@ export default function CreateQuoteScreen() {
         />
       )}
 
-      {/* Deal Picker Modal */}
+      {/* Lead Picker Modal */}
       <PickerModal
-        visible={showDealPicker}
-        onClose={() => setShowDealPicker(false)}
-        title="Select Deal"
+        visible={showLeadPicker}
+        onClose={() => setShowLeadPicker(false)}
+        title="Select Lead"
         isDark={isDark}
         textColor={textColor}
         subtitleColor={subtitleColor}
         inputBg={inputBg}
         inputBorder={inputBorder}
         borderColor={borderColor}
-        searchValue={dealSearch}
-        onSearchChange={setDealSearch}
-        searchPlaceholder="Search deals..."
+        searchValue={leadSearch}
+        onSearchChange={setLeadSearch}
+        searchPlaceholder="Search leads..."
       >
         <FlatList
-          data={filteredDeals}
-          keyExtractor={(d) => d.id}
+          data={filteredLeads}
+          keyExtractor={(l) => l.id}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.pickerItem, { borderBottomColor: borderColor }]}
-              onPress={() => selectDeal(item)}
+              onPress={() => selectLead(item)}
             >
               <View style={{ flex: 1 }}>
                 <Text style={[styles.pickerItemTitle, { color: textColor }]}>{item.title}</Text>
@@ -484,10 +501,10 @@ export default function CreateQuoteScreen() {
                   </Text>
                 )}
               </View>
-              {dealId === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
+              {leadId === item.id && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
             </TouchableOpacity>
           )}
-          ListEmptyComponent={<Text style={[styles.emptyPickerText, { color: subtitleColor }]}>No deals found</Text>}
+          ListEmptyComponent={<Text style={[styles.emptyPickerText, { color: subtitleColor }]}>No leads found</Text>}
           style={{ maxHeight: 350 }}
         />
       </PickerModal>

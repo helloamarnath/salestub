@@ -73,8 +73,8 @@ export interface Invoice {
   isRecurring?: boolean;
   recurringFrequency?: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
 
-  dealId?: string;
-  deal?: { id: string; title: string; status: string };
+  leadId?: string;
+  lead?: { id: string; title: string; displayId?: string };
   quoteId?: string;
   quote?: { id: string; quoteNumber: string; status: string };
   contactId: string;
@@ -108,7 +108,6 @@ export interface InvoiceFilters {
   page?: number;
   limit?: number;
   status?: InvoiceStatus;
-  dealId?: string;
   contactId?: string;
   leadId?: string;
   search?: string;
@@ -144,7 +143,7 @@ export interface CreateInvoiceDto {
   currencyId: string;
   dueDate: string;
   invoiceDate?: string;
-  dealId?: string;
+  leadId?: string;
   quoteId?: string;
   companyId?: string;
   subject?: string;

@@ -37,7 +37,7 @@ import type { Visit, VisitPurpose } from '@/types/visit';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
-import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources, getAllTags, getLeadTags, addLeadTags, removeLeadTags, createTag, getLeadDocuments, uploadLeadDocument, deleteLeadDocument, getLeadDocumentPreview, convertLead, qualifyLead, markLeadLost, getLeadProducts, addLeadProduct, removeLeadProduct, getLeadNotesEndpoint, addLeadNoteEndpoint, convertLeadToDeal } from '@/lib/api/leads';
+import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources, getAllTags, getLeadTags, addLeadTags, removeLeadTags, createTag, getLeadDocuments, uploadLeadDocument, deleteLeadDocument, getLeadDocumentPreview, convertLead, qualifyLead, markLeadLost, getLeadProducts, addLeadProduct, removeLeadProduct, getLeadNotesEndpoint, addLeadNoteEndpoint } from '@/lib/api/leads';
 import { getProducts, createProduct } from '@/lib/api/products';
 import { getQuotes } from '@/lib/api/quotes';
 import { getInvoices } from '@/lib/api/invoices';
@@ -48,10 +48,7 @@ import type { Invoice } from '@/types/invoice';
 import { INVOICE_STATUS_COLORS, INVOICE_STATUS_LABELS } from '@/types/invoice';
 import * as WebBrowser from 'expo-web-browser';
 import { searchCompanies, createCompany } from '@/lib/api/companies';
-import { getDealsByContact, createDeal, updateDeal, deleteDeal, searchDeals, advanceDealStage, closeDealWon, closeDealLost } from '@/lib/api/deals';
 import type { Company, CreateCompanyDto } from '@/types/company';
-import type { Deal, CreateDealDto, UpdateDealDto, DealStage } from '@/types/deal';
-import { DEAL_STAGE_LABELS, DEAL_STAGE_COLORS, DEAL_STATUS_COLORS, DEAL_STATUS_LABELS, formatDealValue } from '@/types/deal';
 import { getOrganizationMembers, getMemberDisplayName, type OrgMember } from '@/lib/api/organization';
 import { LeadStatusBadge, ScoreIndicator, SourceBadge } from '@/components/leads/LeadStatusBadge';
 import type { Lead, LeadActivity, KanbanStage, UpdateLeadDto, CreateActivityDto, LeadTag, LeadDocument, LeadProduct } from '@/types/lead';
@@ -879,6 +876,7 @@ function DetailsTab({
   const [showOwnerPicker, setShowOwnerPicker] = useState(false);
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [showDescriptionInput, setShowDescriptionInput] = useState(false);
+  const [showExpectedCloseDateInput, setShowExpectedCloseDateInput] = useState(false);
 
   const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -1035,6 +1033,40 @@ function DetailsTab({
                 <View style={styles.detailsCell} />
               </View>
             )}
+
+            {/* Lifecycle dates: expected close (editable) + closed date (auto-set from stage) */}
+            <View style={styles.detailsRow}>
+              <TouchableOpacity
+                style={styles.detailsCell}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowExpectedCloseDateInput(true);
+                }}
+              >
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>EXPECTED CLOSE</Text>
+                <Text style={[styles.detailsCellValue, { color: textColor }]}>
+                  {lead.expectedCloseDate
+                    ? new Date(lead.expectedCloseDate).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : '-'}
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.detailsCell}>
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>CLOSED DATE</Text>
+                <Text style={[styles.detailsCellValue, { color: textColor }]}>
+                  {lead.closedDate
+                    ? new Date(lead.closedDate).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : '-'}
+                </Text>
+              </View>
+            </View>
           </View>
           {updating && (
             <View style={styles.updatingIndicator}>
@@ -1299,6 +1331,31 @@ function DetailsTab({
         isDark={isDark}
         keyboardType="numeric"
         placeholder="Enter description..."
+      />
+
+      <ValueInputModal
+        visible={showExpectedCloseDateInput}
+        title="Expected Close Date (YYYY-MM-DD)"
+        value={
+          lead.expectedCloseDate
+            ? new Date(lead.expectedCloseDate).toISOString().slice(0, 10)
+            : ''
+        }
+        onSave={(value) => {
+          const trimmed = value.trim();
+          if (!trimmed) {
+            onUpdateField('expectedCloseDate', null);
+            return;
+          }
+          const parsed = new Date(trimmed);
+          if (!Number.isNaN(parsed.getTime())) {
+            onUpdateField('expectedCloseDate', parsed.toISOString());
+          }
+        }}
+        onClose={() => setShowExpectedCloseDateInput(false)}
+        isDark={isDark}
+        keyboardType="numbers-and-punctuation"
+        placeholder="2026-12-31"
       />
     </>
   );
@@ -2367,754 +2424,6 @@ function DocsTab({
   );
 }
 
-// Deal Item Component
-function DealItem({
-  deal,
-  isDark,
-  onPress,
-  onDelete,
-}: {
-  deal: Deal;
-  isDark: boolean;
-  onPress: () => void;
-  onDelete: () => void;
-}) {
-  const colors = Colors[isDark ? 'dark' : 'light'];
-  const textColor = colors.foreground;
-  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-
-  const stageColor = DEAL_STAGE_COLORS[deal.stage] || '#6b7280';
-  const statusColor = DEAL_STATUS_COLORS[deal.status] || '#6b7280';
-  const currencySymbol = deal.currency?.symbol || '₹';
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  return (
-    <TouchableOpacity
-      style={[styles.dealItem, { backgroundColor: cardBg, borderColor }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      {/* Stage indicator */}
-      <View style={[styles.dealStageIndicator, { backgroundColor: stageColor }]} />
-
-      <View style={styles.dealItemContent}>
-        <View style={styles.dealItemHeader}>
-          <View style={styles.dealItemInfo}>
-            <Text style={[styles.dealItemTitle, { color: textColor }]} numberOfLines={1}>
-              {deal.title}
-            </Text>
-            <View style={styles.dealItemBadges}>
-              <View style={[styles.dealStageBadge, { backgroundColor: `${stageColor}15` }]}>
-                <View style={[styles.dealStageDot, { backgroundColor: stageColor }]} />
-                <Text style={[styles.dealStageBadgeText, { color: stageColor }]}>
-                  {DEAL_STAGE_LABELS[deal.stage] || deal.stage}
-                </Text>
-              </View>
-              <View style={[styles.dealStatusBadge, { backgroundColor: `${statusColor}15` }]}>
-                <Text style={[styles.dealStatusBadgeText, { color: statusColor }]}>
-                  {deal.status}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.dealItemValue}>
-            <Text style={[styles.dealValueText, { color: textColor }]}>
-              {formatDealValue(Number(deal.value), currencySymbol)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.dealItemMeta}>
-          {deal.expectedCloseDate && (
-            <View style={styles.dealMetaItem}>
-              <Ionicons name="calendar-outline" size={12} color={subtitleColor} />
-              <Text style={[styles.dealMetaText, { color: subtitleColor }]}>
-                Expected: {formatDate(deal.expectedCloseDate)}
-              </Text>
-            </View>
-          )}
-          {deal.contact && (
-            <View style={styles.dealMetaItem}>
-              <Ionicons name="person-outline" size={12} color={subtitleColor} />
-              <Text style={[styles.dealMetaText, { color: subtitleColor }]} numberOfLines={1}>
-                {deal.contact.firstName} {deal.contact.lastName}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.dealDeleteBtn}
-        onPress={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="trash-outline" size={18} color="#ef4444" />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-}
-
-// Create Deal Modal
-function CreateDealModal({
-  visible,
-  leadId,
-  contactId,
-  contactName,
-  onSave,
-  onClose,
-  isDark,
-  saving,
-  defaultValue,
-  currencySymbol,
-}: {
-  visible: boolean;
-  leadId: string;
-  contactId: string;
-  contactName: string;
-  onSave: (data: CreateDealDto) => void;
-  onClose: () => void;
-  isDark: boolean;
-  saving: boolean;
-  defaultValue?: number;
-  currencySymbol?: string;
-}) {
-  const colors = Colors[isDark ? 'dark' : 'light'];
-  const insets = useSafeAreaInsets();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [value, setValue] = useState(defaultValue?.toString() || '');
-  const [expectedCloseDate, setExpectedCloseDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const bgColor = colors.card;
-  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
-  const textColor = colors.foreground;
-  const subtitleColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-  const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'white';
-  const placeholderColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
-
-  useEffect(() => {
-    if (visible) {
-      setTitle('');
-      setDescription('');
-      setValue(defaultValue?.toString() || '');
-      setExpectedCloseDate(null);
-    }
-  }, [visible, defaultValue]);
-
-  const handleSave = () => {
-    if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a deal title');
-      return;
-    }
-    if (!value.trim() || isNaN(Number(value))) {
-      Alert.alert('Error', 'Please enter a valid deal value');
-      return;
-    }
-
-    const data: CreateDealDto = {
-      title: title.trim(),
-      description: description.trim() || undefined,
-      value: Number(value),
-      contactId,
-      expectedCloseDate: expectedCloseDate?.toISOString(),
-    };
-
-    onSave(data);
-  };
-
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'Select date';
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.createDealOverlay} onPress={onClose}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.createDealKeyboardView}
-        >
-          <Pressable
-            style={[styles.createDealContent, { backgroundColor: bgColor }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <LinearGradient
-              colors={['#22c55e', '#16a34a']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.createDealHeader}
-            >
-              <View style={styles.createDealHeaderContent}>
-                <View>
-                  <Text style={styles.createDealTitle}>Create New Deal</Text>
-                  <Text style={styles.createDealSubtitle}>
-                    Linked to {contactName}
-                  </Text>
-                </View>
-                <TouchableOpacity style={styles.createDealCloseBtn} onPress={onClose}>
-                  <Ionicons name="close" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-
-            <ScrollView
-              style={styles.createDealForm}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-            >
-              {/* Title */}
-              <View style={styles.createDealField}>
-                <Text style={[styles.createDealLabel, { color: textColor }]}>Deal Title *</Text>
-                <TextInput
-                  style={[styles.createDealInput, { backgroundColor: inputBg, borderColor, color: textColor }]}
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="Enter deal title"
-                  placeholderTextColor={placeholderColor}
-                />
-              </View>
-
-              {/* Value */}
-              <View style={styles.createDealField}>
-                <Text style={[styles.createDealLabel, { color: textColor }]}>Deal Value *</Text>
-                <View style={[styles.createDealValueInput, { backgroundColor: inputBg, borderColor }]}>
-                  <Text style={[styles.createDealCurrency, { color: subtitleColor }]}>
-                    {currencySymbol || '₹'}
-                  </Text>
-                  <TextInput
-                    style={[styles.createDealValueText, { color: textColor }]}
-                    value={value}
-                    onChangeText={setValue}
-                    placeholder="0"
-                    placeholderTextColor={placeholderColor}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-
-              {/* Expected Close Date */}
-              <View style={styles.createDealField}>
-                <Text style={[styles.createDealLabel, { color: textColor }]}>Expected Close Date</Text>
-                <TouchableOpacity
-                  style={[styles.createDealDateBtn, { backgroundColor: inputBg, borderColor }]}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Ionicons name="calendar-outline" size={20} color={subtitleColor} />
-                  <Text style={[styles.createDealDateText, { color: expectedCloseDate ? textColor : placeholderColor }]}>
-                    {formatDate(expectedCloseDate)}
-                  </Text>
-                </TouchableOpacity>
-                {/* iOS: Modal with Done button */}
-                {showDatePicker && Platform.OS === 'ios' && (
-                  <Modal transparent animationType="fade">
-                    <Pressable
-                      style={[styles.datePickerOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
-                      onPress={() => setShowDatePicker(false)}
-                    >
-                      <View style={[styles.datePickerContainer, { backgroundColor: inputBg }]}>
-                        <DateTimePicker
-                          value={expectedCloseDate || new Date()}
-                          mode="date"
-                          display="spinner"
-                          onChange={(event, date) => {
-                            if (date) setExpectedCloseDate(date);
-                          }}
-                          minimumDate={new Date()}
-                          textColor={textColor}
-                        />
-                        <TouchableOpacity
-                          style={[styles.datePickerDone, { backgroundColor: colors.primary }]}
-                          onPress={() => setShowDatePicker(false)}
-                        >
-                          <Text style={styles.datePickerDoneText}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </Pressable>
-                  </Modal>
-                )}
-                {/* Android: Native dialog */}
-                {showDatePicker && Platform.OS === 'android' && (
-                  <DateTimePicker
-                    value={expectedCloseDate || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event, date) => {
-                      setShowDatePicker(false);
-                      if (event.type === 'set' && date) {
-                        setExpectedCloseDate(date);
-                      }
-                    }}
-                    minimumDate={new Date()}
-                  />
-                )}
-              </View>
-
-              {/* Description */}
-              <View style={styles.createDealField}>
-                <Text style={[styles.createDealLabel, { color: textColor }]}>Description</Text>
-                <TextInput
-                  style={[styles.createDealTextarea, { backgroundColor: inputBg, borderColor, color: textColor }]}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="Optional description..."
-                  placeholderTextColor={placeholderColor}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </View>
-
-              {/* Save Button */}
-              <TouchableOpacity
-                style={[styles.createDealSaveBtn, saving && { opacity: 0.7 }]}
-                onPress={handleSave}
-                disabled={saving}
-              >
-                <LinearGradient
-                  colors={['#22c55e', '#16a34a']}
-                  style={styles.createDealSaveBtnGradient}
-                >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <>
-                      <Ionicons name="add-circle" size={20} color="white" />
-                      <Text style={styles.createDealSaveBtnText}>Create Deal</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </ScrollView>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Pressable>
-    </Modal>
-  );
-}
-
-// Deals Tab Component
-function DealsTab({
-  lead,
-  accessToken,
-  isDark,
-  onDealCreated,
-}: {
-  lead: Lead | null;
-  accessToken: string | null;
-  isDark: boolean;
-  onDealCreated?: () => void;
-}) {
-  const colors = Colors[isDark ? 'dark' : 'light'];
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const textColor = colors.foreground;
-  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-
-  const hasContact = !!lead?.contactId;
-  const contactName = lead?.contact
-    ? `${lead.contact.firstName} ${lead.contact.lastName}`.trim()
-    : 'Unknown Contact';
-  const currencySymbol = lead?.currency?.symbol || '₹';
-
-  const fetchDeals = useCallback(async () => {
-    if (!accessToken || !lead?.contactId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-
-    const response = await getDealsByContact(accessToken, lead.contactId);
-    if (response.success && response.data) {
-      setDeals(response.data);
-    }
-    setLoading(false);
-  }, [accessToken, lead?.contactId]);
-
-  useEffect(() => {
-    fetchDeals();
-  }, [fetchDeals]);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchDeals();
-    setRefreshing(false);
-  }, [fetchDeals]);
-
-  const handleCreateDeal = async (data: CreateDealDto) => {
-    if (!accessToken || !lead?.id) return;
-    setSaving(true);
-
-    const response = await createDeal(accessToken, data);
-    if (response.success && response.data) {
-      setDeals(prev => [response.data!, ...prev]);
-      setShowCreateModal(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      // Add timeline activity for deal creation
-      const dealValue = formatDealValue(Number(response.data.value), currencySymbol);
-      await addLeadActivity(accessToken, lead.id, {
-        type: 'NOTE',
-        title: `Deal Created: ${response.data.title}`,
-        description: `New deal created with value ${dealValue}`,
-        status: 'COMPLETED',
-      });
-
-      // Notify parent to refresh timeline
-      onDealCreated?.();
-    } else {
-      Alert.alert('Error', response.error?.message || 'Failed to create deal');
-    }
-    setSaving(false);
-  };
-
-  const handleDeleteDeal = (dealId: string) => {
-    Alert.alert(
-      'Delete Deal',
-      'Are you sure you want to delete this deal? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!accessToken) return;
-            const response = await deleteDeal(accessToken, dealId);
-            if (response.success) {
-              setDeals(prev => prev.filter(d => d.id !== dealId));
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            } else {
-              Alert.alert('Error', response.error?.message || 'Failed to delete deal');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleDealStageChange = async (deal: Deal, newStage: DealStage) => {
-    if (!accessToken) return;
-
-    const response = await updateDeal(accessToken, deal.id, { stage: newStage });
-    if (response.success && response.data) {
-      setDeals(prev => prev.map(d => d.id === deal.id ? response.data! : d));
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      // Log activity for stage change
-      if (lead?.id) {
-        await addLeadActivity(accessToken, lead.id, {
-          type: 'NOTE',
-          title: `Deal Stage Changed: ${deal.title}`,
-          description: `Stage updated from ${DEAL_STAGE_LABELS[deal.stage]} to ${DEAL_STAGE_LABELS[newStage]}`,
-          status: 'COMPLETED',
-        });
-        onDealCreated?.();
-      }
-    } else {
-      Alert.alert('Error', response.error?.message || 'Failed to update deal stage');
-    }
-  };
-
-  const handleMarkDealWon = async (deal: Deal) => {
-    if (!accessToken) return;
-
-    Alert.alert(
-      'Mark as Won',
-      `Are you sure you want to mark "${deal.title}" as won?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark Won',
-          onPress: async () => {
-            const response = await closeDealWon(accessToken, deal.id);
-            if (response.success && response.data) {
-              setDeals(prev => prev.map(d => d.id === deal.id ? response.data! : d));
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-              // Log activity
-              if (lead?.id) {
-                const dealValue = formatDealValue(Number(deal.value), currencySymbol);
-                await addLeadActivity(accessToken, lead.id, {
-                  type: 'NOTE',
-                  title: `🎉 Deal Won: ${deal.title}`,
-                  description: `Deal closed as won with value ${dealValue}`,
-                  status: 'COMPLETED',
-                });
-                onDealCreated?.();
-              }
-            } else {
-              Alert.alert('Error', response.error?.message || 'Failed to close deal');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleMarkDealLost = async (deal: Deal) => {
-    if (!accessToken) return;
-
-    Alert.alert(
-      'Mark as Lost',
-      `Are you sure you want to mark "${deal.title}" as lost?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark Lost',
-          style: 'destructive',
-          onPress: async () => {
-            const response = await closeDealLost(accessToken, deal.id);
-            if (response.success && response.data) {
-              setDeals(prev => prev.map(d => d.id === deal.id ? response.data! : d));
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-              // Log activity
-              if (lead?.id) {
-                const dealValue = formatDealValue(Number(deal.value), currencySymbol);
-                await addLeadActivity(accessToken, lead.id, {
-                  type: 'NOTE',
-                  title: `Deal Lost: ${deal.title}`,
-                  description: `Deal closed as lost with value ${dealValue}`,
-                  status: 'COMPLETED',
-                });
-                onDealCreated?.();
-              }
-            } else {
-              Alert.alert('Error', response.error?.message || 'Failed to close deal');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const showStagePickerAlert = (deal: Deal) => {
-    const stages: DealStage[] = ['PROSPECTING', 'QUALIFICATION', 'PROPOSAL', 'NEGOTIATION'];
-
-    Alert.alert(
-      'Change Stage',
-      'Select a new stage for this deal',
-      [
-        ...stages.map(stage => ({
-          text: `${deal.stage === stage ? '✓ ' : ''}${DEAL_STAGE_LABELS[stage]}`,
-          onPress: () => {
-            if (deal.stage !== stage) {
-              handleDealStageChange(deal, stage);
-            }
-          },
-        })),
-        { text: 'Cancel', style: 'cancel' as const },
-      ]
-    );
-  };
-
-  const handleDealPress = (deal: Deal) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    const isClosed = deal.status === 'WON' || deal.status === 'LOST';
-
-    // Build action options based on deal status
-    const actions: Array<{text: string; onPress?: () => void; style?: 'cancel' | 'destructive'}> = [];
-
-    if (!isClosed) {
-      actions.push({
-        text: '📊 Change Stage',
-        onPress: () => showStagePickerAlert(deal),
-      });
-      actions.push({
-        text: '✅ Mark as Won',
-        onPress: () => handleMarkDealWon(deal),
-      });
-      actions.push({
-        text: '❌ Mark as Lost',
-        onPress: () => handleMarkDealLost(deal),
-      });
-    }
-
-    actions.push({
-      text: '🗑️ Delete Deal',
-      style: 'destructive',
-      onPress: () => handleDeleteDeal(deal.id),
-    });
-
-    actions.push({ text: 'Cancel', style: 'cancel' });
-
-    Alert.alert(
-      deal.title,
-      `Value: ${formatDealValue(Number(deal.value), currencySymbol)}\nStage: ${DEAL_STAGE_LABELS[deal.stage]}\nStatus: ${DEAL_STATUS_LABELS[deal.status]}${isClosed ? '\n\n(Deal is closed - stage changes not available)' : ''}`,
-      actions
-    );
-  };
-
-  // Calculate total deal value
-  const totalValue = deals.reduce((sum, deal) => sum + Number(deal.value), 0);
-  const openDeals = deals.filter(d => d.status === 'OPEN').length;
-  const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
-
-  if (loading) {
-    return (
-      <View style={styles.loadingTab}>
-        <ActivityIndicator size="small" color="#22c55e" />
-      </View>
-    );
-  }
-
-  // No contact linked - show empty state
-  if (!hasContact) {
-    return (
-      <View style={styles.dealsTabContainer}>
-        <View style={styles.tabContent}>
-          <View style={styles.dealsNoContactContainer}>
-            <View style={[styles.dealsNoContactIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(234,179,8,0.1)' }]}>
-              <Ionicons name="link-outline" size={40} color="#eab308" />
-            </View>
-            <Text style={[styles.dealsNoContactTitle, { color: textColor }]}>No Contact Linked</Text>
-            <Text style={[styles.dealsNoContactText, { color: subtitleColor }]}>
-              Deals are linked to contacts. Please add a contact to this lead first, or convert this lead to create a contact and deal.
-            </Text>
-            <View style={[styles.dealsNoContactHint, { backgroundColor: isDark ? 'rgba(234,179,8,0.1)' : 'rgba(234,179,8,0.1)', borderColor: 'rgba(234,179,8,0.3)' }]}>
-              <Ionicons name="bulb-outline" size={16} color="#eab308" />
-              <Text style={[styles.dealsNoContactHintText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]}>
-                Tip: Use the "Convert to Deal" option from the header menu to convert this lead into a contact and optionally create a deal.
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.dealsTabContainer}>
-      <View style={styles.tabContent}>
-        {/* Header Section */}
-        <View style={[styles.sectionHeaderRow, { marginBottom: 10 }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Ionicons name="briefcase-outline" size={15} color={sectionTitleColor} />
-            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
-              Deals {deals.length > 0 ? `(${deals.length})` : ''}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setShowCreateModal(true);
-            }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#22c55e', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
-          >
-            <Ionicons name="add" size={16} color="white" />
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats Card */}
-        {deals.length > 0 && (
-          <View style={[styles.dealsStatsCard, { backgroundColor: cardBg, borderColor }]}>
-            <View style={styles.dealsStatItem}>
-              <Text style={[styles.dealsStatValue, { color: '#22c55e' }]}>
-                {formatDealValue(totalValue, currencySymbol)}
-              </Text>
-              <Text style={[styles.dealsStatLabel, { color: subtitleColor }]}>Total Value</Text>
-            </View>
-            <View style={[styles.dealsStatDivider, { backgroundColor: borderColor }]} />
-            <View style={styles.dealsStatItem}>
-              <Text style={[styles.dealsStatValue, { color: textColor }]}>{deals.length}</Text>
-              <Text style={[styles.dealsStatLabel, { color: subtitleColor }]}>Total Deals</Text>
-            </View>
-            <View style={[styles.dealsStatDivider, { backgroundColor: borderColor }]} />
-            <View style={styles.dealsStatItem}>
-              <Text style={[styles.dealsStatValue, { color: colors.primary }]}>{openDeals}</Text>
-              <Text style={[styles.dealsStatLabel, { color: subtitleColor }]}>Open</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Deals List */}
-        {deals.length === 0 ? (
-          <View style={styles.dealsEmptyContainer}>
-            <View style={[styles.dealsEmptyIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(34,197,94,0.08)' }]}>
-              <Ionicons name="briefcase-outline" size={40} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(34,197,94,0.5)'} />
-            </View>
-            <Text style={[styles.dealsEmptyTitle, { color: textColor }]}>No deals yet</Text>
-            <Text style={[styles.dealsEmptyText, { color: subtitleColor }]}>
-              Create a deal to track revenue opportunities for this lead's contact
-            </Text>
-            <TouchableOpacity
-              style={styles.dealsCreateBtn}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setShowCreateModal(true);
-              }}
-            >
-              <LinearGradient
-                colors={['#22c55e', '#16a34a']}
-                style={styles.dealsCreateBtnGradient}
-              >
-                <Ionicons name="add" size={18} color="white" />
-                <Text style={styles.dealsCreateBtnText}>Create First Deal</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.dealsList}>
-            {deals.map((deal) => (
-              <DealItem
-                key={deal.id}
-                deal={deal}
-                isDark={isDark}
-                onPress={() => handleDealPress(deal)}
-                onDelete={() => handleDeleteDeal(deal.id)}
-              />
-            ))}
-          </View>
-        )}
-
-        <View style={{ height: 40 }} />
-      </View>
-
-      {/* Create Deal Modal */}
-      <CreateDealModal
-        visible={showCreateModal}
-        leadId={lead?.id || ''}
-        contactId={lead?.contactId || ''}
-        contactName={contactName}
-        onSave={handleCreateDeal}
-        onClose={() => setShowCreateModal(false)}
-        isDark={isDark}
-        saving={saving}
-        defaultValue={lead?.value}
-        currencySymbol={currencySymbol}
-      />
-    </View>
-  );
-}
-
 // Convert Lead Modal
 function ConvertLeadModal({
   visible,
@@ -3131,9 +2440,6 @@ function ConvertLeadModal({
     accountName: string;
     accountWebsite?: string;
     accountIndustry?: string;
-    createDeal?: boolean;
-    dealTitle?: string;
-    dealValue?: number;
     existingCompanyId?: string;
   }) => void;
   onClose: () => void;
@@ -3146,9 +2452,6 @@ function ConvertLeadModal({
   const [accountName, setAccountName] = useState('');
   const [accountWebsite, setAccountWebsite] = useState('');
   const [accountIndustry, setAccountIndustry] = useState('');
-  const [createDeal, setCreateDeal] = useState(true);
-  const [dealTitle, setDealTitle] = useState('');
-  const [dealValue, setDealValue] = useState('');
 
   // Company search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -3209,8 +2512,6 @@ function ConvertLeadModal({
         setIsCreatingNew(true);
       }
       setAccountName(lead.contact?.company?.name || '');
-      setDealTitle(lead.title);
-      setDealValue(lead.value?.toString() || '');
     }
   }, [visible, lead]);
 
@@ -3255,9 +2556,6 @@ function ConvertLeadModal({
       accountName: accountName.trim(),
       accountWebsite: accountWebsite.trim() || undefined,
       accountIndustry: accountIndustry.trim() || undefined,
-      createDeal,
-      dealTitle: createDeal ? dealTitle.trim() || lead?.title : undefined,
-      dealValue: createDeal && dealValue ? parseFloat(dealValue) : undefined,
       existingCompanyId: selectedCompany?.id,
     });
   };
@@ -3286,7 +2584,7 @@ function ConvertLeadModal({
               <View>
                 <Text style={[styles.convertModalTitle, { color: textColor }]}>Convert Lead</Text>
                 <Text style={[styles.convertModalSubtitle, { color: subtitleColor }]}>
-                  Create account & deal
+                  Create account from lead
                 </Text>
               </View>
             </View>
@@ -3528,68 +2826,6 @@ function ConvertLeadModal({
               )}
             </View>
 
-            {/* Deal Section Card */}
-            <View style={[styles.convertSectionCard, { backgroundColor: cardBg, borderColor }]}>
-              <View style={styles.convertSectionHeader}>
-                <View style={[styles.convertSectionIcon, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
-                  <Ionicons name="briefcase-outline" size={18} color="#22c55e" />
-                </View>
-                <Text style={[styles.convertSectionTitle, { color: textColor }]}>Deal Creation</Text>
-              </View>
-
-              {/* Toggle Switch */}
-              <TouchableOpacity
-                style={[styles.convertToggleRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setCreateDeal(!createDeal);
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.convertToggleInfo}>
-                  <Text style={[styles.convertToggleText, { color: textColor }]}>Create Deal</Text>
-                  <Text style={[styles.convertToggleHint, { color: subtitleColor }]}>
-                    Also create a deal from this lead
-                  </Text>
-                </View>
-                <View style={[styles.convertSwitch, createDeal && styles.convertSwitchActive]}>
-                  <View style={[styles.convertSwitchThumb, createDeal && styles.convertSwitchThumbActive]} />
-                </View>
-              </TouchableOpacity>
-
-              {createDeal && (
-                <View style={styles.convertDealFields}>
-                  <View style={styles.convertFormGroup}>
-                    <Text style={[styles.convertFormLabel, { color: subtitleColor }]}>Deal Title</Text>
-                    <View style={[styles.convertInputWrapper, { backgroundColor: inputBg, borderColor }]}>
-                      <Ionicons name="document-text-outline" size={18} color={subtitleColor} style={styles.convertInputIcon} />
-                      <TextInput
-                        style={[styles.convertFormInput, { color: textColor }]}
-                        value={dealTitle}
-                        onChangeText={setDealTitle}
-                        placeholder="Deal title"
-                        placeholderTextColor={placeholderColor}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={[styles.convertFormGroup, { marginBottom: 0 }]}>
-                    <Text style={[styles.convertFormLabel, { color: subtitleColor }]}>Deal Value</Text>
-                    <View style={[styles.convertInputWrapper, { backgroundColor: inputBg, borderColor }]}>
-                      <Ionicons name="cash-outline" size={18} color={subtitleColor} style={styles.convertInputIcon} />
-                      <TextInput
-                        style={[styles.convertFormInput, { color: textColor }]}
-                        value={dealValue}
-                        onChangeText={setDealValue}
-                        placeholder="0.00"
-                        placeholderTextColor={placeholderColor}
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
-                  </View>
-                </View>
-              )}
-            </View>
           </ScrollView>
 
           {/* Footer */}
@@ -4972,30 +4208,21 @@ export default function LeadDetailScreen() {
     setSavingActivity(false);
   };
 
-  // Convert lead to deal
+  // Convert lead to contact
   const handleConvertLead = async (data: {
     accountName: string;
     accountWebsite?: string;
     accountIndustry?: string;
-    createDeal?: boolean;
-    dealTitle?: string;
-    dealValue?: number;
     existingCompanyId?: string;
   }) => {
     if (!accessToken || !id) return;
 
     setConverting(true);
 
-    // Pass existingCompanyId if selecting existing company
     const response = await convertLead(accessToken, id, {
       accountName: data.accountName,
       accountWebsite: data.accountWebsite,
       accountIndustry: data.accountIndustry,
-      createDeal: data.createDeal,
-      dealTitle: data.dealTitle,
-      dealValue: data.dealValue,
-      // Note: existingCompanyId would need backend support
-      // For now, the backend will create/use company by name
     });
 
     if (response.success) {
@@ -5003,9 +4230,7 @@ export default function LeadDetailScreen() {
       setShowConvertModal(false);
       Alert.alert(
         'Lead Converted',
-        data.createDeal
-          ? 'Lead has been converted to a contact and deal.'
-          : 'Lead has been converted to a contact.',
+        'Lead has been converted to a contact.',
         [
           {
             text: 'OK',
@@ -5195,9 +4420,6 @@ export default function LeadDetailScreen() {
         {/* Documents */}
         <DocsTab leadId={id} accessToken={accessToken} isDark={isDark} />
 
-        {/* Deals */}
-        <DealsTab lead={lead} accessToken={accessToken} isDark={isDark} onDealCreated={fetchActivities} />
-
         {/* Products */}
         <ProductsTab leadId={id} accessToken={accessToken} isDark={isDark} />
 
@@ -5253,7 +4475,6 @@ export default function LeadDetailScreen() {
           gap: 12,
         }}>
           {[
-            { icon: 'briefcase-outline' as const, label: 'Deal', color: '#22c55e', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowConvertModal(true); } },
             { icon: 'document-text-outline' as const, label: 'Quotes', color: colors.primary, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('quotes'); } },
             { icon: 'receipt-outline' as const, label: 'Invoices', color: '#ef4444', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('invoices'); } },
             { icon: 'location-outline' as const, label: 'Log Visit', color: '#8b5cf6', onPress: () => { setFabOpen(false); handleStartVisitPress(); } },
@@ -5375,7 +4596,7 @@ export default function LeadDetailScreen() {
             <View style={[styles.actionSheetHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' }]} />
             <Text style={[styles.actionSheetTitle, { color: textColor }]}>Lead Actions</Text>
 
-            {/* Convert to Deal */}
+            {/* Convert to Contact */}
             <TouchableOpacity
               style={[styles.moreActionItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}
               onPress={() => {
@@ -5389,7 +4610,7 @@ export default function LeadDetailScreen() {
               </View>
               <View style={styles.moreActionText}>
                 <Text style={[styles.moreActionLabel, { color: textColor }]}>Convert Lead</Text>
-                <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Convert to contact and deal</Text>
+                <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Convert to contact / account</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
             </TouchableOpacity>
@@ -7137,372 +6358,6 @@ const styles = StyleSheet.create({
   },
   tabsScrollContent: {
     paddingHorizontal: 16,
-  },
-  // Deals Tab styles
-  dealsTabContainer: {
-    
-    padding: 16,
-  },
-  dealsTabHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  dealsTabHeaderIcon: {
-    marginRight: 12,
-  },
-  dealsTabIconGradient: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dealsTabHeaderInfo: {
-    flex: 1,
-  },
-  dealsTabHeaderTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  dealsTabHeaderSubtitle: {
-    fontSize: 13,
-  },
-  dealsTabAddBtn: {
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  dealsTabAddBtnGradient: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dealsStatsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  dealsStatItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  dealsStatValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  dealsStatLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  dealsStatDivider: {
-    width: 1,
-    height: 32,
-    marginHorizontal: 8,
-  },
-  dealsEmptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 32,
-  },
-  dealsEmptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  dealsEmptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  dealsEmptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  dealsCreateBtn: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  dealsCreateBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    gap: 8,
-  },
-  dealsCreateBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#252525',
-  },
-  dealsList: {
-    gap: 12,
-  },
-  dealItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  dealStageIndicator: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    borderTopLeftRadius: 14,
-    borderBottomLeftRadius: 14,
-  },
-  dealItemContent: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  dealItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  dealItemInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  dealItemTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  dealItemBadges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  dealStageBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  dealStageDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  dealStageBadgeText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  dealStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  dealStatusBadgeText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  dealItemValue: {
-    alignItems: 'flex-end',
-  },
-  dealValueText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  dealItemMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  dealMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  dealMetaText: {
-    fontSize: 12,
-  },
-  dealDeleteBtn: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  // No contact state for deals
-  dealsNoContactContainer: {
-    alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 24,
-  },
-  dealsNoContactIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  dealsNoContactTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  dealsNoContactText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  dealsNoContactHint: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 10,
-  },
-  dealsNoContactHintText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  // Create Deal Modal styles
-  createDealOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  createDealKeyboardView: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  createDealContent: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '90%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  createDealHeader: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-  },
-  createDealHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  createDealTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#252525',
-    marginBottom: 4,
-  },
-  createDealSubtitle: {
-    fontSize: 13,
-    color: '#454545',
-  },
-  createDealCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  createDealForm: {
-    padding: 16,
-  },
-  createDealField: {
-    marginBottom: 16,
-  },
-  createDealLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  createDealInput: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-  },
-  createDealValueInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-  },
-  createDealCurrency: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 8,
-  },
-  createDealValueText: {
-    flex: 1,
-    fontSize: 15,
-    paddingVertical: 12,
-  },
-  createDealDateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  createDealDateText: {
-    flex: 1,
-    fontSize: 15,
-  },
-  createDealTextarea: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    minHeight: 80,
-  },
-  createDealSaveBtn: {
-    marginTop: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  createDealSaveBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
-  },
-  createDealSaveBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#252525',
   },
   // Products tab styles
   productItem: {

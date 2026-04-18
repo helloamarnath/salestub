@@ -21,7 +21,6 @@ import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
 import { exportLeadsToCSV } from '@/lib/api/leads';
 import { exportContactsToCSV } from '@/lib/api/contacts';
-import { exportDealsToCSV } from '@/lib/api/deals';
 import { exportActivitiesToCSV } from '@/lib/api/activities';
 import { exportProductsToCSV } from '@/lib/api/products';
 import { ExportFilterModal, type ExportDataType, type ExportFilters } from '@/components/export/ExportFilterModal';
@@ -53,15 +52,6 @@ const DATA_TYPES: DataType[] = [
     description: 'Contact details, company, and tags',
     icon: 'person-outline',
     color: '#10b981',
-    exportEnabled: true,
-    importEnabled: false,
-  },
-  {
-    id: 'deals',
-    title: 'Deals',
-    description: 'Deal pipeline data, values, and stages',
-    icon: 'briefcase-outline',
-    color: '#f59e0b',
     exportEnabled: true,
     importEnabled: false,
   },
@@ -252,12 +242,6 @@ export default function ExportImportScreen() {
             status: filters.status,
             createdFrom: filters.dateFrom,
             createdTo: filters.dateTo,
-          });
-          break;
-        case 'deals':
-          result = await exportDealsToCSV(accessToken, {
-            stage: filters.dealStage,
-            status: filters.dealStatus,
           });
           break;
         case 'activities':

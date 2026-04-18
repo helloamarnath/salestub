@@ -563,7 +563,7 @@ export default function ActivityDetailScreen() {
           )}
 
           {/* Related Entities */}
-          {(activity.contact || activity.deal || activity.company || activity.lead) && (
+          {(activity.contact || activity.company || activity.lead) && (
             <View
               style={[
                 styles.card,
@@ -587,25 +587,6 @@ export default function ActivityDetailScreen() {
                   </View>
                   <Text style={[styles.relatedName, { color: colors.foreground }]}>
                     {`${activity.contact.firstName} ${activity.contact.lastName}`.trim()}
-                  </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'}
-                  />
-                </TouchableOpacity>
-              )}
-
-              {activity.deal && (
-                <TouchableOpacity
-                  style={styles.relatedItem}
-                  onPress={() => router.push(`/deals/${activity.dealId}` as any)}
-                >
-                  <View style={[styles.relatedIcon, { backgroundColor: '#8b5cf615' }]}>
-                    <Ionicons name="briefcase-outline" size={16} color="#8b5cf6" />
-                  </View>
-                  <Text style={[styles.relatedName, { color: colors.foreground }]}>
-                    {activity.deal.title}
                   </Text>
                   <Ionicons
                     name="chevron-forward"

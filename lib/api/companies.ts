@@ -122,26 +122,6 @@ export async function getCompanyContacts(
   );
 }
 
-/**
- * Get deals for a company
- */
-export async function getCompanyDeals(
-  token: string | null,
-  companyId: string,
-  filters: { page?: number; limit?: number } = {}
-): Promise<ApiResponse<unknown>> {
-  const params: Record<string, string | number | undefined> = {
-    page: filters.page || 1,
-    limit: filters.limit || 20,
-  };
-
-  return api.get<unknown>(
-    `${COMPANIES_BASE}/${companyId}/deals`,
-    token,
-    params
-  );
-}
-
 // ============ Statistics ============
 
 /**
@@ -156,7 +136,7 @@ export async function getCompanyStats(
 // ============ Full Company Data ============
 
 /**
- * Get company with full relations (contacts, leads, deals, activities)
+ * Get company with full relations (contacts, leads, activities)
  */
 export async function getCompanyFull(
   token: string | null,
@@ -183,14 +163,6 @@ export async function getCompanyFull(
       type: string;
       color?: string;
     };
-    createdAt: string;
-  }>;
-  deals?: Array<{
-    id: string;
-    title: string;
-    value: number;
-    stage: string;
-    status: string;
     expectedCloseDate?: string;
     createdAt: string;
   }>;

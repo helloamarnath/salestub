@@ -21,7 +21,6 @@ export async function getQuotes(
     page: filters.page || 1,
     limit: filters.limit || 50,
     status: filters.status,
-    dealId: filters.dealId,
     contactId: filters.contactId,
     leadId: filters.leadId,
   };
@@ -50,13 +49,13 @@ export async function createQuote(
 }
 
 /**
- * Create quote from a deal template
+ * Create quote from a lead template
  */
-export async function createQuoteFromDeal(
+export async function createQuoteFromLead(
   token: string | null,
-  dealId: string
+  leadId: string
 ): Promise<ApiResponse<Quote>> {
-  return api.post<Quote>(`${QUOTES_BASE}/from-deal/${dealId}`, token, {});
+  return api.post<Quote>(`${QUOTES_BASE}/from-lead/${leadId}`, token, {});
 }
 
 /**
@@ -65,7 +64,7 @@ export async function createQuoteFromDeal(
 export async function updateQuote(
   token: string | null,
   id: string,
-  data: Partial<Omit<CreateQuoteDto, 'dealId'>>
+  data: Partial<Omit<CreateQuoteDto, 'leadId'>>
 ): Promise<ApiResponse<Quote>> {
   return api.patch<Quote>(`${QUOTES_BASE}/${id}`, token, data);
 }

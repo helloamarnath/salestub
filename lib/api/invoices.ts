@@ -21,7 +21,6 @@ export async function getInvoices(
     page: filters.page || 1,
     limit: filters.limit || 50,
     status: filters.status,
-    dealId: filters.dealId,
     contactId: filters.contactId,
     leadId: filters.leadId,
     search: filters.search,
@@ -62,13 +61,13 @@ export async function createInvoiceFromQuote(
 }
 
 /**
- * Create invoice from a deal
+ * Create invoice from a lead
  */
-export async function createInvoiceFromDeal(
+export async function createInvoiceFromLead(
   token: string | null,
-  dealId: string
+  leadId: string
 ): Promise<ApiResponse<Invoice>> {
-  return api.post<Invoice>(`${INVOICES_BASE}/from-deal/${dealId}`, token, {});
+  return api.post<Invoice>(`${INVOICES_BASE}/from-lead/${leadId}`, token, {});
 }
 
 /**

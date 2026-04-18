@@ -107,11 +107,11 @@ function QuoteCard({
         </View>
       ) : null}
 
-      {quote.deal && (
+      {quote.lead && (
         <View style={styles.cardContactRow}>
           <Ionicons name="briefcase-outline" size={13} color={subtitleColor} />
           <Text style={[styles.cardContactText, { color: subtitleColor }]} numberOfLines={1}>
-            {quote.deal.title}
+            {quote.lead.title}
           </Text>
         </View>
       )}

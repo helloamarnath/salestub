@@ -12,7 +12,7 @@ export interface MetricWithChange {
 export interface CompanyMetric {
   id: string;
   name: string;
-  dealCount: number;
+  leadCount: number;
 }
 
 export interface StageMetric {
@@ -29,22 +29,21 @@ export interface RevenueMetric {
 export interface DashboardStats {
   // Total counts for KPI cards
   totalLeads: number;
-  totalDeals: number;
   totalContacts: number;
-  totalOpenDeals: number;
+  totalOpenLeads: number;
   totalPipelineValue: number;
 
   // Month-over-month metrics
   contactsCreated: MetricWithChange;
-  dealsWon: MetricWithChange;
-  dealsLost: MetricWithChange;
+  leadsWon: MetricWithChange;
+  leadsLost: MetricWithChange;
   tasksClosed: MetricWithChange;
   eventsCompleted: MetricWithChange;
   callsCompleted: MetricWithChange;
 
   // Aggregations
   topCompanies: CompanyMetric[];
-  openDealsByStage: StageMetric[];
+  openLeadsByStage: StageMetric[];
   revenueWonByMonth: RevenueMetric[];
 }
 
@@ -66,7 +65,6 @@ export interface DashboardActivity {
   dueDate?: string;
   completedDate?: string;
   contact?: DashboardActivityRelation;
-  deal?: DashboardActivityRelation;
   company?: DashboardActivityRelation;
   lead?: DashboardActivityRelation;
 }

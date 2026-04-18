@@ -4,4 +4,3 @@ export {
   type CustomerFilterState,
   type OrganizationFilterState,
 } from './ContactFilterModal';
-export { DealFilterModal, type DealFilterState } from './DealFilterModal';

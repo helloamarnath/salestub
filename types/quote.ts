@@ -53,8 +53,8 @@ export interface Quote {
   sgstTotal?: number | string;
   igstTotal?: number | string;
 
-  dealId: string;
-  deal?: { id: string; title: string; status: string; lead?: { id: string; title: string; displayId?: string } };
+  leadId: string;
+  lead?: { id: string; title: string; displayId?: string };
   contactId: string;
   contact?: {
     id: string;
@@ -86,7 +86,6 @@ export interface QuoteFilters {
   page?: number;
   limit?: number;
   status?: QuoteStatus;
-  dealId?: string;
   contactId?: string;
   leadId?: string;
 }
@@ -116,7 +115,7 @@ export interface CreateQuoteItemDto {
 }
 
 export interface CreateQuoteDto {
-  dealId: string;
+  leadId: string;
   contactId?: string;
   currencyId: string;
   validUntil: string;

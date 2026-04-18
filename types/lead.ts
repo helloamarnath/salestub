@@ -88,7 +88,11 @@ export interface Lead {
   contact?: LeadContact;
   contactId?: string;
   stage?: LeadStage;
+  stageRel?: LeadStage;
   stageId?: string;
+  companyId?: string;
+  expectedCloseDate?: string;
+  closedDate?: string;
   pipeline?: {
     id: string;
     name: string;
@@ -125,6 +129,9 @@ export interface CreateLeadDto {
   currencyId?: string;
   stageId?: string;
   contactId?: string;
+  companyId?: string;
+  expectedCloseDate?: string;
+  closedDate?: string;
   createContact?: {
     firstName: string;
     lastName: string;
@@ -145,6 +152,9 @@ export interface UpdateLeadDto {
   currencyId?: string;
   stageId?: string;
   contactId?: string;
+  companyId?: string;
+  expectedCloseDate?: string;
+  closedDate?: string;
   ownerMembershipId?: string;
   customFieldValues?: Record<string, unknown>;
 }

@@ -393,7 +393,7 @@ export async function markLeadLost(
 }
 
 /**
- * Convert lead to contact and optionally deal
+ * Convert lead to contact
  */
 export async function convertLead(
   token: string | null,
@@ -402,35 +402,12 @@ export async function convertLead(
     accountName: string;
     accountWebsite?: string;
     accountIndustry?: string;
-    createDeal?: boolean;
-    dealTitle?: string;
-    dealValue?: number;
   }
-): Promise<ApiResponse<{ contact: unknown; deal?: unknown }>> {
-  return api.post<{ contact: unknown; deal?: unknown }>(
+): Promise<ApiResponse<{ contact: unknown }>> {
+  return api.post<{ contact: unknown }>(
     `${LEADS_BASE}/${leadId}/convert`,
     token,
     data
-  );
-}
-
-/**
- * Convert lead to deal (industry-standard Lead → Deal flow)
- */
-export async function convertLeadToDeal(
-  token: string | null,
-  leadId: string,
-  options?: {
-    title?: string;
-    value?: number;
-    stage?: string;
-    expectedCloseDate?: string;
-  }
-): Promise<ApiResponse<{ deal: Record<string, unknown>; message: string }>> {
-  return api.post<{ deal: Record<string, unknown>; message: string }>(
-    `${LEADS_BASE}/${leadId}/convert-to-deal`,
-    token,
-    options || {}
   );
 }
 

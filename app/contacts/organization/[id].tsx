@@ -36,13 +36,7 @@ import {
   ACTIVITY_STATUS_COLORS,
   getRelativeTime,
 } from '@/types/activity';
-import {
-  DEAL_STAGE_COLORS,
-  DEAL_STATUS_COLORS,
-  formatDealValue,
-} from '@/types/deal';
-
-type TabKey = 'details' | 'contacts' | 'leads' | 'deals' | 'activities' | 'address';
+type TabKey = 'details' | 'contacts' | 'leads' | 'activities' | 'address';
 
 interface Tab {
   key: TabKey;
@@ -54,7 +48,6 @@ const TABS: Tab[] = [
   { key: 'details', label: 'Details', icon: 'business-outline' },
   { key: 'contacts', label: 'Contacts', icon: 'people-outline' },
   { key: 'leads', label: 'Leads', icon: 'flash-outline' },
-  { key: 'deals', label: 'Deals', icon: 'briefcase-outline' },
   { key: 'activities', label: 'Activities', icon: 'time-outline' },
   { key: 'address', label: 'Address', icon: 'location-outline' },
 ];
@@ -83,17 +76,6 @@ interface CompanyLead {
     type: string;
     color?: string;
   };
-  createdAt: string;
-}
-
-// Deal type from company response
-interface CompanyDeal {
-  id: string;
-  title: string;
-  value: number;
-  stage: string;
-  status: string;
-  expectedCloseDate?: string;
   createdAt: string;
 }
 
@@ -268,7 +250,7 @@ function LeadCard({
         </View>
         {lead.value !== undefined && lead.value > 0 && (
           <Text style={[styles.itemCardValue, { color: textColor }]}>
-            {formatDealValue(lead.value)}
+            {`₹${(lead.value || 0).toLocaleString('en-IN')}`}
           </Text>
         )}
       </View>
@@ -287,61 +269,6 @@ function LeadCard({
             <Ionicons name="star" size={12} color="#f59e0b" />
             <Text style={[styles.scoreText, { color: subtitleColor }]}>{lead.score}</Text>
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// Deal Card Component
-function DealCard({
-  deal,
-  isDark,
-  onPress,
-}: {
-  deal: CompanyDeal;
-  isDark: boolean;
-  onPress: () => void;
-}) {
-  const colors = Colors[isDark ? 'dark' : 'light'];
-  const textColor = colors.foreground;
-  const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  const cardBg = isDark ? 'rgba(255,255,255,0.05)' : 'white';
-  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const stageColor = DEAL_STAGE_COLORS[deal.stage as keyof typeof DEAL_STAGE_COLORS] || colors.primary;
-  const statusColor = DEAL_STATUS_COLORS[deal.status as keyof typeof DEAL_STATUS_COLORS] || colors.primary;
-
-  const formatStage = (stage: string) => {
-    return stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).toLowerCase()
-      .split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  };
-
-  return (
-    <TouchableOpacity
-      style={[styles.itemCard, { backgroundColor: cardBg, borderColor }]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.itemCardHeader}>
-        <Text style={[styles.itemCardTitle, { color: textColor, flex: 1 }]} numberOfLines={1}>
-          {deal.title}
-        </Text>
-        <Text style={[styles.itemCardValue, { color: textColor }]}>
-          {formatDealValue(deal.value)}
-        </Text>
-      </View>
-      <View style={styles.itemCardFooter}>
-        <View style={[styles.stageBadge, { backgroundColor: `${stageColor}20` }]}>
-          <View style={[styles.stageDot, { backgroundColor: stageColor }]} />
-          <Text style={[styles.stageText, { color: stageColor }]}>{formatStage(deal.stage)}</Text>
-        </View>
-        <View style={[styles.statusBadgeSmall, { backgroundColor: `${statusColor}20` }]}>
-          <Text style={[styles.statusTextSmall, { color: statusColor }]}>{deal.status}</Text>
-        </View>
-        {deal.expectedCloseDate && (
-          <Text style={[styles.itemCardDate, { color: subtitleColor }]}>
-            Closes: {new Date(deal.expectedCloseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </Text>
         )}
       </View>
     </TouchableOpacity>
@@ -411,7 +338,6 @@ export default function OrganizationDetailScreen() {
   const [company, setCompany] = useState<Company | null>(null);
   const [contacts, setContacts] = useState<CompanyContact[]>([]);
   const [leads, setLeads] = useState<CompanyLead[]>([]);
-  const [deals, setDeals] = useState<CompanyDeal[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -703,40 +629,6 @@ export default function OrganizationDetailScreen() {
           </View>
         );
 
-      case 'deals':
-        const dealList = deals || [];
-        return (
-          <View style={styles.tabContentInner}>
-            {dealList.length === 0 ? (
-              <EmptyState
-                icon="briefcase-outline"
-                title="No Deals"
-                subtitle="Deals associated with this organization will appear here"
-                isDark={isDark}
-              />
-            ) : (
-              <>
-                <View style={styles.tabHeader}>
-                  <Text style={[styles.tabHeaderTitle, { color: textColor }]}>
-                    {dealList.length} Deal{dealList.length !== 1 ? 's' : ''}
-                  </Text>
-                  <Text style={[styles.tabHeaderSubtitle, { color: subtitleColor }]}>
-                    Total: {formatDealValue(dealList.reduce((sum, d) => sum + (d.value || 0), 0))}
-                  </Text>
-                </View>
-                {dealList.map((deal) => (
-                  <DealCard
-                    key={deal.id}
-                    deal={deal}
-                    isDark={isDark}
-                    onPress={() => router.push(`/deals/${deal.id}` as any)}
-                  />
-                ))}
-              </>
-            )}
-          </View>
-        );
-
       case 'activities':
         const activityList = activities || [];
         return (
@@ -916,12 +808,6 @@ export default function OrganizationDetailScreen() {
             </View>
             <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
             <View style={styles.statItem}>
-              <Ionicons name="briefcase" size={16} color="#22c55e" />
-              <Text style={[styles.statValue, { color: textColor }]}>{(deals || []).length}</Text>
-              <Text style={[styles.statLabel, { color: subtitleColor }]}>Deals</Text>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
-            <View style={styles.statItem}>
               <Ionicons name="time" size={16} color="#8b5cf6" />
               <Text style={[styles.statValue, { color: textColor }]}>{(activities || []).length}</Text>
               <Text style={[styles.statLabel, { color: subtitleColor }]}>Activities</Text>
@@ -942,7 +828,6 @@ export default function OrganizationDetailScreen() {
             let count: number | undefined;
             if (tab.key === 'contacts') count = (contacts || []).length;
             if (tab.key === 'leads') count = (leads || []).length;
-            if (tab.key === 'deals') count = (deals || []).length;
             if (tab.key === 'activities') count = (activities || []).length;
 
             return (

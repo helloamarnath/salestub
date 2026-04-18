@@ -21,10 +21,10 @@ import { getLeadSources } from '@/lib/api/leads';
 import { getPipelines, type Pipeline } from '@/lib/api/pipelines';
 
 // Export filter types
-export type ExportDataType = 'leads' | 'contacts' | 'deals' | 'activities' | 'products';
+export type ExportDataType = 'leads' | 'contacts' | 'activities' | 'products';
 
 export interface ExportFilters {
-  // Date range (for leads, contacts, deals, activities)
+  // Date range (for leads, contacts, activities)
   dateFrom?: string;
   dateTo?: string;
 
@@ -34,10 +34,6 @@ export interface ExportFilters {
 
   // Contacts specific
   status?: 'active' | 'inactive';
-
-  // Deals specific
-  dealStage?: string;
-  dealStatus?: 'OPEN' | 'WON' | 'LOST';
 
   // Activities specific
   activityType?: string;
@@ -72,14 +68,6 @@ const ACTIVITY_STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: Colors.light.primary,
   COMPLETED: '#10b981',
   CANCELLED: '#ef4444',
-};
-
-// Deal statuses
-const DEAL_STATUSES = ['OPEN', 'WON', 'LOST'];
-const DEAL_STATUS_COLORS: Record<string, string> = {
-  OPEN: Colors.light.primary,
-  WON: '#10b981',
-  LOST: '#ef4444',
 };
 
 export function ExportFilterModal({
@@ -131,13 +119,6 @@ export function ExportFilterModal({
     }
   }, [visible, dataType]);
 
-  // Fetch pipelines for deals export
-  useEffect(() => {
-    if (visible && dataType === 'deals') {
-      fetchPipelines();
-    }
-  }, [visible, dataType]);
-
   const fetchLeadSources = async () => {
     setLoadingSources(true);
     try {
@@ -164,11 +145,9 @@ export function ExportFilterModal({
     setLoadingPipelines(false);
   };
 
-  // Get pipeline stages for leads/deals
+  // Get pipeline stages for leads
   const getPipelineStages = () => {
-    const pipeline = pipelines.find(p =>
-      dataType === 'leads' ? p.type === 'LEAD' : p.type === 'DEAL'
-    );
+    const pipeline = pipelines.find(p => p.type === 'LEAD');
     return pipeline?.stages || [];
   };
 
@@ -303,24 +282,6 @@ export function ExportFilterModal({
     }));
   };
 
-  // Single select for deal stage
-  const toggleDealStage = (stageId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setFilters(prev => ({
-      ...prev,
-      dealStage: prev.dealStage === stageId ? undefined : stageId,
-    }));
-  };
-
-  // Single select for deal status
-  const toggleDealStatus = (status: 'OPEN' | 'WON' | 'LOST') => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setFilters(prev => ({
-      ...prev,
-      dealStatus: prev.dealStatus === status ? undefined : status,
-    }));
-  };
-
   // Single select for activity type
   const toggleActivityType = (type: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -361,7 +322,6 @@ export function ExportFilterModal({
     const titles: Record<ExportDataType, string> = {
       leads: 'Export Leads',
       contacts: 'Export Contacts',
-      deals: 'Export Deals',
       activities: 'Export Activities',
       products: 'Export Products',
     };
@@ -598,70 +558,6 @@ export function ExportFilterModal({
     );
   };
 
-  // Render deals-specific filters
-  const renderDealsFilters = () => {
-    if (dataType !== 'deals') return null;
-    const stages = getPipelineStages();
-
-    return (
-      <>
-        {/* Stage Filter */}
-        {stages.length > 0 && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Stage</Text>
-            {loadingPipelines ? (
-              <ActivityIndicator size="small" color={chipActiveBg} style={styles.loader} />
-            ) : (
-              <View style={styles.chipContainer}>
-                {stages.map((stage) => {
-                  const isActive = filters.dealStage === stage.id;
-                  const stageColor = stage.color || '#6b7280';
-                  return (
-                    <TouchableOpacity
-                      key={stage.id}
-                      style={[styles.chip, { backgroundColor: isActive ? stageColor : chipBg }]}
-                      onPress={() => toggleDealStage(stage.id)}
-                    >
-                      {isActive && <Ionicons name="checkmark" size={14} color="white" />}
-                      {!isActive && <View style={[styles.chipDot, { backgroundColor: stageColor }]} />}
-                      <Text style={[styles.chipText, { color: isActive ? 'white' : textColor }]}>
-                        {stage.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Status Filter */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Status</Text>
-          <View style={styles.chipContainer}>
-            {DEAL_STATUSES.map((status) => {
-              const isActive = filters.dealStatus === status;
-              const statusColor = DEAL_STATUS_COLORS[status];
-              return (
-                <TouchableOpacity
-                  key={status}
-                  style={[styles.chip, { backgroundColor: isActive ? statusColor : chipBg }]}
-                  onPress={() => toggleDealStatus(status as 'OPEN' | 'WON' | 'LOST')}
-                >
-                  {isActive && <Ionicons name="checkmark" size={14} color="white" />}
-                  {!isActive && <View style={[styles.chipDot, { backgroundColor: statusColor }]} />}
-                  <Text style={[styles.chipText, { color: isActive ? 'white' : textColor }]}>
-                    {status}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      </>
-    );
-  };
-
   // Render activities-specific filters
   const renderActivitiesFilters = () => {
     if (dataType !== 'activities') return null;
@@ -773,7 +669,6 @@ export function ExportFilterModal({
             {renderDateRangeFilter()}
             {renderLeadsFilters()}
             {renderContactsFilters()}
-            {renderDealsFilters()}
             {renderActivitiesFilters()}
             {renderProductsFilters()}
           </ScrollView>

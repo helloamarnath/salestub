@@ -16,7 +16,6 @@ interface QuickAction {
 interface QuickActionsProps {
   actions?: QuickAction[];
   onAddLead?: () => void;
-  onAddDeal?: () => void;
   onAddTask?: () => void;
   onAddContact?: () => void;
 }
@@ -28,13 +27,6 @@ const defaultActions = (props: QuickActionsProps): QuickAction[] => [
     icon: 'person-add-outline',
     color: '#8b5cf6',
     onPress: props.onAddLead || (() => {}),
-  },
-  {
-    id: 'deal',
-    label: 'Deal',
-    icon: 'briefcase-outline',
-    color: '#22c55e',
-    onPress: props.onAddDeal || (() => {}),
   },
   {
     id: 'task',

@@ -52,11 +52,6 @@ export interface Activity {
     firstName: string;
     lastName: string;
   };
-  dealId?: string;
-  deal?: {
-    id: string;
-    title: string;
-  };
   companyId?: string;
   company?: {
     id: string;
@@ -89,7 +84,6 @@ export interface CreateActivityDto {
   reminder?: ReminderType;
   leadId?: string;
   contactId?: string;
-  dealId?: string;
   companyId?: string;
   productId?: string;
   assignedMembershipId?: string;
@@ -109,7 +103,6 @@ export interface ActivityFilters {
   assignedTo?: string;
   leadId?: string;
   contactId?: string;
-  dealId?: string;
   companyId?: string;
 }
 
