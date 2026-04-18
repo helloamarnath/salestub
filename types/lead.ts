@@ -91,6 +91,12 @@ export interface Lead {
   stageRel?: LeadStage;
   stageId?: string;
   companyId?: string;
+  company?: {
+    id: string;
+    name: string;
+    website?: string;
+    industry?: string;
+  };
   expectedCloseDate?: string;
   closedDate?: string;
   pipeline?: {

@@ -1,9 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface QuickAction {
   id: string;
@@ -18,9 +22,15 @@ interface QuickActionsProps {
   onAddLead?: () => void;
   onAddTask?: () => void;
   onAddContact?: () => void;
+  onLogVisit?: () => void;
+  onCreateQuote?: () => void;
+  onCreateInvoice?: () => void;
+  onImportLeads?: () => void;
+  onSendWhatsApp?: () => void;
+  onNewWorkflow?: () => void;
 }
 
-const defaultActions = (props: QuickActionsProps): QuickAction[] => [
+const primaryActions = (props: QuickActionsProps): QuickAction[] => [
   {
     id: 'lead',
     label: 'Lead',
@@ -42,6 +52,51 @@ const defaultActions = (props: QuickActionsProps): QuickAction[] => [
     color: Colors.light.primary,
     onPress: props.onAddContact || (() => {}),
   },
+  {
+    id: 'visit',
+    label: 'Visit',
+    icon: 'location-outline',
+    color: '#22c55e',
+    onPress: props.onLogVisit || (() => {}),
+  },
+];
+
+const secondaryActions = (props: QuickActionsProps): QuickAction[] => [
+  {
+    id: 'quote',
+    label: 'Quote',
+    icon: 'document-text-outline',
+    color: '#06b6d4',
+    onPress: props.onCreateQuote || (() => {}),
+  },
+  {
+    id: 'invoice',
+    label: 'Invoice',
+    icon: 'receipt-outline',
+    color: '#6366f1',
+    onPress: props.onCreateInvoice || (() => {}),
+  },
+  {
+    id: 'import',
+    label: 'Import',
+    icon: 'cloud-upload-outline',
+    color: '#ec4899',
+    onPress: props.onImportLeads || (() => {}),
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    icon: 'logo-whatsapp',
+    color: '#25d366',
+    onPress: props.onSendWhatsApp || (() => {}),
+  },
+  {
+    id: 'workflow',
+    label: 'Workflow',
+    icon: 'git-branch-outline',
+    color: '#f43f5e',
+    onPress: props.onNewWorkflow || (() => {}),
+  },
 ];
 
 export function QuickActions(props: QuickActionsProps) {
@@ -49,7 +104,67 @@ export function QuickActions(props: QuickActionsProps) {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
 
-  const actions = props.actions || defaultActions(props);
+  const [expanded, setExpanded] = useState(false);
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  const actions = props.actions || primaryActions(props);
+  const extraActions = secondaryActions(props);
+
+  const toggleExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    Animated.timing(rotateAnim, {
+      toValue: expanded ? 0 : 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+    setExpanded(!expanded);
+  };
+
+  const chevronRotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const renderAction = (action: QuickAction) => (
+    <TouchableOpacity
+      key={action.id}
+      style={styles.actionButton}
+      onPress={action.onPress}
+      activeOpacity={0.7}
+    >
+      <View
+        style={[
+          styles.actionIcon,
+          { backgroundColor: `${action.color}20` },
+        ]}
+      >
+        <Ionicons name={action.icon} size={22} color={action.color} />
+      </View>
+      <Text
+        style={[
+          styles.actionLabel,
+          {
+            color: isDark
+              ? 'rgba(255,255,255,0.7)'
+              : 'rgba(0,0,0,0.7)',
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {action.label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const chunk = (arr: QuickAction[], size: number): QuickAction[][] => {
+    const out: QuickAction[][] = [];
+    for (let i = 0; i < arr.length; i += size) {
+      out.push(arr.slice(i, i + size));
+    }
+    return out;
+  };
+
+  const extraRows = chunk(extraActions, 4);
 
   return (
     <View style={styles.container}>
@@ -76,36 +191,48 @@ export function QuickActions(props: QuickActionsProps) {
         </View>
 
         <View style={styles.actionsGrid}>
-          {actions.map((action) => (
-            <TouchableOpacity
-              key={action.id}
-              style={styles.actionButton}
-              onPress={action.onPress}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.actionIcon,
-                  { backgroundColor: `${action.color}20` },
-                ]}
-              >
-                <Ionicons name={action.icon} size={22} color={action.color} />
-              </View>
-              <Text
-                style={[
-                  styles.actionLabel,
-                  {
-                    color: isDark
-                      ? 'rgba(255,255,255,0.7)'
-                      : 'rgba(0,0,0,0.7)',
-                  },
-                ]}
-              >
-                {action.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {actions.map(renderAction)}
         </View>
+
+        {expanded &&
+          extraRows.map((row, idx) => (
+            <View
+              key={`row-${idx}`}
+              style={[styles.actionsGrid, styles.secondaryRow]}
+            >
+              {row.map(renderAction)}
+              {row.length < 4 &&
+                Array.from({ length: 4 - row.length }).map((_, i) => (
+                  <View key={`ph-${i}`} style={styles.actionButton} />
+                ))}
+            </View>
+          ))}
+
+        <TouchableOpacity
+          style={styles.toggleButton}
+          onPress={toggleExpanded}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.toggleText,
+              {
+                color: isDark
+                  ? 'rgba(255,255,255,0.6)'
+                  : 'rgba(0,0,0,0.6)',
+              },
+            ]}
+          >
+            {expanded ? 'Show less' : 'Show more'}
+          </Text>
+          <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'}
+            />
+          </Animated.View>
+        </TouchableOpacity>
       </BlurView>
     </View>
   );
@@ -134,6 +261,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  secondaryRow: {
+    marginTop: 16,
+  },
   actionButton: {
     alignItems: 'center',
     flex: 1,
@@ -147,6 +277,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   actionLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  toggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 14,
+    paddingVertical: 6,
+  },
+  toggleText: {
     fontSize: 12,
     fontWeight: '500',
   },

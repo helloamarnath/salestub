@@ -3,3 +3,7 @@ export { PipelineProgress } from './PipelineProgress';
 export { ActivityFeed } from './ActivityFeed';
 export { QuickActions } from './QuickActions';
 export { RevenueChart } from './RevenueChart';
+export { LifecycleCard } from './LifecycleCard';
+export { OverdueBanner } from './OverdueBanner';
+export { TodaysAgenda } from './TodaysAgenda';
+export { PerformanceTile } from './PerformanceTile';

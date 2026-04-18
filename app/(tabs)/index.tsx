@@ -8,43 +8,67 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  ToastAndroid,
+  Platform,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useNotifications } from '@/contexts/notification-context';
 import { Colors } from '@/constants/theme';
 import { getDashboardData } from '@/lib/api/dashboard';
-import { DashboardStats, DashboardActivities, DashboardActivity } from '@/types/dashboard';
+import { completeActivity } from '@/lib/api/activities';
 import {
-  StatCard,
+  DashboardStats,
+  DashboardActivities,
+  DashboardActivity,
+  TodaysAgendaItem,
+} from '@/types/dashboard';
+import {
   PipelineProgress,
   ActivityFeed,
   QuickActions,
   RevenueChart,
+  LifecycleCard,
+  OverdueBanner,
+  TodaysAgenda,
+  PerformanceTile,
 } from '@/components/dashboard';
 
-function formatNumber(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
+function formatCurrency(value: number): string {
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (absValue >= 10000000) {
+    return `${sign}₹${(absValue / 10000000).toFixed(1)}Cr`;
   }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`;
+  if (absValue >= 100000) {
+    return `${sign}₹${(absValue / 100000).toFixed(1)}L`;
   }
-  return value.toString();
+  if (absValue >= 1000) {
+    return `${sign}₹${(absValue / 1000).toFixed(1)}K`;
+  }
+  return `${sign}₹${absValue.toFixed(0)}`;
 }
 
-function formatCurrency(value: number): string {
-  if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`;
+function todayKey(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `dashboard_overdue_dismissed_${yyyy}-${mm}-${dd}`;
+}
+
+function showToast(msg: string) {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(msg, ToastAndroid.SHORT);
+  } else {
+    Alert.alert('', msg);
   }
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}K`;
-  }
-  return `$${value.toFixed(0)}`;
 }
 
 export default function DashboardScreen() {
@@ -59,6 +83,7 @@ export default function DashboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [overdueDismissed, setOverdueDismissed] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -99,6 +124,24 @@ export default function DashboardScreen() {
   }, [fetchDashboardData]);
 
   useEffect(() => {
+    (async () => {
+      try {
+        if (Platform.OS === 'web') {
+          const dismissed = typeof window !== 'undefined'
+            ? window.localStorage?.getItem(todayKey())
+            : null;
+          setOverdueDismissed(dismissed === '1');
+        } else {
+          const dismissed = await SecureStore.getItemAsync(todayKey());
+          setOverdueDismissed(dismissed === '1');
+        }
+      } catch {
+        setOverdueDismissed(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     if (!isLoading) {
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -122,8 +165,11 @@ export default function DashboardScreen() {
 
   const firstName = user?.firstName || 'User';
 
-  // Background gradient colors
-  const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
+  const gradientColors: [string, string, string] = [
+    colors.background,
+    colors.card,
+    colors.background,
+  ];
 
   const headerBorderColor = isDark
     ? 'rgba(255,255,255,0.05)'
@@ -134,9 +180,67 @@ export default function DashboardScreen() {
   // Navigation handlers
   const handleAddLead = () => router.push('/(tabs)/leads/create' as any);
   const handleAddTask = () => router.push('/activities/create' as any);
-  const handleAddContact = () => router.push('/(tabs)/contacts/customer/create' as any);
+  const handleAddContact = () =>
+    router.push('/(tabs)/contacts/customer/create' as any);
+  const handleLogVisit = () => showToast('Visits coming soon');
+  const handleCreateQuote = () => router.push('/(tabs)/quotes/create' as any);
+  const handleCreateInvoice = () => router.push('/invoices/create' as any);
+  const handleImportLeads = () => router.push('/export-import' as any);
+  const handleSendWhatsApp = () => showToast('WhatsApp coming soon');
+  const handleNewWorkflow = () => showToast('Workflows coming soon');
+
   const handleViewAllActivities = () => router.push('/activities' as any);
-  const handleActivityPress = (activity: DashboardActivity) => router.push(`/activities/${activity.id}` as any);
+  const handleActivityPress = (activity: DashboardActivity) =>
+    router.push(`/activities/${activity.id}` as any);
+
+  const handleAgendaPress = (item: TodaysAgendaItem) =>
+    router.push(`/activities/${item.id}` as any);
+
+  const handleAgendaComplete = async (item: TodaysAgendaItem) => {
+    if (!accessToken) return;
+    try {
+      const res = await completeActivity(accessToken, item.id);
+      if (res.success) {
+        showToast('Marked as complete');
+        setStats((prev) =>
+          prev
+            ? {
+                ...prev,
+                todaysAgenda: prev.todaysAgenda.filter((a) => a.id !== item.id),
+              }
+            : prev
+        );
+        fetchDashboardData();
+      } else {
+        showToast(res.error?.message || 'Failed to complete');
+      }
+    } catch (e) {
+      showToast('Failed to complete');
+    }
+  };
+
+  const handleDismissOverdue = async () => {
+    setOverdueDismissed(true);
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') {
+          window.localStorage?.setItem(todayKey(), '1');
+        }
+      } else {
+        await SecureStore.setItemAsync(todayKey(), '1');
+      }
+    } catch {}
+  };
+
+  const handleOverduePress = () =>
+    router.push('/activities?filter=overdue' as any);
+
+  const overdueCount = stats?.overdueActivitiesCount ?? 0;
+  const showOverdueBanner = overdueCount > 0 && !overdueDismissed;
+
+  const wonCount = stats?.leadsWon?.thisMonth ?? 0;
+  const wonValue = stats?.leadsWonValue ?? 0;
+  const avgDealValue = wonCount > 0 ? wonValue / wonCount : 0;
 
   if (isLoading) {
     return (
@@ -206,6 +310,7 @@ export default function DashboardScreen() {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 160 }}
           refreshControl={
             <RefreshControl
@@ -230,44 +335,87 @@ export default function DashboardScreen() {
             </View>
           ) : (
             <>
-              {/* Stats Grid */}
+              {/* Overdue banner */}
+              {showOverdueBanner && (
+                <OverdueBanner
+                  count={overdueCount}
+                  onPress={handleOverduePress}
+                  onDismiss={handleDismissOverdue}
+                />
+              )}
+
+              {/* Lifecycle grid */}
               <View style={styles.statsSection}>
                 <Text style={[styles.sectionTitle, { color: textColor }]}>
-                  Overview
+                  Leads Overview
                 </Text>
                 <View style={styles.statsGrid}>
-                  <StatCard
+                  <LifecycleCard
                     title="Total Leads"
-                    value={stats?.totalLeads || 0}
-                    changePercent={stats?.contactsCreated?.changePercent}
+                    count={stats?.totalLeads ?? 0}
+                    value={stats?.totalLeadsValue ?? 0}
                     icon="people-outline"
-                    iconColor={colors.primary}
-                    onPress={() => router.push('/leads' as any)}
+                    accent="blue"
+                    formatCurrency={formatCurrency}
+                    onPress={() => router.push('/(tabs)/leads' as any)}
                   />
-                  <StatCard
-                    title="Open Leads"
-                    value={stats?.totalOpenLeads || 0}
-                    changePercent={stats?.leadsWon?.changePercent}
-                    icon="briefcase-outline"
-                    iconColor="#8b5cf6"
-                    onPress={() => router.push('/leads' as any)}
+                  <LifecycleCard
+                    title="Untouched"
+                    count={stats?.untouchedLeads ?? 0}
+                    value={stats?.untouchedLeadsValue ?? 0}
+                    icon="time-outline"
+                    accent="red"
+                    alert={(stats?.untouchedLeads ?? 0) > 0}
+                    formatCurrency={formatCurrency}
+                    onPress={() =>
+                      router.push('/(tabs)/leads?status=untouched' as any)
+                    }
                   />
-                  <StatCard
-                    title="Contacts"
-                    value={stats?.totalContacts || 0}
-                    changePercent={stats?.contactsCreated?.changePercent}
-                    icon="person-outline"
-                    iconColor="#22c55e"
-                    onPress={() => router.push('/contacts' as any)}
+                  <LifecycleCard
+                    title="Contacted"
+                    count={stats?.contactedLeads ?? 0}
+                    value={stats?.contactedLeadsValue ?? 0}
+                    icon="chatbubbles-outline"
+                    accent="purple"
+                    formatCurrency={formatCurrency}
+                    onPress={() =>
+                      router.push('/(tabs)/leads?status=contacted' as any)
+                    }
                   />
-                  <StatCard
-                    title="Pipeline Value"
-                    value={formatCurrency(stats?.totalPipelineValue || 0)}
-                    icon="cash-outline"
-                    iconColor="#f59e0b"
-                    onPress={() => router.push('/leads' as any)}
+                  <LifecycleCard
+                    title="Won"
+                    count={stats?.leadsWon?.thisMonth ?? 0}
+                    value={stats?.leadsWonValue ?? 0}
+                    icon="trophy-outline"
+                    accent="green"
+                    formatCurrency={formatCurrency}
+                    onPress={() =>
+                      router.push('/(tabs)/leads?stageType=CLOSED_WON' as any)
+                    }
+                  />
+                  <LifecycleCard
+                    title="Lost"
+                    count={stats?.leadsLost?.thisMonth ?? 0}
+                    value={stats?.leadsLostValue ?? 0}
+                    icon="close-circle-outline"
+                    accent="muted"
+                    formatCurrency={formatCurrency}
+                    onPress={() =>
+                      router.push('/(tabs)/leads?stageType=CLOSED_LOST' as any)
+                    }
                   />
                 </View>
+              </View>
+
+              {/* Performance tile */}
+              <View style={styles.section}>
+                <PerformanceTile
+                  winRate={stats?.winRate ?? 0}
+                  avgTimeToCloseDays={stats?.avgTimeToCloseDays ?? 0}
+                  avgDealValue={avgDealValue}
+                  formatCurrency={formatCurrency}
+                  onPress={() => showToast('Analytics coming soon')}
+                />
               </View>
 
               {/* Quick Actions */}
@@ -276,6 +424,22 @@ export default function DashboardScreen() {
                   onAddLead={handleAddLead}
                   onAddTask={handleAddTask}
                   onAddContact={handleAddContact}
+                  onLogVisit={handleLogVisit}
+                  onCreateQuote={handleCreateQuote}
+                  onCreateInvoice={handleCreateInvoice}
+                  onImportLeads={handleImportLeads}
+                  onSendWhatsApp={handleSendWhatsApp}
+                  onNewWorkflow={handleNewWorkflow}
+                />
+              </View>
+
+              {/* Today's Agenda */}
+              <View style={styles.section}>
+                <TodaysAgenda
+                  items={stats?.todaysAgenda ?? []}
+                  isLoading={isLoading}
+                  onItemPress={handleAgendaPress}
+                  onComplete={handleAgendaComplete}
                 />
               </View>
 
@@ -317,14 +481,26 @@ export default function DashboardScreen() {
                         size={18}
                         color={colors.primary}
                       />
-                      <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 0 }]}>
+                      <Text
+                        style={[
+                          styles.sectionTitle,
+                          { color: textColor, marginBottom: 0 },
+                        ]}
+                      >
                         Top Companies
                       </Text>
                     </View>
                     {stats.topCompanies.map((company, index) => (
                       <View key={company.id} style={styles.companyItem}>
                         <View style={styles.companyRank}>
-                          <Text style={[styles.companyRankText, { color: colors.primary }]}>{index + 1}</Text>
+                          <Text
+                            style={[
+                              styles.companyRankText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {index + 1}
+                          </Text>
                         </View>
                         <Text
                           style={[styles.companyName, { color: textColor }]}

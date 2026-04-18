@@ -40,7 +40,7 @@ import { Colors } from '@/constants/theme';
 import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources, getAllTags, getLeadTags, addLeadTags, removeLeadTags, createTag, getLeadDocuments, uploadLeadDocument, deleteLeadDocument, getLeadDocumentPreview, convertLead, qualifyLead, markLeadLost, getLeadProducts, addLeadProduct, removeLeadProduct, getLeadNotesEndpoint, addLeadNoteEndpoint } from '@/lib/api/leads';
 import { getProducts, createProduct } from '@/lib/api/products';
 import { getQuotes } from '@/lib/api/quotes';
-import { getInvoices } from '@/lib/api/invoices';
+import { getInvoices, createInvoiceFromLead } from '@/lib/api/invoices';
 import type { Product } from '@/types/product';
 import type { Quote } from '@/types/quote';
 import { QUOTE_STATUS_COLORS, QUOTE_STATUS_LABELS } from '@/types/quote';
@@ -334,6 +334,7 @@ function ValueInputModal({
   isDark,
   keyboardType = 'numeric',
   placeholder,
+  multiline = false,
 }: {
   visible: boolean;
   title: string;
@@ -341,8 +342,9 @@ function ValueInputModal({
   onSave: (value: string) => void;
   onClose: () => void;
   isDark: boolean;
-  keyboardType?: 'numeric' | 'decimal-pad';
+  keyboardType?: 'numeric' | 'decimal-pad' | 'default' | 'email-address' | 'phone-pad';
   placeholder?: string;
+  multiline?: boolean;
 }) {
   const colors = Colors[isDark ? 'dark' : 'light'];
   const [inputValue, setInputValue] = useState(value);
@@ -373,13 +375,15 @@ function ValueInputModal({
           </View>
           <View style={styles.inputModalBody}>
             <TextInput
-              style={[styles.modalInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
+              style={[styles.modalInput, { backgroundColor: inputBg, color: textColor, borderColor }, multiline && { minHeight: 96, textAlignVertical: 'top' }]}
               value={inputValue}
               onChangeText={setInputValue}
               keyboardType={keyboardType}
               placeholder={placeholder}
               placeholderTextColor={placeholderColor}
               autoFocus
+              multiline={multiline}
+              numberOfLines={multiline ? 4 : 1}
             />
             <TouchableOpacity
               style={[styles.modalSaveButton, { backgroundColor: colors.primary }]}
@@ -1168,25 +1172,29 @@ function DetailsTab({
           </View>
         )}
 
-        {/* Company Section */}
-        {lead.contact?.company && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="business" size={16} color={sectionTitleColor} />
-                <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Company</Text>
+        {/* Company Section — prefer direct lead.company, fall back to contact's company */}
+        {(lead.company || lead.contact?.company) && (() => {
+          const linkedCompany = lead.company || lead.contact?.company;
+          if (!linkedCompany) return null;
+          return (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="business" size={16} color={sectionTitleColor} />
+                  <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>Company</Text>
+                </View>
+              </View>
+              <View style={[styles.companyCard, { backgroundColor: cardBg, borderColor }]}>
+                <View style={[styles.companyAvatar, { backgroundColor: avatarColor }]}>
+                  <Text style={{ color: 'white', fontSize: 14, fontWeight: '700' }}>
+                    {linkedCompany.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={[{ fontSize: 15, fontWeight: '600', color: textColor, flex: 1 }]}>{linkedCompany.name}</Text>
               </View>
             </View>
-            <View style={[styles.companyCard, { backgroundColor: cardBg, borderColor }]}>
-              <View style={[styles.companyAvatar, { backgroundColor: avatarColor }]}>
-                <Text style={{ color: 'white', fontSize: 14, fontWeight: '700' }}>
-                  {lead.contact.company.name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <Text style={[{ fontSize: 15, fontWeight: '600', color: textColor, flex: 1 }]}>{lead.contact.company.name}</Text>
-            </View>
-          </View>
-        )}
+          );
+        })()}
 
         {/* Requirements/Description */}
         {lead.description && (
@@ -1318,7 +1326,7 @@ function DetailsTab({
         }}
         onClose={() => setShowTitleInput(false)}
         isDark={isDark}
-        keyboardType="numeric"
+        keyboardType="default"
         placeholder="Enter lead title..."
       />
 
@@ -1329,8 +1337,9 @@ function DetailsTab({
         onSave={(value) => onUpdateField('description', value.trim() || undefined)}
         onClose={() => setShowDescriptionInput(false)}
         isDark={isDark}
-        keyboardType="numeric"
+        keyboardType="default"
         placeholder="Enter description..."
+        multiline
       />
 
       <ValueInputModal
@@ -1350,11 +1359,13 @@ function DetailsTab({
           const parsed = new Date(trimmed);
           if (!Number.isNaN(parsed.getTime())) {
             onUpdateField('expectedCloseDate', parsed.toISOString());
+          } else {
+            Alert.alert('Invalid date', 'Please enter a valid date in YYYY-MM-DD format.');
           }
         }}
         onClose={() => setShowExpectedCloseDateInput(false)}
         isDark={isDark}
-        keyboardType="numbers-and-punctuation"
+        keyboardType="default"
         placeholder="2026-12-31"
       />
     </>
@@ -2497,21 +2508,23 @@ function ConvertLeadModal({
   // Pre-fill from lead data
   useEffect(() => {
     if (visible && lead) {
-      if (lead.contact?.company) {
+      const existingCompany = lead.company || lead.contact?.company;
+      if (existingCompany) {
         // If lead has an existing company, pre-select it
         setSelectedCompany({
-          id: lead.contact.company.id,
-          name: lead.contact.company.name,
+          id: existingCompany.id,
+          name: existingCompany.name,
           type: 'PROSPECT',
           createdAt: '',
           updatedAt: '',
         } as Company);
         setIsCreatingNew(false);
+        setAccountName(existingCompany.name);
       } else {
         setSelectedCompany(null);
         setIsCreatingNew(true);
+        setAccountName('');
       }
-      setAccountName(lead.contact?.company?.name || '');
     }
   }, [visible, lead]);
 
@@ -3533,6 +3546,7 @@ function QuotesTab({
   const colors = Colors[isDark ? 'dark' : 'light'];
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -3542,18 +3556,22 @@ function QuotesTab({
   const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
   const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
-  useEffect(() => {
-    const fetchQuotes = async () => {
-      if (!accessToken || !leadId) return;
-      setLoading(true);
-      const response = await getQuotes(accessToken, { leadId, limit: 50 });
-      if (response.success && response.data) {
-        setQuotes(response.data.data || []);
-      }
-      setLoading(false);
-    };
-    fetchQuotes();
+  const fetchQuotesList = useCallback(async () => {
+    if (!accessToken || !leadId) return;
+    setLoading(true);
+    setErrorMsg(null);
+    const response = await getQuotes(accessToken, { leadId, limit: 50 });
+    if (response.success && response.data) {
+      setQuotes(response.data.data || []);
+    } else {
+      setErrorMsg(response.error?.message || 'Failed to load quotes');
+    }
+    setLoading(false);
   }, [accessToken, leadId]);
+
+  useEffect(() => {
+    fetchQuotesList();
+  }, [fetchQuotesList]);
 
   const formatAmount = (amount: number | string, symbol?: string) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -3591,7 +3609,15 @@ function QuotesTab({
           </TouchableOpacity>
         </View>
 
-        {quotes.length === 0 ? (
+        {errorMsg ? (
+          <View style={styles.emptyTabContent}>
+            <Ionicons name="alert-circle-outline" size={36} color="#ef4444" />
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>{errorMsg}</Text>
+            <TouchableOpacity onPress={fetchQuotesList} style={{ marginTop: 8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary }}>
+              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : quotes.length === 0 ? (
           <View style={styles.emptyTabContent}>
             <Ionicons name="document-text-outline" size={36} color={emptyIconColor} />
             <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No quotes yet</Text>
@@ -3600,7 +3626,12 @@ function QuotesTab({
           quotes.map((quote) => {
             const statusColor = QUOTE_STATUS_COLORS[quote.status] || '#6b7280';
             return (
-              <View key={quote.id} style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}>
+              <TouchableOpacity
+                key={quote.id}
+                activeOpacity={0.7}
+                onPress={() => router.push({ pathname: '/quotes-detail/[id]' as any, params: { id: quote.id } })}
+                style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}
+              >
                 <View style={styles.recordCardHeader}>
                   <Text style={[styles.recordCardNumber, { color: colors.primary }]}>#{quote.quoteNumber}</Text>
                   <View style={[styles.recordStatusBadge, { backgroundColor: statusColor + '20' }]}>
@@ -3620,7 +3651,7 @@ function QuotesTab({
                     {formatAmount(quote.total, quote.currency?.symbol)}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
@@ -3643,6 +3674,8 @@ function InvoicesTab({
   const colors = Colors[isDark ? 'dark' : 'light'];
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -3652,18 +3685,22 @@ function InvoicesTab({
   const emptyIconColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
   const emptyTextColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
 
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      if (!accessToken || !leadId) return;
-      setLoading(true);
-      const response = await getInvoices(accessToken, { leadId, limit: 50 });
-      if (response.success && response.data) {
-        setInvoices(response.data.data || []);
-      }
-      setLoading(false);
-    };
-    fetchInvoices();
+  const fetchInvoicesList = useCallback(async () => {
+    if (!accessToken || !leadId) return;
+    setLoading(true);
+    setErrorMsg(null);
+    const response = await getInvoices(accessToken, { leadId, limit: 50 });
+    if (response.success && response.data) {
+      setInvoices(response.data.data || []);
+    } else {
+      setErrorMsg(response.error?.message || 'Failed to load invoices');
+    }
+    setLoading(false);
   }, [accessToken, leadId]);
+
+  useEffect(() => {
+    fetchInvoicesList();
+  }, [fetchInvoicesList]);
 
   const formatAmount = (amount: number | string, symbol?: string) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -3672,6 +3709,19 @@ function InvoicesTab({
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!accessToken || !leadId || creating) return;
+    setCreating(true);
+    const response = await createInvoiceFromLead(accessToken, leadId);
+    setCreating(false);
+    if (response.success && response.data) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.push({ pathname: '/invoices/[id]' as any, params: { id: response.data.id } });
+    } else {
+      Alert.alert('Error', response.error?.message || 'Failed to create invoice from lead');
+    }
   };
 
   if (loading) {
@@ -3693,15 +3743,30 @@ function InvoicesTab({
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push({ pathname: '/invoices/create' as any, params: { leadId } })}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ef4444', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+            onPress={handleCreateInvoice}
+            disabled={creating}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ef4444', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, opacity: creating ? 0.6 : 1 }}
           >
-            <Ionicons name="add" size={16} color="white" />
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
+            {creating ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <>
+                <Ionicons name="add" size={16} color="white" />
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
-        {invoices.length === 0 ? (
+        {errorMsg ? (
+          <View style={styles.emptyTabContent}>
+            <Ionicons name="alert-circle-outline" size={36} color="#ef4444" />
+            <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>{errorMsg}</Text>
+            <TouchableOpacity onPress={fetchInvoicesList} style={{ marginTop: 8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary }}>
+              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : invoices.length === 0 ? (
           <View style={styles.emptyTabContent}>
             <Ionicons name="receipt-outline" size={36} color={emptyIconColor} />
             <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>No invoices yet</Text>
@@ -3714,7 +3779,12 @@ function InvoicesTab({
             const showAmountDue = amountDue > 0 && amountDue !== total;
 
             return (
-              <View key={invoice.id} style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}>
+              <TouchableOpacity
+                key={invoice.id}
+                activeOpacity={0.7}
+                onPress={() => router.push({ pathname: '/invoices/[id]' as any, params: { id: invoice.id } })}
+                style={[styles.recordCard, { backgroundColor: cardBg, borderColor }]}
+              >
                 <View style={styles.recordCardHeader}>
                   <Text style={[styles.recordCardNumber, { color: colors.primary }]}>#{invoice.invoiceNumber}</Text>
                   <View style={[styles.recordStatusBadge, { backgroundColor: statusColor + '20' }]}>
@@ -3741,7 +3811,7 @@ function InvoicesTab({
                     )}
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
@@ -3777,8 +3847,6 @@ export default function LeadDetailScreen() {
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('details'); // kept for compatibility
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [deleting, setDeleting] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -3828,11 +3896,12 @@ export default function LeadDetailScreen() {
     fetchSources();
   }, [accessToken]);
 
-  // Fetch lead
-  const fetchLead = useCallback(async () => {
+  // Fetch lead — pass `silent` to skip the full-screen loading spinner
+  // (used for post-mutation refreshes so tabs don't flash)
+  const fetchLead = useCallback(async (silent = false) => {
     if (!accessToken || !id) return;
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
 
     const response = await getLead(accessToken, id);
@@ -3843,8 +3912,7 @@ export default function LeadDetailScreen() {
       setError(response.error?.message || 'Failed to load lead');
     }
 
-    setLoading(false);
-    setRefreshing(false);
+    if (!silent) setLoading(false);
   }, [accessToken, id]);
 
   // Fetch stages
@@ -3895,35 +3963,21 @@ export default function LeadDetailScreen() {
 
     if (response.success && response.data) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setLead(response.data);
+      // Backend auto-syncs pipelineId + closedDate when stageId changes,
+      // so always re-fetch the full lead to pick those up.
+      if (field === 'stageId') {
+        await fetchLead(true);
+      } else {
+        setLead(response.data);
+      }
+      // Stage/owner/field changes create activity log entries — refresh timeline.
+      fetchActivities();
     } else {
       Alert.alert('Error', response.error?.message || 'Failed to update lead');
     }
 
     setUpdating(false);
   };
-
-  // Initial load
-  useEffect(() => {
-    fetchLead();
-    fetchStages();
-    fetchMembers();
-  }, []);
-
-  // Load activities and visits on mount (single page — no lazy tab loading)
-  useEffect(() => {
-    if (activities.length === 0) fetchActivities();
-    if (leadVisits.length === 0) fetchLeadVisits();
-  }, []);
-
-  // Refresh
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchLead();
-    fetchActivities();
-    fetchLeadVisits();
-    fetchActiveVisit();
-  }, [fetchLead, fetchActivities, fetchLeadVisits, fetchActiveVisit]);
 
   // Back navigation
   const handleBack = () => {
@@ -3994,7 +4048,7 @@ export default function LeadDetailScreen() {
     if (!accessToken) return;
     try {
       const result = await getActiveVisit(accessToken);
-      if (result.success && result.data && result.data.leadId === id) {
+      if (result.success && result.data && result.data.lead?.id === id) {
         setActiveVisit(result.data);
       } else {
         setActiveVisit(null);
@@ -4019,12 +4073,31 @@ export default function LeadDetailScreen() {
     }
   }, [accessToken, id]);
 
-  // Load active visit on mount
+  // Initial load — fetch everything once on mount
   useEffect(() => {
+    fetchLead();
+    fetchStages();
+    fetchMembers();
+    fetchActivities();
+    fetchLeadVisits();
     fetchActiveVisit();
-  }, [fetchActiveVisit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
-  // Load visits when visits tab is selected
+  // Pull-to-refresh: re-fetch all data tied to this lead
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchLead(true),
+        fetchActivities(),
+        fetchLeadVisits(),
+        fetchActiveVisit(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchLead, fetchActivities, fetchLeadVisits, fetchActiveVisit]);
 
   const handleStartVisitPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -4074,7 +4147,7 @@ export default function LeadDetailScreen() {
         setShowStartVisitSheet(false);
         fetchLeadVisits();
         // Start direct Firebase location tracking
-        const firebaseToken = result.data?.firebaseToken ?? null;
+        const firebaseToken = (result.data as { firebaseToken?: string } | undefined)?.firebaseToken ?? null;
         startLocationTracking(
           result.data.id,
           user?.orgId ?? '',
@@ -4196,10 +4269,8 @@ export default function LeadDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowActivityForm(false);
       setSelectedActivityType(null);
-      // Refresh activities if on timeline tab
-      if (activeTab === 'timeline') {
-        fetchActivities();
-      }
+      // Always refresh — timeline is always visible on single-scroll page.
+      fetchActivities();
       Alert.alert('Success', `${data.type.charAt(0) + data.type.slice(1).toLowerCase()} added successfully`);
     } else {
       Alert.alert('Error', response.error?.message || 'Failed to add activity');
@@ -4208,7 +4279,7 @@ export default function LeadDetailScreen() {
     setSavingActivity(false);
   };
 
-  // Convert lead to contact
+  // Convert lead — either attach an existing company or create a new one
   const handleConvertLead = async (data: {
     accountName: string;
     accountWebsite?: string;
@@ -4219,27 +4290,46 @@ export default function LeadDetailScreen() {
 
     setConverting(true);
 
-    const response = await convertLead(accessToken, id, {
-      accountName: data.accountName,
-      accountWebsite: data.accountWebsite,
-      accountIndustry: data.accountIndustry,
-    });
+    let success = false;
+    let errorMessage: string | undefined;
 
-    if (response.success) {
+    if (data.existingCompanyId) {
+      // Attach an existing company to the lead.
+      const response = await updateLead(accessToken, id, {
+        companyId: data.existingCompanyId,
+      });
+      success = !!response.success;
+      errorMessage = response.error?.message;
+      if (response.success && response.data) {
+        setLead(response.data);
+      }
+    } else if (data.accountName.trim()) {
+      // Create a new company via the convert endpoint.
+      const response = await convertLead(accessToken, id, {
+        accountName: data.accountName.trim(),
+        accountWebsite: data.accountWebsite,
+        accountIndustry: data.accountIndustry,
+      });
+      success = !!response.success;
+      errorMessage = response.error?.message;
+    } else {
+      success = false;
+      errorMessage = 'Please select an account or enter a new account name';
+    }
+
+    if (success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowConvertModal(false);
+      // Refresh the lead + timeline so the new company association shows up.
+      await Promise.all([fetchLead(true), fetchActivities()]);
       Alert.alert(
         'Lead Converted',
-        'Lead has been converted to a contact.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]
+        data.existingCompanyId
+          ? 'Lead has been linked to the selected account.'
+          : 'Lead has been converted and a new account was created.',
       );
     } else {
-      Alert.alert('Error', response.error?.message || 'Failed to convert lead');
+      Alert.alert('Error', errorMessage || 'Failed to convert lead');
     }
 
     setConverting(false);
@@ -4254,7 +4344,7 @@ export default function LeadDetailScreen() {
     if (response.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Success', 'Lead has been qualified.');
-      fetchLead();
+      await Promise.all([fetchLead(true), fetchActivities()]);
     } else {
       Alert.alert('Error', response.error?.message || 'Failed to qualify lead');
     }
@@ -4271,7 +4361,7 @@ export default function LeadDetailScreen() {
       setShowMarkLostModal(false);
       setLostReason('');
       Alert.alert('Success', 'Lead has been marked as lost.');
-      fetchLead();
+      await Promise.all([fetchLead(true), fetchActivities()]);
     } else {
       Alert.alert('Error', response.error?.message || 'Failed to mark lead as lost');
     }
@@ -4302,7 +4392,7 @@ export default function LeadDetailScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
           <Text style={[styles.errorTitle, { color: textColor }]}>Failed to load lead</Text>
           <Text style={[styles.errorMessage, { color: subtitleColor }]}>{error}</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchLead}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => fetchLead()}>
             <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -4396,8 +4486,7 @@ export default function LeadDetailScreen() {
           <ActiveVisitBanner
             visit={activeVisit}
             onComplete={handleCompleteVisit}
-            onCancel={handleCancelVisit}
-            loading={visitActionLoading}
+            onPress={handleCancelVisit}
           />
         )}
 
@@ -4448,8 +4537,8 @@ export default function LeadDetailScreen() {
         visible={showStartVisitSheet}
         onStart={handleStartVisit}
         onClose={() => setShowStartVisitSheet(false)}
-        loading={visitActionLoading}
-        isDark={isDark}
+        isLoading={visitActionLoading}
+        leadTitle={lead.title}
       />
 
       {/* FAB Overlay */}
@@ -4475,10 +4564,10 @@ export default function LeadDetailScreen() {
           gap: 12,
         }}>
           {[
-            { icon: 'document-text-outline' as const, label: 'Quotes', color: colors.primary, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('quotes'); } },
-            { icon: 'receipt-outline' as const, label: 'Invoices', color: '#ef4444', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('invoices'); } },
+            { icon: 'document-text-outline' as const, label: 'Quote', color: colors.primary, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId: id } }); } },
+            { icon: 'receipt-outline' as const, label: 'Invoice', color: '#ef4444', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/invoices/create' as any, params: { leadId: id } }); } },
             { icon: 'location-outline' as const, label: 'Log Visit', color: '#8b5cf6', onPress: () => { setFabOpen(false); handleStartVisitPress(); } },
-            { icon: 'cube-outline' as const, label: 'Products', color: '#f59e0b', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab('products'); } },
+            { icon: 'add-circle-outline' as const, label: 'Follow Up', color: '#f59e0b', onPress: () => { setFabOpen(false); handleFollowUpPress(); } },
           ].map((item) => (
             <TouchableOpacity
               key={item.label}

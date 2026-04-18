@@ -26,12 +26,40 @@ export interface RevenueMetric {
   revenue: number;
 }
 
+export interface TodaysAgendaItem {
+  id: string;
+  title: string;
+  type: 'TASK' | 'CALL' | 'MEETING' | 'EMAIL' | 'NOTE';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  dueDate?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  leadId?: string;
+  leadTitle?: string;
+}
+
 export interface DashboardStats {
   // Total counts for KPI cards
   totalLeads: number;
   totalContacts: number;
   totalOpenLeads: number;
   totalPipelineValue: number;
+
+  // Lifecycle values
+  totalLeadsValue: number;
+  untouchedLeads: number;
+  untouchedLeadsValue: number;
+  contactedLeads: number;
+  contactedLeadsValue: number;
+  leadsWonValue: number;
+  leadsLostValue: number;
+
+  // Today's agenda
+  todaysAgenda: TodaysAgendaItem[];
+  overdueActivitiesCount: number;
+
+  // Performance metrics
+  winRate: number;
+  avgTimeToCloseDays: number;
 
   // Month-over-month metrics
   contactsCreated: MetricWithChange;
