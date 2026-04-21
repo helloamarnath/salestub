@@ -17,7 +17,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
@@ -227,8 +227,41 @@ export default function LeadsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [stageTypeFilter, setStageTypeFilter] = useState<
+    'OPEN' | 'CLOSED_WON' | 'CLOSED_LOST' | undefined
+  >(undefined);
+  const [statusFilter, setStatusFilter] = useState<
+    'untouched' | 'contacted' | undefined
+  >(undefined);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+
+  // Deep-link params from dashboard cards (e.g. /(tabs)/leads?status=contacted)
+  const routeParams = useLocalSearchParams<{
+    status?: string;
+    stageType?: string;
+  }>();
+  useEffect(() => {
+    const statusParam =
+      routeParams.status === 'untouched' || routeParams.status === 'contacted'
+        ? routeParams.status
+        : undefined;
+    const stageTypeParam =
+      routeParams.stageType === 'OPEN' ||
+      routeParams.stageType === 'CLOSED_WON' ||
+      routeParams.stageType === 'CLOSED_LOST'
+        ? routeParams.stageType
+        : undefined;
+    setStatusFilter(statusParam);
+    setStageTypeFilter(stageTypeParam);
+    if (statusParam === 'untouched') {
+      setActiveFilter('untouched');
+    } else if (stageTypeParam === 'OPEN') {
+      setActiveFilter('open');
+    } else if (stageTypeParam === 'CLOSED_WON' || stageTypeParam === 'CLOSED_LOST') {
+      setActiveFilter('closed');
+    }
+  }, [routeParams.status, routeParams.stageType]);
 
   // Filter modal state
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -418,6 +451,34 @@ export default function LeadsScreen() {
     }
   }, [accessToken, advancedFilters]);
 
+  // Derive server-side stageId filter from the active tab.
+  // Tabs map to: 'all' → none; single 'stage-<id>' → that id;
+  // 'open' → comma-joined ids of all OPEN stages;
+  // 'closed' → comma-joined ids of CLOSED_WON + CLOSED_LOST stages.
+  // 'untouched' and advanced-filter stageIds are handled separately below.
+  const activeStageIdsFromTab = useMemo(() => {
+    const filter = filterTabs.find((f) => f.id === activeFilter);
+    if (!filter) return '';
+    if (filter.type === 'stage' && filter.stageId) {
+      return filter.stageId;
+    }
+    if (filter.type === 'category') {
+      if (filter.id === 'open') {
+        return pipelineStages
+          .filter((s) => s.type === 'OPEN')
+          .map((s) => s.id)
+          .join(',');
+      }
+      if (filter.id === 'closed') {
+        return pipelineStages
+          .filter((s) => s.type === 'CLOSED_WON' || s.type === 'CLOSED_LOST')
+          .map((s) => s.id)
+          .join(',');
+      }
+    }
+    return '';
+  }, [activeFilter, filterTabs, pipelineStages]);
+
   // Fetch leads
   const fetchLeads = useCallback(
     async (pageNum: number = 1, isRefresh: boolean = false) => {
@@ -430,13 +491,20 @@ export default function LeadsScreen() {
       }
       setError(null);
 
-      // Convert array filters to comma-separated strings for API
+      const advancedStageIds = advancedFilters.stageIds?.join(',') || '';
+      // When a stageType filter (from deep-link) is active, skip the tab-derived
+      // stageIds because the backend stageType filter is more selective.
+      const tabStageIds = stageTypeFilter ? '' : activeStageIdsFromTab;
+      const stageId = [advancedStageIds, tabStageIds].filter(Boolean).join(',');
+
       const filterParams: LeadFilters = {
         page: pageNum,
         limit: 20,
         search: searchQuery || undefined,
         source: advancedFilters.sources?.join(','),
-        stageId: advancedFilters.stageIds?.join(','),
+        stageId: stageId || undefined,
+        stageType: stageTypeFilter,
+        status: statusFilter,
         ownerMembershipId: advancedFilters.ownerMembershipIds?.join(','),
       };
 
@@ -478,7 +546,7 @@ export default function LeadsScreen() {
       setRefreshing(false);
       setLoadingMore(false);
     },
-    [accessToken, searchQuery, advancedFilters]
+    [accessToken, searchQuery, advancedFilters, activeStageIdsFromTab, stageTypeFilter, statusFilter]
   );
 
   // Initial load - fetch role info, stages, and leads
@@ -486,6 +554,7 @@ export default function LeadsScreen() {
     fetchUserRoleInfo();
     fetchStages();
     fetchLeads(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refetch when advanced filters change
@@ -493,7 +562,15 @@ export default function LeadsScreen() {
     setPage(1);
     fetchStages();
     fetchLeads(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advancedFilters]);
+
+  // Refetch when the active tab filter or deep-link filter changes
+  useEffect(() => {
+    setPage(1);
+    fetchLeads(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStageIdsFromTab, stageTypeFilter, statusFilter]);
 
   // Handle applying filters
   const handleApplyFilters = (newFilters: LeadFilterState) => {

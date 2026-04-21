@@ -52,6 +52,8 @@ export interface DashboardStats {
   contactedLeadsValue: number;
   leadsWonValue: number;
   leadsLostValue: number;
+  wonCountAllTime: number;
+  lostCountAllTime: number;
 
   // Today's agenda
   todaysAgenda: TodaysAgendaItem[];

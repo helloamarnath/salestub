@@ -44,6 +44,8 @@ export async function getLeads(
     limit: filters.limit || 20,
     search: filters.search,
     stageId: filters.stageId,
+    stageType: filters.stageType,
+    status: filters.status,
     source: filters.source,
     ownerMembershipId: filters.ownerMembershipId,
   };

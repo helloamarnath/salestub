@@ -238,9 +238,9 @@ export default function DashboardScreen() {
   const overdueCount = stats?.overdueActivitiesCount ?? 0;
   const showOverdueBanner = overdueCount > 0 && !overdueDismissed;
 
-  const wonCount = stats?.leadsWon?.thisMonth ?? 0;
+  const wonCountAllTime = stats?.wonCountAllTime ?? 0;
   const wonValue = stats?.leadsWonValue ?? 0;
-  const avgDealValue = wonCount > 0 ? wonValue / wonCount : 0;
+  const avgDealValue = wonCountAllTime > 0 ? wonValue / wonCountAllTime : 0;
 
   if (isLoading) {
     return (
@@ -384,7 +384,7 @@ export default function DashboardScreen() {
                   />
                   <LifecycleCard
                     title="Won"
-                    count={stats?.leadsWon?.thisMonth ?? 0}
+                    count={stats?.wonCountAllTime ?? 0}
                     value={stats?.leadsWonValue ?? 0}
                     icon="trophy-outline"
                     accent="green"
@@ -395,7 +395,7 @@ export default function DashboardScreen() {
                   />
                   <LifecycleCard
                     title="Lost"
-                    count={stats?.leadsLost?.thisMonth ?? 0}
+                    count={stats?.lostCountAllTime ?? 0}
                     value={stats?.leadsLostValue ?? 0}
                     icon="close-circle-outline"
                     accent="muted"

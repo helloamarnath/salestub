@@ -180,6 +180,8 @@ export interface LeadFilters {
   limit?: number;
   search?: string;
   stageId?: string;
+  stageType?: 'OPEN' | 'CLOSED_WON' | 'CLOSED_LOST';
+  status?: 'untouched' | 'contacted';
   source?: string;
   ownerMembershipId?: string;
 }
