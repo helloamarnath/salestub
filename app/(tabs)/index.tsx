@@ -313,7 +313,7 @@ export default function DashboardScreen() {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push('/profile' as any)}>
                 <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.avatarText}>
+                  <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>
                     {firstName.charAt(0).toUpperCase()}
                   </Text>
                 </View>
@@ -427,7 +427,7 @@ export default function DashboardScreen() {
                   winRate={stats?.winRate ?? 0}
                   avgTimeToCloseDays={stats?.avgTimeToCloseDays ?? 0}
                   avgDealValue={avgDealValue}
-                  formatCurrency={formatCurrency}
+                  formatCurrency={fmtCurrency}
                   onPress={() => showToast('Analytics coming soon')}
                 />
               </View>

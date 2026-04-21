@@ -105,8 +105,7 @@ export function LifecycleCard({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    minWidth: '47%',
+    width: '47.5%',
   },
   card: {
     padding: 14,
