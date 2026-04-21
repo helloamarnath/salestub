@@ -9,19 +9,20 @@ import { RevenueMetric } from '@/types/dashboard';
 
 interface RevenueChartProps {
   data: RevenueMetric[];
+  currencySymbol?: string;
 }
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, symbol: string): string {
   if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`;
+    return `${symbol}${(value / 1000000).toFixed(1)}M`;
   }
   if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}K`;
+    return `${symbol}${(value / 1000).toFixed(0)}K`;
   }
-  return `$${value.toFixed(0)}`;
+  return `${symbol}${value.toFixed(0)}`;
 }
 
-export function RevenueChart({ data }: RevenueChartProps) {
+export function RevenueChart({ data, currencySymbol = '₹' }: RevenueChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
@@ -77,7 +78,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
               Total
             </Text>
             <Text style={[styles.totalValue, { color: colors.foreground }]}>
-              {formatCurrency(totalRevenue)}
+              {formatCurrency(totalRevenue, currencySymbol)}
             </Text>
           </View>
         </View>

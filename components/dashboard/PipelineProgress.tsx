@@ -9,6 +9,7 @@ import { StageMetric } from '@/types/dashboard';
 interface PipelineProgressProps {
   stages: StageMetric[];
   totalValue: number;
+  currencySymbol?: string;
 }
 
 // Stage colors for visual differentiation
@@ -30,17 +31,17 @@ const STAGE_LABELS: Record<string, string> = {
   CLOSED_LOST: 'Lost',
 };
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, symbol: string): string {
   if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(1)}M`;
+    return `${symbol}${(value / 1000000).toFixed(1)}M`;
   }
   if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}K`;
+    return `${symbol}${(value / 1000).toFixed(0)}K`;
   }
-  return `$${value.toFixed(0)}`;
+  return `${symbol}${value.toFixed(0)}`;
 }
 
-export function PipelineProgress({ stages, totalValue }: PipelineProgressProps) {
+export function PipelineProgress({ stages, totalValue, currencySymbol = '₹' }: PipelineProgressProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
@@ -75,7 +76,7 @@ export function PipelineProgress({ stages, totalValue }: PipelineProgressProps) 
             </Text>
           </View>
           <Text style={[styles.totalValue, { color: colors.primary }]}>
-            {formatCurrency(totalValue)}
+            {formatCurrency(totalValue, currencySymbol)}
           </Text>
         </View>
 
@@ -162,7 +163,7 @@ export function PipelineProgress({ stages, totalValue }: PipelineProgressProps) 
                         { color: colors.foreground },
                       ]}
                     >
-                      {formatCurrency(stage.value)}
+                      {formatCurrency(stage.value, currencySymbol)}
                     </Text>
                   </View>
                 </View>

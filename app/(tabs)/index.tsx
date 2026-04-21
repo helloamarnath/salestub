@@ -23,6 +23,7 @@ import { useNotifications } from '@/contexts/notification-context';
 import { Colors } from '@/constants/theme';
 import { getDashboardData } from '@/lib/api/dashboard';
 import { completeActivity } from '@/lib/api/activities';
+import { getOrganizationSettings } from '@/lib/api/organization';
 import {
   DashboardStats,
   DashboardActivities,
@@ -40,19 +41,19 @@ import {
   PerformanceTile,
 } from '@/components/dashboard';
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number, symbol: string): string {
   const absValue = Math.abs(value);
   const sign = value < 0 ? '-' : '';
   if (absValue >= 10000000) {
-    return `${sign}₹${(absValue / 10000000).toFixed(1)}Cr`;
+    return `${sign}${symbol}${(absValue / 10000000).toFixed(1)}Cr`;
   }
   if (absValue >= 100000) {
-    return `${sign}₹${(absValue / 100000).toFixed(1)}L`;
+    return `${sign}${symbol}${(absValue / 100000).toFixed(1)}L`;
   }
   if (absValue >= 1000) {
-    return `${sign}₹${(absValue / 1000).toFixed(1)}K`;
+    return `${sign}${symbol}${(absValue / 1000).toFixed(1)}K`;
   }
-  return `${sign}₹${absValue.toFixed(0)}`;
+  return `${sign}${symbol}${absValue.toFixed(0)}`;
 }
 
 function todayKey(): string {
@@ -84,6 +85,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [overdueDismissed, setOverdueDismissed] = useState(false);
+  const [currencySymbol, setCurrencySymbol] = useState('₹');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -94,8 +96,15 @@ export default function DashboardScreen() {
     if (!accessToken) return;
 
     try {
-      const { stats: statsResponse, activities: activitiesResponse } =
-        await getDashboardData(accessToken);
+      const [{ stats: statsResponse, activities: activitiesResponse }, orgResponse] =
+        await Promise.all([
+          getDashboardData(accessToken),
+          getOrganizationSettings(accessToken),
+        ]);
+
+      if (orgResponse.success && orgResponse.data?.currency?.symbol) {
+        setCurrencySymbol(orgResponse.data.currency.symbol);
+      }
 
       if (statsResponse.success && statsResponse.data) {
         setStats(statsResponse.data);
@@ -155,6 +164,11 @@ export default function DashboardScreen() {
     setRefreshing(true);
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  const fmtCurrency = useCallback(
+    (value: number) => formatCurrency(value, currencySymbol),
+    [currencySymbol]
+  );
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -356,7 +370,7 @@ export default function DashboardScreen() {
                     value={stats?.totalLeadsValue ?? 0}
                     icon="people-outline"
                     accent="blue"
-                    formatCurrency={formatCurrency}
+                    formatCurrency={fmtCurrency}
                     onPress={() => router.push('/(tabs)/leads' as any)}
                   />
                   <LifecycleCard
@@ -366,7 +380,7 @@ export default function DashboardScreen() {
                     icon="time-outline"
                     accent="red"
                     alert={(stats?.untouchedLeads ?? 0) > 0}
-                    formatCurrency={formatCurrency}
+                    formatCurrency={fmtCurrency}
                     onPress={() =>
                       router.push('/(tabs)/leads?status=untouched' as any)
                     }
@@ -377,7 +391,7 @@ export default function DashboardScreen() {
                     value={stats?.contactedLeadsValue ?? 0}
                     icon="chatbubbles-outline"
                     accent="purple"
-                    formatCurrency={formatCurrency}
+                    formatCurrency={fmtCurrency}
                     onPress={() =>
                       router.push('/(tabs)/leads?status=contacted' as any)
                     }
@@ -388,7 +402,7 @@ export default function DashboardScreen() {
                     value={stats?.leadsWonValue ?? 0}
                     icon="trophy-outline"
                     accent="green"
-                    formatCurrency={formatCurrency}
+                    formatCurrency={fmtCurrency}
                     onPress={() =>
                       router.push('/(tabs)/leads?stageType=CLOSED_WON' as any)
                     }
@@ -399,7 +413,7 @@ export default function DashboardScreen() {
                     value={stats?.leadsLostValue ?? 0}
                     icon="close-circle-outline"
                     accent="muted"
-                    formatCurrency={formatCurrency}
+                    formatCurrency={fmtCurrency}
                     onPress={() =>
                       router.push('/(tabs)/leads?stageType=CLOSED_LOST' as any)
                     }
@@ -460,6 +474,7 @@ export default function DashboardScreen() {
                   <PipelineProgress
                     stages={stats.openLeadsByStage}
                     totalValue={stats.totalPipelineValue}
+                    currencySymbol={currencySymbol}
                   />
                 </View>
               )}
@@ -467,7 +482,7 @@ export default function DashboardScreen() {
               {/* Revenue Chart */}
               {stats && stats.revenueWonByMonth.length > 0 && (
                 <View style={styles.section}>
-                  <RevenueChart data={stats.revenueWonByMonth} />
+                  <RevenueChart data={stats.revenueWonByMonth} currencySymbol={currencySymbol} />
                 </View>
               )}
 
