@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { LEAD_SOURCES, SOURCE_COLORS } from '@/types/lead';
 import { getLeadSources } from '@/lib/api/leads';
 import { getPipelines, type Pipeline } from '@/lib/api/pipelines';
@@ -56,18 +56,18 @@ const ACTIVITY_TYPES = ['CALL', 'EMAIL', 'MEETING', 'TASK', 'NOTE'];
 const ACTIVITY_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
 const ACTIVITY_TYPE_COLORS: Record<string, string> = {
-  CALL: '#10b981',
-  EMAIL: Colors.light.primary,
-  MEETING: '#8b5cf6',
-  TASK: '#f59e0b',
+  CALL: Palette.green,
+  EMAIL: Palette.blue,
+  MEETING: Palette.purple,
+  TASK: Palette.amber,
   NOTE: '#6b7280',
 };
 
 const ACTIVITY_STATUS_COLORS: Record<string, string> = {
-  PENDING: '#f59e0b',
-  IN_PROGRESS: Colors.light.primary,
-  COMPLETED: '#10b981',
-  CANCELLED: '#ef4444',
+  PENDING: Palette.amber,
+  IN_PROGRESS: Palette.blue,
+  COMPLETED: Palette.green,
+  CANCELLED: Palette.red,
 };
 
 export function ExportFilterModal({
@@ -538,7 +538,7 @@ export function ExportFilterModal({
         <View style={styles.chipContainer}>
           {(['active', 'inactive'] as const).map((status) => {
             const isActive = filters.status === status;
-            const statusColor = status === 'active' ? '#10b981' : '#6b7280';
+            const statusColor = status === 'active' ? Palette.green : '#6b7280';
             return (
               <TouchableOpacity
                 key={status}
@@ -624,11 +624,11 @@ export function ExportFilterModal({
         <Text style={[styles.sectionTitle, { color: textColor }]}>Active Status</Text>
         <View style={styles.chipContainer}>
           <TouchableOpacity
-            style={[styles.chip, { backgroundColor: filters.isActive === true ? '#10b981' : chipBg }]}
+            style={[styles.chip, { backgroundColor: filters.isActive === true ? Palette.green : chipBg }]}
             onPress={() => toggleProductActive(true)}
           >
             {filters.isActive === true && <Ionicons name="checkmark" size={14} color="white" />}
-            {filters.isActive !== true && <View style={[styles.chipDot, { backgroundColor: '#10b981' }]} />}
+            {filters.isActive !== true && <View style={[styles.chipDot, { backgroundColor: Palette.green }]} />}
             <Text style={[styles.chipText, { color: filters.isActive === true ? 'white' : textColor }]}>
               Active
             </Text>
@@ -688,8 +688,8 @@ export function ExportFilterModal({
               style={[styles.applyButton, { backgroundColor: colors.primary }]}
               onPress={handleApply}
             >
-              <Ionicons name="download-outline" size={18} color="white" style={{ marginRight: 6 }} />
-              <Text style={styles.applyButtonText}>Export</Text>
+              <Ionicons name="download-outline" size={18} color={colors.primaryForeground} style={{ marginRight: 6 }} />
+              <Text style={[styles.applyButtonText, { color: colors.primaryForeground }]}>Export</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

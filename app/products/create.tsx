@@ -21,7 +21,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import {
   getProduct,
   createProduct,
@@ -78,7 +78,7 @@ function FormInput({
       </Text>
       <View style={[
         styles.inputWrapper,
-        { backgroundColor: inputBg, borderColor: error ? '#ef4444' : inputBorder }
+        { backgroundColor: inputBg, borderColor: error ? Palette.red : inputBorder }
       ]}>
         <TextInput
           style={[styles.input, { color: textColor }, multiline && styles.inputMultiline]}
@@ -213,7 +213,7 @@ function ActiveToggle({
           <Ionicons
             name={value ? 'checkmark-circle' : 'close-circle'}
             size={22}
-            color={value ? '#22c55e' : '#ef4444'}
+            color={value ? Palette.emerald : Palette.red}
           />
           <View style={styles.toggleText}>
             <Text style={[styles.toggleLabel, { color: textColor }]}>Active</Text>
@@ -228,7 +228,7 @@ function ActiveToggle({
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onChange(val);
           }}
-          trackColor={{ false: '#767577', true: '#22c55e' }}
+          trackColor={{ false: '#767577', true: Palette.emerald }}
           thumbColor="white"
           ios_backgroundColor="#767577"
         />
@@ -652,9 +652,9 @@ export default function CreateProductScreen() {
               disabled={loading || uploadingImages}
             >
               {loading || uploadingImages ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
               ) : (
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -787,7 +787,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 12,
@@ -798,7 +797,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -825,7 +823,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   required: {
-    color: '#ef4444',
+    color: Palette.red,
   },
   inputWrapper: {
     borderRadius: 12,
@@ -841,7 +839,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   errorText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 12,
     marginTop: 4,
   },
@@ -966,7 +964,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#f59e0b',
+    backgroundColor: Palette.amber,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -977,10 +975,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    backgroundColor: Colors.light.primary,
   },
   pendingBadgeText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 10,
     fontWeight: '600',
   },

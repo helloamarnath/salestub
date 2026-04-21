@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 
 interface AccessDeniedProps {
   title?: string;
@@ -33,7 +33,7 @@ export function AccessDenied({
       <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
       <View style={[styles.content, { paddingTop: insets.top + 60 }]}>
         <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
-          <Ionicons name="lock-closed" size={48} color="#ef4444" />
+          <Ionicons name="lock-closed" size={48} color={Palette.red} />
         </View>
         <Text style={[styles.title, { color: textColor }]}>{title}</Text>
         <Text style={[styles.message, { color: subtitleColor }]}>{message}</Text>
@@ -42,8 +42,8 @@ export function AccessDenied({
             style={[styles.homeButton, { backgroundColor: colors.primary }]}
             onPress={() => router.replace('/(tabs)')}
           >
-            <Ionicons name="home-outline" size={20} color="white" />
-            <Text style={styles.homeButtonText}>Go to Home</Text>
+            <Ionicons name="home-outline" size={20} color={colors.primaryForeground} />
+            <Text style={[styles.homeButtonText, { color: colors.primaryForeground }]}>Go to Home</Text>
           </TouchableOpacity>
         )}
       </View>

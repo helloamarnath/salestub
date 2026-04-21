@@ -20,7 +20,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useNotifications } from '@/contexts/notification-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getDashboardData } from '@/lib/api/dashboard';
 import { completeActivity } from '@/lib/api/activities';
 import { getOrganizationSettings } from '@/lib/api/organization';
@@ -336,7 +336,7 @@ export default function DashboardScreen() {
         >
           {error ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
+              <Ionicons name="alert-circle-outline" size={48} color={Palette.red} />
               <Text style={[styles.errorText, { color: textColor }]}>
                 {error}
               </Text>
@@ -344,7 +344,7 @@ export default function DashboardScreen() {
                 style={[styles.retryButton, { backgroundColor: colors.primary }]}
                 onPress={fetchDashboardData}
               >
-                <Text style={styles.retryText}>Retry</Text>
+                <Text style={[styles.retryText, { color: colors.primaryForeground }]}>Retry</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -489,7 +489,7 @@ export default function DashboardScreen() {
               {/* Top Companies */}
               {stats && stats.topCompanies.length > 0 && (
                 <View style={styles.section}>
-                  <View style={styles.topCompaniesCard}>
+                  <View style={[styles.topCompaniesCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
                     <View style={styles.topCompaniesHeader}>
                       <Ionicons
                         name="business-outline"
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#ef4444',
+    backgroundColor: Palette.red,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -602,7 +602,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -641,7 +640,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -651,11 +649,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   topCompaniesCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   topCompaniesHeader: {
     flexDirection: 'row',
@@ -673,12 +669,11 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)', // Palette.blue at 20% opacity
     alignItems: 'center',
     justifyContent: 'center',
   },
   companyRankText: {
-    color: Colors.light.primary,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -688,13 +683,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   dealBadge: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    backgroundColor: 'rgba(34, 197, 94, 0.15)', // Palette.emerald at 15% opacity
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   dealBadgeText: {
-    color: '#22c55e',
+    color: Palette.emerald,
     fontSize: 11,
     fontWeight: '500',
   },

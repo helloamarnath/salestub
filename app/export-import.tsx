@@ -18,7 +18,7 @@ import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { exportLeadsToCSV } from '@/lib/api/leads';
 import { exportContactsToCSV } from '@/lib/api/contacts';
 import { exportActivitiesToCSV } from '@/lib/api/activities';
@@ -42,7 +42,7 @@ const DATA_TYPES: DataType[] = [
     title: 'Leads',
     description: 'Lead data with contact info, stage, and source',
     icon: 'people-outline',
-    color: Colors.light.primary,
+    color: Palette.indigo,
     exportEnabled: true,
     importEnabled: false, // Coming soon
   },
@@ -51,7 +51,7 @@ const DATA_TYPES: DataType[] = [
     title: 'Contacts',
     description: 'Contact details, company, and tags',
     icon: 'person-outline',
-    color: '#10b981',
+    color: Palette.green,
     exportEnabled: true,
     importEnabled: false,
   },
@@ -60,7 +60,7 @@ const DATA_TYPES: DataType[] = [
     title: 'Activities',
     description: 'Calls, meetings, tasks, and notes',
     icon: 'calendar-outline',
-    color: '#8b5cf6',
+    color: Palette.purple,
     exportEnabled: true,
     importEnabled: false,
   },
@@ -69,7 +69,7 @@ const DATA_TYPES: DataType[] = [
     title: 'Products',
     description: 'Product catalog with pricing',
     icon: 'cube-outline',
-    color: '#06b6d4',
+    color: Palette.cyan,
     exportEnabled: true,
     importEnabled: false,
   },
@@ -310,7 +310,7 @@ export default function ExportImportScreen() {
       <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top, borderBottomColor: colors.border }]}>
         <View style={styles.headerContent}>
           <TouchableOpacity
             style={styles.backButton}
@@ -375,7 +375,6 @@ const styles = StyleSheet.create({
   },
   header: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   headerContent: {
     flexDirection: 'row',

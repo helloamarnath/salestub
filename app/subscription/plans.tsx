@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import {
   getPlans,
   createCheckoutSession,
@@ -361,7 +361,7 @@ export default function PlansScreen() {
 
                   {billingCycle === 'ANNUAL' && calculateSavings(plan) > 0 && (
                     <View style={styles.savingsContainer}>
-                      <Ionicons name="pricetag" size={14} color="#22c55e" />
+                      <Ionicons name="pricetag" size={14} color={Palette.emerald} />
                       <Text style={styles.savingsText}>
                         Save {formatINR(calculateSavings(plan))} per year
                       </Text>
@@ -373,7 +373,7 @@ export default function PlansScreen() {
                   <View style={styles.featuresPreview}>
                     {plan.features.slice(0, 3).map((feature, index) => (
                       <View key={index} style={styles.featureRow}>
-                        <Ionicons name="checkmark" size={16} color="#22c55e" />
+                        <Ionicons name="checkmark" size={16} color={Palette.emerald} />
                         <Text style={[styles.featureText, { color: textColor }]}>{feature}</Text>
                       </View>
                     ))}
@@ -386,7 +386,7 @@ export default function PlansScreen() {
 
                   {plan.trialDays > 0 && (
                     <View style={styles.trialBadge}>
-                      <Ionicons name="gift-outline" size={14} color="#f59e0b" />
+                      <Ionicons name="gift-outline" size={14} color={Palette.amber} />
                       <Text style={styles.trialBadgeText}>
                         {plan.trialDays}-day free trial
                       </Text>
@@ -429,7 +429,7 @@ export default function PlansScreen() {
             disabled={isProcessing || isPaymentLoading}
           >
             <LinearGradient
-              colors={['#6366f1', '#4f46e5']}
+              colors={[Palette.indigo, '#4f46e5']}
               style={styles.subscribeGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -511,14 +511,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   billingOptionActive: {
-    backgroundColor: '#6366f1',
+    backgroundColor: Palette.indigo,
   },
   billingOptionText: {
     fontSize: 15,
     fontWeight: '600',
   },
   saveBadge: {
-    backgroundColor: '#22c55e',
+    backgroundColor: Palette.emerald,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   savingsText: {
-    color: '#22c55e',
+    color: Palette.emerald,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   trialBadgeText: {
-    color: '#f59e0b',
+    color: Palette.amber,
     fontSize: 13,
     fontWeight: '500',
   },

@@ -18,7 +18,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getQuotes } from '@/lib/api/quotes';
 import type { Quote, QuoteStatus } from '@/types/quote';
 import { QUOTE_STATUS_COLORS, QUOTE_STATUS_LABELS } from '@/types/quote';
@@ -34,10 +34,10 @@ interface FilterTab {
 const FILTER_TABS: FilterTab[] = [
   { id: 'all', label: 'All', color: '#6b7280' },
   { id: 'draft', label: 'Draft', status: 'DRAFT', color: '#6b7280' },
-  { id: 'sent', label: 'Sent', status: 'SENT', color: Colors.light.primary },
-  { id: 'approved', label: 'Approved', status: 'APPROVED', color: '#22c55e' },
-  { id: 'rejected', label: 'Rejected', status: 'REJECTED', color: '#ef4444' },
-  { id: 'expired', label: 'Expired', status: 'EXPIRED', color: '#f59e0b' },
+  { id: 'sent', label: 'Sent', status: 'SENT', color: '#343434' },
+  { id: 'approved', label: 'Approved', status: 'APPROVED', color: Palette.emerald },
+  { id: 'rejected', label: 'Rejected', status: 'REJECTED', color: Palette.red },
+  { id: 'expired', label: 'Expired', status: 'EXPIRED', color: Palette.amber },
   { id: 'cancelled', label: 'Cancelled', status: 'CANCELLED', color: '#6b7280' },
 ];
 
@@ -276,7 +276,7 @@ export default function QuotesScreen() {
             style={{ backgroundColor: colors.primary, width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
             onPress={() => router.push('/(tabs)/quotes/create' as any)}
           >
-            <Ionicons name="add" size={24} color="white" />
+            <Ionicons name="add" size={24} color={colors.primaryForeground} />
           </TouchableOpacity>
         </View>
 
@@ -347,12 +347,12 @@ export default function QuotesScreen() {
         </View>
       ) : error ? (
         <View style={styles.emptyState}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Ionicons name="alert-circle-outline" size={64} color={Palette.red} />
           <Text style={[styles.emptyTitle, { color: textColor }]}>Something went wrong</Text>
           <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => fetchQuotes(1)}>
-            <Ionicons name="refresh" size={18} color="white" />
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Ionicons name="refresh" size={18} color={colors.primaryForeground} />
+            <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -478,11 +478,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
     marginTop: 12,
   },
-  retryButtonText: { color: 'white', fontSize: 14, fontWeight: '600' },
+  retryButtonText: { fontSize: 14, fontWeight: '600' },
 });

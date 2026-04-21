@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getProfile, updateProfile, UserProfile, UpdateProfileDto } from '@/lib/api/profile';
 import { secureStorage, STORAGE_KEYS } from '@/lib/storage';
 
@@ -279,15 +279,12 @@ export default function ProfileScreen() {
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <View style={styles.avatarContainer}>
-              <LinearGradient
-                colors={[colors.primary, colors.primary]}
-                style={styles.avatar}
-              >
-                <Text style={styles.avatarText}>{getInitials()}</Text>
-              </LinearGradient>
+              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{getInitials()}</Text>
+              </View>
               {isEditing && (
                 <TouchableOpacity style={[styles.avatarEditButton, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="camera" size={16} color="white" />
+                  <Ionicons name="camera" size={16} color={colors.primaryForeground} />
                 </TouchableOpacity>
               )}
             </View>
@@ -314,7 +311,7 @@ export default function ProfileScreen() {
                       <TextInput
                         style={[
                           styles.textInput,
-                          { color: textColor, borderColor: firstNameError ? '#ef4444' : borderColor },
+                          { color: textColor, borderColor: firstNameError ? Palette.red : borderColor, backgroundColor: inputBgColor },
                         ]}
                         value={firstName}
                         onChangeText={setFirstName}
@@ -344,7 +341,7 @@ export default function ProfileScreen() {
                       <TextInput
                         style={[
                           styles.textInput,
-                          { color: textColor, borderColor: lastNameError ? '#ef4444' : borderColor },
+                          { color: textColor, borderColor: lastNameError ? Palette.red : borderColor, backgroundColor: inputBgColor },
                         ]}
                         value={lastName}
                         onChangeText={setLastName}
@@ -374,7 +371,7 @@ export default function ProfileScreen() {
                       <TextInput
                         style={[
                           styles.textInput,
-                          { color: textColor, borderColor: phoneError ? '#ef4444' : borderColor },
+                          { color: textColor, borderColor: phoneError ? Palette.red : borderColor, backgroundColor: inputBgColor },
                         ]}
                         value={phone}
                         onChangeText={setPhone}
@@ -404,7 +401,7 @@ export default function ProfileScreen() {
                       {profile?.email || user?.email}
                     </Text>
                     <View style={styles.verifiedBadge}>
-                      <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
+                      <Ionicons name="checkmark-circle" size={16} color={Palette.emerald} />
                       <Text style={styles.verifiedText}>Verified</Text>
                     </View>
                   </View>
@@ -475,11 +472,11 @@ export default function ProfileScreen() {
               disabled={isSaving}
             >
               {isSaving ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={20} color="white" />
-                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                  <Ionicons name="checkmark" size={20} color={colors.primaryForeground} />
+                  <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save Changes</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -563,7 +560,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
@@ -607,15 +603,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: 1,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   errorText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 12,
     marginTop: 6,
   },
   requiredStar: {
-    color: '#ef4444',
+    color: Palette.red,
     fontWeight: '600',
   },
   readOnlyRow: {
@@ -632,7 +627,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   verifiedText: {
-    color: '#22c55e',
+    color: Palette.emerald,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -648,7 +643,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   roleBadgeText: {
-    color: Colors.light.primary,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -658,7 +652,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   saveButton: {
-    backgroundColor: Colors.light.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -670,7 +663,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },

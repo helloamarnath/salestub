@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getCompany, createCompany, updateCompany } from '@/lib/api/companies';
 import type { CreateCompanyDto, CompanyType } from '@/types/company';
 import { COMPANY_TYPE_LABELS, COMPANY_TYPE_COLORS } from '@/types/company';
@@ -49,13 +49,13 @@ function InputField({
   const textColor = colors.foreground;
   const labelColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)';
   const inputBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
-  const borderColor = error ? '#ef4444' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
+  const borderColor = error ? Palette.red : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)');
   const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
 
   return (
     <View style={styles.inputContainer}>
       <Text style={[styles.inputLabel, { color: labelColor }]}>
-        {label}{required && <Text style={{ color: '#ef4444' }}> *</Text>}
+        {label}{required && <Text style={{ color: Palette.red }}> *</Text>}
       </Text>
       <TextInput
         style={[
@@ -376,9 +376,9 @@ export default function CreateOrganizationScreen() {
           style={[styles.saveButton, { backgroundColor: colors.primary }, saving && styles.saveButtonDisabled]}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="white" />
+            <ActivityIndicator size="small" color={colors.primaryForeground} />
           ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -567,7 +567,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -578,7 +577,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveButtonText: {
-    color: '#252525',
     fontWeight: '600',
     fontSize: 15,
   },
@@ -618,7 +616,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   errorText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 12,
     marginTop: 4,
   },

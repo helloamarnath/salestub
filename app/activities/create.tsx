@@ -19,7 +19,7 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { createActivity } from '@/lib/api/activities';
 import type { ActivityType, ActivityPriority, ReminderType, CreateActivityDto } from '@/types/activity';
 import {
@@ -32,8 +32,8 @@ const ACTIVITY_TYPES: ActivityType[] = ['TASK', 'CALL', 'MEETING', 'EMAIL', 'NOT
 const PRIORITIES: ActivityPriority[] = ['LOW', 'MEDIUM', 'HIGH'];
 const PRIORITY_COLORS: Record<ActivityPriority, string> = {
   LOW: Colors.light.mutedForeground,
-  MEDIUM: '#f59e0b',
-  HIGH: '#ef4444',
+  MEDIUM: Palette.amber,
+  HIGH: Palette.red,
 };
 
 const REMINDER_OPTIONS: { value: ReminderType; label: string }[] = [
@@ -170,15 +170,15 @@ export default function CreateActivityScreen() {
           <TouchableOpacity
             style={[
               styles.saveButton,
-              { opacity: title.trim() ? 1 : 0.5 },
+              { backgroundColor: colors.primary, opacity: title.trim() ? 1 : 0.5 },
             ]}
             onPress={handleSubmit}
             disabled={!title.trim() || isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color={colors.primaryForeground} />
             ) : (
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -452,7 +452,7 @@ export default function CreateActivityScreen() {
                 style={styles.clearDateButton}
                 onPress={() => setDueDate(null)}
               >
-                <Ionicons name="close-circle" size={16} color="#ef4444" />
+                <Ionicons name="close-circle" size={16} color={Palette.red} />
                 <Text style={styles.clearDateText}>Clear date</Text>
               </TouchableOpacity>
             )}
@@ -677,13 +677,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   saveButtonText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -776,7 +775,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   clearDateText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -838,11 +837,10 @@ const styles = StyleSheet.create({
   },
   datePickerCancel: {
     fontSize: 16,
-    color: '#ef4444',
+    color: Palette.red,
   },
   datePickerDone: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.primary,
   },
 });

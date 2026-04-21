@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import {
   getOrganizationSubscription,
   cancelSubscription,
@@ -231,7 +231,7 @@ export default function SubscriptionScreen() {
                         </View>
                         {subscription.cancelAtPeriodEnd && (
                           <View style={[styles.statusBadge, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-                            <Text style={[styles.statusText, { color: '#ef4444' }]}>
+                            <Text style={[styles.statusText, { color: Palette.red }]}>
                               Cancels Soon
                             </Text>
                           </View>
@@ -294,7 +294,7 @@ export default function SubscriptionScreen() {
                     <>
                       <View style={[styles.divider, { backgroundColor: borderColor }]} />
                       <View style={styles.trialInfo}>
-                        <Ionicons name="information-circle-outline" size={20} color="#f59e0b" />
+                        <Ionicons name="information-circle-outline" size={20} color={Palette.amber} />
                         <Text style={[styles.trialText, { color: subtitleColor }]}>
                           Your trial ends on {formatDate(subscription.trialEnd)}. Upgrade now to
                           continue using all features.
@@ -326,7 +326,7 @@ export default function SubscriptionScreen() {
                         },
                       ]}
                     >
-                      <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
+                      <Ionicons name="checkmark-circle" size={20} color={Palette.emerald} />
                       <Text style={[styles.featureText, { color: textColor }]}>{feature}</Text>
                     </View>
                   ))}
@@ -338,7 +338,7 @@ export default function SubscriptionScreen() {
             <View style={styles.section}>
               <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
                 <LinearGradient
-                  colors={['#6366f1', '#4f46e5']}
+                  colors={[Palette.indigo, '#4f46e5']}
                   style={styles.upgradeGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -375,11 +375,11 @@ export default function SubscriptionScreen() {
                     disabled={isCancelling}
                   >
                     {isCancelling ? (
-                      <ActivityIndicator size="small" color="#ef4444" />
+                      <ActivityIndicator size="small" color={Palette.red} />
                     ) : (
                       <>
-                        <Ionicons name="close-circle-outline" size={20} color="#ef4444" />
-                        <Text style={[styles.secondaryButtonText, { color: '#ef4444' }]}>
+                        <Ionicons name="close-circle-outline" size={20} color={Palette.red} />
+                        <Text style={[styles.secondaryButtonText, { color: Palette.red }]}>
                           Cancel Subscription
                         </Text>
                       </>
@@ -401,7 +401,7 @@ export default function SubscriptionScreen() {
             </Text>
             <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
               <LinearGradient
-                colors={['#6366f1', '#4f46e5']}
+                colors={[Palette.indigo, '#4f46e5']}
                 style={styles.upgradeGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}

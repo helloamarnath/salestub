@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { Visit } from '@/types/visit';
 import { VISIT_PURPOSE_LABELS } from '@/types/visit';
+import { Palette } from '@/constants/theme';
 
 interface ActiveVisitBannerProps {
   visit: Visit;
@@ -90,7 +91,7 @@ export function ActiveVisitBanner({ visit, onComplete, onPress }: ActiveVisitBan
         <View style={styles.rightSection}>
           {/* Timer */}
           <View style={styles.timerContainer}>
-            <Ionicons name="time-outline" size={14} color="#22c55e" />
+            <Ionicons name="time-outline" size={14} color={Palette.emerald} />
             <Text style={styles.timerText}>{elapsed}</Text>
           </View>
 
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#22c55e',
+    backgroundColor: Palette.emerald,
     marginRight: 10,
   },
   textSection: {
@@ -143,14 +144,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#22c55e',
+    color: Palette.emerald,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
   leadName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#16a34a',
+    color: Palette.success,
     marginTop: 1,
   },
   rightSection: {
@@ -166,14 +167,14 @@ const styles = StyleSheet.create({
   timerText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#22c55e',
+    color: Palette.emerald,
     fontVariant: ['tabular-nums'],
   },
   completeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#22c55e',
+    backgroundColor: Palette.emerald,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,

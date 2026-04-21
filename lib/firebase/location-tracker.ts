@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import { Palette } from '@/constants/theme';
 
 // Lazy-load Firebase to avoid crashes in Expo Go
 let auth: any = null;
@@ -152,7 +153,7 @@ export async function startLocationTracking(
       foregroundService: {
         notificationTitle: 'Visit in progress',
         notificationBody: 'Tracking your location during the customer visit',
-        notificationColor: '#3b82f6',
+        notificationColor: Palette.blue,
       },
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,

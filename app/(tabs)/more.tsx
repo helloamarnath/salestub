@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme, Theme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { router, Href } from 'expo-router';
 import {
   Currency,
@@ -55,12 +55,12 @@ function MenuItem({
     <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
       <View style={[styles.menuItem, { borderBottomColor: borderColor }]}>
         <View
-          style={[styles.iconContainer, { backgroundColor: `${destructive ? '#ef4444' : color}15` }]}
+          style={[styles.iconContainer, { backgroundColor: `${destructive ? Palette.red : color}15` }]}
         >
-          <Ionicons name={icon} size={20} color={destructive ? '#ef4444' : color} />
+          <Ionicons name={icon} size={20} color={destructive ? Palette.red : color} />
         </View>
         <View style={styles.menuItemContent}>
-          <Text style={[styles.menuItemTitle, { color: destructive ? '#ef4444' : textColor }]}>
+          <Text style={[styles.menuItemTitle, { color: destructive ? Palette.red : textColor }]}>
             {title}
           </Text>
           {subtitle && (
@@ -312,7 +312,7 @@ export default function MoreScreen() {
             <BlurView intensity={20} tint={isDark ? 'dark' : 'light'} style={[styles.profileCardBlur, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
               <View style={styles.profileContent}>
                 <View style={[styles.profileAvatar, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.profileAvatarText}>{initials}</Text>
+                  <Text style={[styles.profileAvatarText, { color: colors.primaryForeground }]}>{initials}</Text>
                 </View>
                 <View style={styles.profileInfo}>
                   <Text style={[styles.profileName, { color: colors.foreground }]}>
@@ -332,7 +332,7 @@ export default function MoreScreen() {
             icon="calendar-outline"
             title="Calendar"
             subtitle="Tasks, calls, meetings & notes"
-            color="#f59e0b"
+            color={Palette.amber}
             onPress={() => router.push('/activities' as Href)}
             isDark={isDark}
           />
@@ -340,7 +340,7 @@ export default function MoreScreen() {
             icon="receipt-outline"
             title="Invoices"
             subtitle="Track invoices & payments"
-            color="#ef4444"
+            color={Palette.red}
             onPress={() => router.push('/invoices' as Href)}
             isDark={isDark}
           />
@@ -348,7 +348,7 @@ export default function MoreScreen() {
             icon="cube-outline"
             title="Products"
             subtitle="Manage your products"
-            color="#06b6d4"
+            color={Palette.cyan}
             onPress={() => router.push('/products' as Href)}
             isDark={isDark}
           />
@@ -361,7 +361,7 @@ export default function MoreScreen() {
               icon="card-outline"
               title="Subscription"
               subtitle="Manage your plan"
-              color="#6366f1"
+              color={Palette.indigo}
               onPress={() => router.push('/subscription' as Href)}
               isDark={isDark}
             />
@@ -374,7 +374,7 @@ export default function MoreScreen() {
             icon="cloud-outline"
             title="Import/Export"
             subtitle="CSV and data sync"
-            color="#8b5cf6"
+            color={Palette.purple}
             onPress={() => router.push('/export-import' as Href)}
             isDark={isDark}
           />
@@ -386,7 +386,7 @@ export default function MoreScreen() {
             icon="notifications-outline"
             title="Notifications"
             subtitle="Manage notification channels"
-            color="#f59e0b"
+            color={Palette.amber}
             onPress={() => router.push('/notification-settings' as Href)}
             isDark={isDark}
           />
@@ -394,7 +394,7 @@ export default function MoreScreen() {
             icon="cash-outline"
             title="Currency"
             subtitle={orgSettings?.currency ? `${orgSettings.currency.symbol} ${orgSettings.currency.code}` : 'Loading...'}
-            color="#10b981"
+            color={Palette.green}
             onPress={openCurrencyModal}
             isDark={isDark}
           />
@@ -402,7 +402,7 @@ export default function MoreScreen() {
             icon={isDark ? 'moon-outline' : 'sunny-outline'}
             title="Appearance"
             subtitle={getThemeLabel()}
-            color="#6366f1"
+            color={Palette.indigo}
             onPress={() => setShowThemeModal(true)}
             isDark={isDark}
           />
@@ -420,7 +420,7 @@ export default function MoreScreen() {
           <MenuItem
             icon="chatbubble-outline"
             title="Contact Support"
-            color="#8b5cf6"
+            color={Palette.purple}
             onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URLS.contactSupport)}
             isDark={isDark}
           />
@@ -505,7 +505,7 @@ export default function MoreScreen() {
                   style={[styles.modalCloseButton, { backgroundColor: colors.primary }]}
                   onPress={() => setShowThemeModal(false)}
                 >
-                  <Text style={styles.modalCloseButtonText}>Done</Text>
+                  <Text style={[styles.modalCloseButtonText, { color: colors.primaryForeground }]}>Done</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -576,7 +576,7 @@ export default function MoreScreen() {
                   style={[styles.modalCloseButton, { backgroundColor: colors.primary }]}
                   onPress={() => setShowCurrencyModal(false)}
                 >
-                  <Text style={styles.modalCloseButtonText}>Cancel</Text>
+                  <Text style={[styles.modalCloseButtonText, { color: colors.primaryForeground }]}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -614,12 +614,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileAvatarText: {
-    color: '#252525',
     fontWeight: 'bold',
     fontSize: 20,
   },
@@ -739,13 +737,11 @@ const styles = StyleSheet.create({
   },
   modalCloseButton: {
     marginTop: 24,
-    backgroundColor: Colors.light.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   modalCloseButtonText: {
-    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },

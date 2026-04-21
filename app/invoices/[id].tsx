@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import {
   getInvoice,
   sendInvoice,
@@ -192,7 +192,7 @@ export default function InvoiceDetailScreen() {
         <Ionicons name="receipt-outline" size={64} color={subtitleColor} />
         <Text style={[styles.emptyTitle, { color: textColor }]}>Invoice not found</Text>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+          <Text style={[styles.backBtnText, { color: colors.primaryForeground }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -261,24 +261,24 @@ export default function InvoiceDetailScreen() {
             )}
             {Number(invoice.discountAmount) > 0 && (
               <View style={styles.amountRow}>
-                <Text style={[styles.amountRowLabel, { color: '#22c55e' }]}>Discount</Text>
-                <Text style={[styles.amountRowValue, { color: '#22c55e' }]}>
+                <Text style={[styles.amountRowLabel, { color: Palette.emerald }]}>Discount</Text>
+                <Text style={[styles.amountRowValue, { color: Palette.emerald }]}>
                   -{formatAmount(invoice.discountAmount, invoice.currency?.symbol)}
                 </Text>
               </View>
             )}
             {amountPaid > 0 && (
               <View style={[styles.amountRow, { marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: borderColor }]}>
-                <Text style={[styles.amountRowLabel, { color: '#22c55e', fontWeight: '600' }]}>Paid</Text>
-                <Text style={[styles.amountRowValue, { color: '#22c55e', fontWeight: '600' }]}>
+                <Text style={[styles.amountRowLabel, { color: Palette.emerald, fontWeight: '600' }]}>Paid</Text>
+                <Text style={[styles.amountRowValue, { color: Palette.emerald, fontWeight: '600' }]}>
                   {formatAmount(amountPaid, invoice.currency?.symbol)}
                 </Text>
               </View>
             )}
             {amountDue > 0 && amountDue !== Number(invoice.total) && (
               <View style={styles.amountRow}>
-                <Text style={[styles.amountRowLabel, { color: '#ef4444', fontWeight: '600' }]}>Amount Due</Text>
-                <Text style={[styles.amountRowValue, { color: '#ef4444', fontWeight: '600' }]}>
+                <Text style={[styles.amountRowLabel, { color: Palette.red, fontWeight: '600' }]}>Amount Due</Text>
+                <Text style={[styles.amountRowValue, { color: Palette.red, fontWeight: '600' }]}>
                   {formatAmount(amountDue, invoice.currency?.symbol)}
                 </Text>
               </View>
@@ -339,34 +339,34 @@ export default function InvoiceDetailScreen() {
           <View style={styles.actionsContainer}>
             {canSend && (
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary }]} onPress={handleSend}>
-                <Ionicons name="send" size={16} color="white" />
-                <Text style={styles.actionBtnText}>Send Invoice</Text>
+                <Ionicons name="send" size={16} color={colors.primaryForeground} />
+                <Text style={[styles.actionBtnText, { color: colors.primaryForeground }]}>Send Invoice</Text>
               </TouchableOpacity>
             )}
             {canMarkPaid && (
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#22c55e' }]} onPress={handleMarkPaid}>
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Palette.emerald }]} onPress={handleMarkPaid}>
                 <Ionicons name="checkmark-circle" size={16} color="white" />
-                <Text style={styles.actionBtnText}>Mark Paid</Text>
+                <Text style={[styles.actionBtnText, { color: 'white' }]}>Mark Paid</Text>
               </TouchableOpacity>
             )}
             <View style={styles.actionsSecondary}>
               {canRemind && (
                 <TouchableOpacity style={[styles.actionBtnSmall, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)' }]} onPress={handleReminder}>
-                  <Ionicons name="notifications-outline" size={15} color="#f59e0b" />
-                  <Text style={[styles.actionBtnSmallText, { color: '#f59e0b' }]}>Remind</Text>
+                  <Ionicons name="notifications-outline" size={15} color={Palette.amber} />
+                  <Text style={[styles.actionBtnSmallText, { color: Palette.amber }]}>Remind</Text>
                 </TouchableOpacity>
               )}
               {canCancel && (
                 <TouchableOpacity style={[styles.actionBtnSmall, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)' }]} onPress={handleCancel}>
-                  <Ionicons name="close-circle-outline" size={15} color="#f59e0b" />
-                  <Text style={[styles.actionBtnSmallText, { color: '#f59e0b' }]}>Cancel</Text>
+                  <Ionicons name="close-circle-outline" size={15} color={Palette.amber} />
+                  <Text style={[styles.actionBtnSmallText, { color: Palette.amber }]}>Cancel</Text>
                 </TouchableOpacity>
               )}
             </View>
             {canDelete && (
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]} onPress={handleDelete}>
-                <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete Invoice</Text>
+                <Ionicons name="trash-outline" size={16} color={Palette.red} />
+                <Text style={[styles.actionBtnText, { color: Palette.red }]}>Delete Invoice</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 12,
   },
-  actionBtnText: { fontSize: 14, fontWeight: '600', color: '#252525' },
+  actionBtnText: { fontSize: 14, fontWeight: '600' },
   actionsSecondary: { flexDirection: 'row', gap: 10 },
   actionBtnSmall: {
     flex: 1,
@@ -525,8 +525,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: Colors.light.primary,
     borderRadius: 10,
   },
-  backBtnText: { color: '#252525', fontWeight: '600' },
+  backBtnText: { fontWeight: '600' },
 });

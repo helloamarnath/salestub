@@ -1,4 +1,5 @@
 // Contact (Customer) type definitions for SalesTub CRM Mobile App
+import { Palette } from '@/constants/theme';
 
 // Re-export Company from company.ts to avoid duplication
 import { Company, CompanyType } from './company';
@@ -118,7 +119,7 @@ export const getContactInitials = (contact: Contact | { firstName: string; lastN
 
 // Avatar colors based on name
 export const getAvatarColor = (name: string): string => {
-  const colors = ['#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4'];
+  const colors = [Palette.blue, Palette.purple, Palette.emerald, Palette.amber, Palette.pink, Palette.cyan];
   const charCode = name.charCodeAt(0) || 0;
   return colors[charCode % colors.length];
 };

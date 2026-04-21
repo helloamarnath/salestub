@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 
 export type LifecycleAccent = 'red' | 'green' | 'blue' | 'muted' | 'purple' | 'amber';
 
@@ -19,12 +19,12 @@ interface LifecycleCardProps {
 }
 
 const ACCENT_COLORS: Record<LifecycleAccent, string> = {
-  red: '#ef4444',
-  green: '#22c55e',
-  blue: '#3b82f6',
+  red: Palette.red,
+  green: Palette.emerald,
+  blue: Palette.blue,
   muted: '#64748b',
-  purple: '#8b5cf6',
-  amber: '#f59e0b',
+  purple: Palette.purple,
+  amber: Palette.amber,
 };
 
 export function LifecycleCard({
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ef4444',
+    backgroundColor: Palette.red,
     marginTop: 4,
     marginRight: 2,
   },

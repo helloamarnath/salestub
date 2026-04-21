@@ -26,6 +26,8 @@ export async function getActivities(
     type: filters.type,
     status: filters.status,
     assignedTo: filters.assignedTo,
+    dueDateFrom: filters.dueDateFrom,
+    dueDateTo: filters.dueDateTo,
   };
 
   return api.get<PaginatedActivitiesResponse>(ACTIVITIES_BASE, token, params);

@@ -72,6 +72,43 @@ export const Colors = {
   },
 };
 
+export const Palette = {
+  // Brand blues
+  blue: '#3b82f6',
+  blueLight: '#eff6ff',
+  blueMuted: '#93c5fd',
+  // Greens
+  green: '#10b981',
+  greenLight: '#f0fdf4',
+  emerald: '#22c55e',
+  // Ambers / Oranges
+  amber: '#f59e0b',
+  amberLight: '#fef3c7',
+  orange: '#f97316',
+  orangeLight: '#fff7ed',
+  // Reds
+  red: '#ef4444',
+  redLight: '#fef2f2',
+  redMuted: '#dc2626',
+  // Purples
+  purple: '#8b5cf6',
+  purpleLight: '#f5f3ff',
+  indigo: '#6366f1',
+  indigoLight: '#eef2ff',
+  // Pinks / Cyans
+  pink: '#ec4899',
+  cyan: '#06b6d4',
+  // Status semantics
+  success: '#10b981',
+  successLight: '#f0fdf4',
+  warning: '#f59e0b',
+  warningLight: '#fef3c7',
+  danger: '#ef4444',
+  dangerLight: '#fef2f2',
+  info: '#3b82f6',
+  infoLight: '#eff6ff',
+};
+
 export const Fonts = Platform.select({
   ios: {
     sans: 'system-ui',

@@ -20,7 +20,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useRBAC } from '@/hooks/use-rbac';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { AccessDenied } from '@/components/AccessDenied';
 import { getProducts, deleteProduct } from '@/lib/api/products';
 import type { Product, ProductFilters } from '@/types/product';
@@ -44,7 +44,7 @@ function ProductCard({
   const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-  const cardBg = isDark ? 'rgba(255,255,255,0.03)' : 'white';
+  const cardBg = isDark ? 'rgba(255,255,255,0.03)' : colors.card;
   const currencySymbol = product.currency?.symbol || '₹';
 
   const handleDelete = () => {
@@ -95,7 +95,7 @@ function ProductCard({
 
           <View style={styles.productMeta}>
             {product.price !== undefined && product.price > 0 && (
-              <Text style={[styles.productPrice, { color: '#22c55e' }]}>
+              <Text style={[styles.productPrice, { color: Palette.emerald }]}>
                 {formatProductPrice(product.price, currencySymbol)}
               </Text>
             )}
@@ -120,7 +120,7 @@ function ProductCard({
                 handleDelete();
               }}
             >
-              <Ionicons name="trash-outline" size={18} color="#ef4444" />
+              <Ionicons name="trash-outline" size={18} color={Palette.red} />
             </TouchableOpacity>
           )}
           <Ionicons name="chevron-forward" size={20} color={subtitleColor} />
@@ -185,8 +185,8 @@ function EmptyState({ isDark, searchQuery, canCreate }: { isDark: boolean; searc
           style={[styles.emptyButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/products/create')}
         >
-          <Ionicons name="add" size={20} color="white" />
-          <Text style={styles.emptyButtonText}>Add Product</Text>
+          <Ionicons name="add" size={20} color={colors.primaryForeground} />
+          <Text style={[styles.emptyButtonText, { color: colors.primaryForeground }]}>Add Product</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -387,7 +387,7 @@ export default function ProductsScreen() {
             </View>
             {rbac.canCreate('products') && (
               <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleCreate}>
-                <Ionicons name="add" size={24} color="white" />
+                <Ionicons name="add" size={24} color={colors.primaryForeground} />
               </TouchableOpacity>
             )}
           </View>
@@ -478,7 +478,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -540,7 +539,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   inactiveBadgeText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -631,7 +630,6 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -639,7 +637,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },

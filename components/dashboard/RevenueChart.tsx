@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Rect, Text as SvgText, Line } from 'react-native-svg';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { RevenueMetric } from '@/types/dashboard';
 
 interface RevenueChartProps {
@@ -167,12 +167,12 @@ export function RevenueChart({ data, currencySymbol = '₹' }: RevenueChartProps
             <Ionicons
               name={change >= 0 ? 'arrow-up' : 'arrow-down'}
               size={14}
-              color={change >= 0 ? '#22c55e' : '#ef4444'}
+              color={change >= 0 ? Palette.emerald : Palette.red}
             />
             <Text
               style={[
                 styles.changeText,
-                { color: change >= 0 ? '#22c55e' : '#ef4444' },
+                { color: change >= 0 ? Palette.emerald : Palette.red },
               ]}
             >
               {Math.abs(change)}% vs last month

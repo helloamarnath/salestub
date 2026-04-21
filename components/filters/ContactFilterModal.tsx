@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { COMPANY_TYPE_LABELS, COMPANY_TYPE_COLORS, type CompanyType } from '@/types/company';
 import {
   getOrganizationMembers,
@@ -63,8 +63,8 @@ const INDUSTRIES = [
 ];
 
 const STATUS_OPTIONS: Array<{ value: 'Active' | 'Inactive'; color: string }> = [
-  { value: 'Active', color: '#22c55e' },
-  { value: 'Inactive', color: '#ef4444' },
+  { value: 'Active', color: Palette.emerald },
+  { value: 'Inactive', color: Palette.red },
 ];
 
 export function ContactFilterModal({

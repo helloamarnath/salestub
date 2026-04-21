@@ -1,4 +1,5 @@
 // Quote type definitions for SalesTub CRM Mobile App
+import { Palette } from '@/constants/theme';
 
 export type QuoteStatus = 'DRAFT' | 'SENT' | 'VIEWED' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED';
 
@@ -133,11 +134,11 @@ export interface CreateQuoteDto {
 // Status colors for UI
 export const QUOTE_STATUS_COLORS: Record<QuoteStatus, string> = {
   DRAFT: '#6b7280',
-  SENT: '#3b82f6',
-  VIEWED: '#8b5cf6',
-  APPROVED: '#22c55e',
-  REJECTED: '#ef4444',
-  EXPIRED: '#f59e0b',
+  SENT: Palette.blue,
+  VIEWED: Palette.purple,
+  APPROVED: Palette.emerald,
+  REJECTED: Palette.red,
+  EXPIRED: Palette.amber,
   CANCELLED: '#6b7280',
 };
 

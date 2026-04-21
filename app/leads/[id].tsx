@@ -36,7 +36,7 @@ import { getActiveVisit, startVisit, completeVisit, cancelVisit, getLeadVisits }
 import type { Visit, VisitPurpose } from '@/types/visit';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getLead, deleteLead, getLeadActivities, updateLead, getKanbanView, addLeadActivity, getLeadSources, getAllTags, getLeadTags, addLeadTags, removeLeadTags, createTag, getLeadDocuments, uploadLeadDocument, deleteLeadDocument, getLeadDocumentPreview, convertLead, qualifyLead, markLeadLost, getLeadProducts, addLeadProduct, removeLeadProduct, getLeadNotesEndpoint, addLeadNoteEndpoint } from '@/lib/api/leads';
 import { getProducts, createProduct } from '@/lib/api/products';
 import { getQuotes } from '@/lib/api/quotes';
@@ -67,10 +67,10 @@ interface ActivityTypeOption {
 }
 
 const ACTIVITY_OPTIONS: ActivityTypeOption[] = [
-  { type: 'CALL', label: 'Log Call', icon: 'call-outline', color: '#22c55e' },
-  { type: 'EMAIL', label: 'Log Email', icon: 'mail-outline', color: Colors.light.primary },
-  { type: 'MEETING', label: 'Schedule Meeting', icon: 'calendar-outline', color: '#8b5cf6' },
-  { type: 'TASK', label: 'Add Task', icon: 'checkbox-outline', color: '#f59e0b' },
+  { type: 'CALL', label: 'Log Call', icon: 'call-outline', color: Palette.emerald },
+  { type: 'EMAIL', label: 'Log Email', icon: 'mail-outline', color: Palette.blue },
+  { type: 'MEETING', label: 'Schedule Meeting', icon: 'calendar-outline', color: Palette.purple },
+  { type: 'TASK', label: 'Add Task', icon: 'checkbox-outline', color: Palette.amber },
   { type: 'NOTE', label: 'Add Note', icon: 'document-text-outline', color: '#6b7280' },
 ];
 
@@ -110,7 +110,7 @@ function Tab({
 
   return (
     <TouchableOpacity
-      style={[styles.tab, active && styles.tabActive]}
+      style={[styles.tab, active && [styles.tabActive, { borderBottomColor: colors.primary }]]}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress();
@@ -164,7 +164,7 @@ function SectionHeader({
         <Text style={{ fontSize: 14, fontWeight: '600', color: textColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</Text>
         {count !== undefined && count > 0 && (
           <View style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1, minWidth: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: 'white' }}>{count}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primaryForeground }}>{count}</Text>
           </View>
         )}
       </View>
@@ -204,16 +204,16 @@ function ActivityItem({ activity, isDark }: { activity: LeadActivity; isDark: bo
   if (activityType === 'stage_change') {
     const colors = Colors[isDark ? 'dark' : 'light'];
     displayIcon = 'swap-horizontal-outline';
-    displayColor = '#8b5cf6';
+    displayColor = Palette.purple;
   } else if (activityType === 'owner_change') {
     displayIcon = 'person-outline';
-    displayColor = '#f59e0b';
+    displayColor = Palette.amber;
   } else if (activityType === 'lead_created') {
     displayIcon = 'add-circle-outline';
-    displayColor = '#22c55e';
+    displayColor = Palette.emerald;
   } else if (activityType === 'field_update') {
     displayIcon = 'create-outline';
-    displayColor = '#06b6d4';
+    displayColor = Palette.cyan;
   }
 
   return (
@@ -226,9 +226,9 @@ function ActivityItem({ activity, isDark }: { activity: LeadActivity; isDark: bo
           <Text style={[styles.activityTitle, { color: textColor }]} numberOfLines={2}>{activity.title}</Text>
           {!isFieldChange && (
             activity.status === 'COMPLETED' ? (
-              <Ionicons name="checkmark-circle" size={16} color="#22c55e" />
+              <Ionicons name="checkmark-circle" size={16} color={Palette.emerald} />
             ) : (
-              <Ionicons name="ellipse-outline" size={16} color="#f59e0b" />
+              <Ionicons name="ellipse-outline" size={16} color={Palette.amber} />
             )
           )}
         </View>
@@ -393,7 +393,7 @@ function ValueInputModal({
                 onClose();
               }}
             >
-              <Text style={styles.modalSaveButtonText}>Save</Text>
+              <Text style={[styles.modalSaveButtonText, { color: colors.primaryForeground }]}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -591,12 +591,12 @@ function ActivityFormModal({
             {/* Title */}
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: subtitleColor }]}>
-                Title <Text style={{ color: '#ef4444' }}>*</Text>
+                Title <Text style={{ color: Palette.red }}>*</Text>
               </Text>
               <TextInput
                 style={[
                   styles.formInput,
-                  { backgroundColor: inputBg, color: textColor, borderColor: formErrors.title ? '#ef4444' : borderColor }
+                  { backgroundColor: inputBg, color: textColor, borderColor: formErrors.title ? Palette.red : borderColor }
                 ]}
                 value={title}
                 onChangeText={(text) => {
@@ -607,7 +607,7 @@ function ActivityFormModal({
                 placeholderTextColor={placeholderColor}
               />
               {formErrors.title && (
-                <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{formErrors.title}</Text>
+                <Text style={{ color: Palette.red, fontSize: 12, marginTop: 4 }}>{formErrors.title}</Text>
               )}
             </View>
 
@@ -701,9 +701,9 @@ function ActivityFormModal({
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
               ) : (
-                <Text style={styles.formSubmitButtonText}>
+                <Text style={[styles.formSubmitButtonText, { color: colors.primaryForeground }]}>
                   {activityType === 'NOTE' ? 'Add Note' : activityType === 'CALL' || activityType === 'EMAIL' ? 'Log Activity' : 'Schedule'}
                 </Text>
               )}
@@ -890,10 +890,10 @@ function DetailsTab({
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
 
   const getScoreBadgeColor = (score: number): string => {
-    if (score >= 80) return '#22c55e';
+    if (score >= 80) return Palette.emerald;
     if (score >= 60) return colors.primary;
-    if (score >= 40) return '#f59e0b';
-    return '#ef4444';
+    if (score >= 40) return Palette.amber;
+    return Palette.red;
   };
 
   // Inquiry type for IndiaMART leads
@@ -902,9 +902,9 @@ function DetailsTab({
     const sender = (lead.metadata as any)?.originalSender;
     if (!sender) return null;
     if (typeof sender === 'string' && sender.includes('buyleads@')) {
-      return { label: 'BuyLead', color: '#f59e0b' };
+      return { label: 'BuyLead', color: Palette.amber };
     }
-    return { label: 'Direct Inquiry', color: '#22c55e' };
+    return { label: 'Direct Inquiry', color: Palette.emerald };
   };
 
   const inquiryType = getInquiryType();
@@ -1010,7 +1010,7 @@ function DetailsTab({
               <TouchableOpacity style={styles.detailsCell} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowOwnerPicker(true); }}>
                 <Text style={[styles.detailsCellLabel, { color: labelColor }]}>OWNER</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#8b5cf6', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: Palette.purple, alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>{lead.owner.userName.charAt(0).toUpperCase()}</Text>
                   </View>
                   <Text style={[{ fontSize: 13, color: textColor }]} numberOfLines={1}>{lead.owner.userName}</Text>
@@ -1122,10 +1122,10 @@ function DetailsTab({
                     {lead.contact.phone ? (
                       <>
                         <TouchableOpacity onPress={() => Linking.openURL(`tel:${lead.contact!.phone}`)} style={{ flex: 1 }}>
-                          <Text style={[{ fontSize: 13, color: '#22c55e' }]} numberOfLines={1}>{lead.contact.phone}</Text>
+                          <Text style={[{ fontSize: 13, color: Palette.emerald }]} numberOfLines={1}>{lead.contact.phone}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => Linking.openURL(`tel:${lead.contact!.phone}`)}>
-                          <Ionicons name="call" size={14} color="#22c55e" />
+                          <Ionicons name="call" size={14} color={Palette.emerald} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => { const p = lead.contact!.phone!.replace(/\D/g, ''); Linking.openURL(`https://wa.me/${p}`); }}>
                           <Ionicons name="logo-whatsapp" size={14} color="#25d366" />
@@ -1521,12 +1521,12 @@ function TagPickerModal({
 
   const TAG_COLORS = [
     { color: colors.primary, name: 'Blue' },
-    { color: '#22c55e', name: 'Green' },
-    { color: '#f59e0b', name: 'Amber' },
-    { color: '#ef4444', name: 'Red' },
-    { color: '#8b5cf6', name: 'Purple' },
-    { color: '#ec4899', name: 'Pink' },
-    { color: '#06b6d4', name: 'Cyan' },
+    { color: Palette.emerald, name: 'Green' },
+    { color: Palette.amber, name: 'Amber' },
+    { color: Palette.red, name: 'Red' },
+    { color: Palette.purple, name: 'Purple' },
+    { color: Palette.pink, name: 'Pink' },
+    { color: Palette.cyan, name: 'Cyan' },
     { color: '#6b7280', name: 'Gray' },
   ];
 
@@ -1554,7 +1554,7 @@ function TagPickerModal({
         <View style={[styles.tagPickerContent, { backgroundColor: bgColor, paddingBottom: insets.bottom + 20 }]}>
           {/* Gradient Header */}
           <LinearGradient
-            colors={[colors.primary, '#6366f1']}
+            colors={[colors.primary, Palette.indigo]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.tagPickerHeader}
@@ -1640,7 +1640,7 @@ function TagPickerModal({
                     </View>
                     <View style={[
                       styles.tagPickerItemCheckbox,
-                      { borderColor: isSelected ? '#22c55e' : borderColor },
+                      { borderColor: isSelected ? Palette.emerald : borderColor },
                       isSelected && styles.tagPickerItemCheckboxSelected,
                     ]}>
                       {isSelected && <Ionicons name="checkmark" size={14} color="white" />}
@@ -1907,8 +1907,8 @@ function TagsTab({
             }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
-            <Ionicons name="settings-outline" size={14} color="white" />
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Manage</Text>
+            <Ionicons name="settings-outline" size={14} color={colors.primaryForeground} />
+            <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '600' }}>Manage</Text>
           </TouchableOpacity>
         </View>
 
@@ -2017,10 +2017,10 @@ function DocumentItem({
   };
 
   const getFileIconColor = (fileType: string): string => {
-    if (fileType.startsWith('image/')) return '#8b5cf6';
-    if (fileType.includes('pdf')) return '#ef4444';
+    if (fileType.startsWith('image/')) return Palette.purple;
+    if (fileType.includes('pdf')) return Palette.red;
     if (fileType.includes('word') || fileType.includes('document')) return colors.primary;
-    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '#22c55e';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return Palette.emerald;
     return '#6b7280';
   };
 
@@ -2077,7 +2077,7 @@ function DocumentItem({
           style={[styles.docItemActionBtn, { backgroundColor: 'rgba(139,92,246,0.1)' }]}
           onPress={onPreview}
         >
-          <Ionicons name="eye-outline" size={18} color="#8b5cf6" />
+          <Ionicons name="eye-outline" size={18} color={Palette.purple} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.docItemActionBtn, { backgroundColor: 'rgba(59,130,246,0.1)' }]}
@@ -2089,7 +2089,7 @@ function DocumentItem({
           style={[styles.docItemActionBtn, { backgroundColor: 'rgba(239,68,68,0.1)' }]}
           onPress={onDelete}
         >
-          <Ionicons name="trash-outline" size={18} color="#ef4444" />
+          <Ionicons name="trash-outline" size={18} color={Palette.red} />
         </TouchableOpacity>
       </View>
     </View>
@@ -2300,7 +2300,7 @@ function DocsTab({
               setShowUploadOptions(true);
             }}
             disabled={uploading}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Palette.purple, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
             {uploading ? (
               <ActivityIndicator size="small" color="white" />
@@ -2331,7 +2331,7 @@ function DocsTab({
               }}
             >
               <LinearGradient
-                colors={['#8b5cf6', '#7c3aed']}
+                colors={[Palette.purple, '#7c3aed']}
                 style={styles.docsTabAddBtnGradient}
               >
                 <Ionicons name="cloud-upload" size={18} color="white" />
@@ -2361,7 +2361,7 @@ function DocsTab({
                 setShowUploadOptions(true);
               }}
             >
-              <Ionicons name="add-circle-outline" size={18} color="#8b5cf6" />
+              <Ionicons name="add-circle-outline" size={18} color={Palette.purple} />
               <Text style={styles.docsTabAddMoreText}>Upload more files</Text>
             </TouchableOpacity>
           </View>
@@ -2376,7 +2376,7 @@ function DocsTab({
           <Pressable style={[styles.uploadModalContent, { backgroundColor: bgColor }]}>
             {/* Modal Header */}
             <LinearGradient
-              colors={['#8b5cf6', '#7c3aed']}
+              colors={[Palette.purple, '#7c3aed']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.uploadModalHeader}
@@ -2412,7 +2412,7 @@ function DocsTab({
                 onPress={handlePickImage}
               >
                 <View style={[styles.uploadModalOptionIcon, { backgroundColor: 'rgba(139,92,246,0.12)' }]}>
-                  <Ionicons name="image" size={24} color="#8b5cf6" />
+                  <Ionicons name="image" size={24} color={Palette.purple} />
                 </View>
                 <View style={styles.uploadModalOptionInfo}>
                   <Text style={[styles.uploadModalOptionTitle, { color: textColor }]}>Choose Photo</Text>
@@ -2586,7 +2586,7 @@ function ConvertLeadModal({
             <View style={styles.convertModalHeaderLeft}>
               <View style={styles.convertModalIconWrapper}>
                 <LinearGradient
-                  colors={['#22c55e', '#16a34a']}
+                  colors={[Palette.emerald, Palette.success]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.convertModalIconGradient}
@@ -2625,7 +2625,7 @@ function ConvertLeadModal({
 
               <View style={styles.convertFormGroup}>
                 <Text style={[styles.convertFormLabel, { color: subtitleColor }]}>
-                  Account <Text style={{ color: '#ef4444' }}>*</Text>
+                  Account <Text style={{ color: Palette.red }}>*</Text>
                 </Text>
 
                 {/* Selected Company Display or Search Trigger */}
@@ -2654,7 +2654,7 @@ function ConvertLeadModal({
                     </View>
                     <View style={styles.convertSelectedCompanyActions}>
                       <View style={[styles.convertSelectedCompanyBadge, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
-                        <Text style={{ color: '#22c55e', fontSize: 11, fontWeight: '600' }}>Selected</Text>
+                        <Text style={{ color: Palette.emerald, fontSize: 11, fontWeight: '600' }}>Selected</Text>
                       </View>
                       <TouchableOpacity
                         onPress={() => {
@@ -2678,7 +2678,7 @@ function ConvertLeadModal({
                     activeOpacity={0.7}
                   >
                     <View style={styles.convertSelectedCompanyInfo}>
-                      <View style={[styles.convertCompanyAvatar, { backgroundColor: '#f59e0b' }]}>
+                      <View style={[styles.convertCompanyAvatar, { backgroundColor: Palette.amber }]}>
                         <Ionicons name="add" size={18} color="white" />
                       </View>
                       <View style={styles.convertSelectedCompanyDetails}>
@@ -2692,7 +2692,7 @@ function ConvertLeadModal({
                     </View>
                     <View style={styles.convertSelectedCompanyActions}>
                       <View style={[styles.convertSelectedCompanyBadge, { backgroundColor: 'rgba(245,158,11,0.1)' }]}>
-                        <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '600' }}>New</Text>
+                        <Text style={{ color: Palette.amber, fontSize: 11, fontWeight: '600' }}>New</Text>
                       </View>
                       <TouchableOpacity
                         onPress={() => {
@@ -2774,11 +2774,11 @@ function ConvertLeadModal({
                               onPress={handleCreateNew}
                               activeOpacity={0.7}
                             >
-                              <View style={[styles.convertCompanyAvatar, { backgroundColor: '#22c55e' }]}>
+                              <View style={[styles.convertCompanyAvatar, { backgroundColor: Palette.emerald }]}>
                                 <Ionicons name="add" size={18} color="white" />
                               </View>
                               <View style={styles.convertCompanyItemInfo}>
-                                <Text style={[styles.convertCompanyItemName, { color: '#22c55e' }]}>
+                                <Text style={[styles.convertCompanyItemName, { color: Palette.emerald }]}>
                                   Create "{searchQuery}"
                                 </Text>
                                 <Text style={[styles.convertCompanyItemMeta, { color: subtitleColor }]}>
@@ -2856,7 +2856,7 @@ function ConvertLeadModal({
               disabled={converting || (!accountName.trim() && !selectedCompany)}
             >
               <LinearGradient
-                colors={['#22c55e', '#16a34a']}
+                colors={[Palette.emerald, Palette.success]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.convertSubmitGradient}
@@ -3042,7 +3042,7 @@ function ProductsTab({
               setSelectedProduct(null);
               setProductSearch('');
             }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: showAddProduct ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : '#f59e0b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: showAddProduct ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : Palette.amber, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
             <Ionicons name={showAddProduct ? 'close' : 'add'} size={16} color={showAddProduct ? subtitleColor : 'white'} />
             <Text style={{ color: showAddProduct ? subtitleColor : 'white', fontSize: 12, fontWeight: '600' }}>{showAddProduct ? 'Close' : 'Add'}</Text>
@@ -3169,9 +3169,9 @@ function ProductsTab({
                             disabled={!quickProductName.trim() || creatingProduct}
                           >
                             {creatingProduct ? (
-                              <ActivityIndicator size="small" color="white" />
+                              <ActivityIndicator size="small" color={colors.primaryForeground} />
                             ) : (
-                              <Text style={styles.addNoteButtonText}>Create & Select</Text>
+                              <Text style={[styles.addNoteButtonText, { color: colors.primaryForeground }]}>Create & Select</Text>
                             )}
                           </TouchableOpacity>
                         </View>
@@ -3226,9 +3226,9 @@ function ProductsTab({
                   disabled={adding}
                 >
                   {adding ? (
-                    <ActivityIndicator size="small" color="white" />
+                    <ActivityIndicator size="small" color={colors.primaryForeground} />
                   ) : (
-                    <Text style={styles.addNoteButtonText}>Add Product</Text>
+                    <Text style={[styles.addNoteButtonText, { color: colors.primaryForeground }]}>Add Product</Text>
                   )}
                 </TouchableOpacity>
               </>
@@ -3274,7 +3274,7 @@ function ProductsTab({
                     onPress={() => handleRemoveProduct(lp.id, lp.productName || (lp as any).product?.name || 'Product')}
                     style={styles.productRemove}
                   >
-                    <Ionicons name="close-circle" size={20} color="#ef4444" />
+                    <Ionicons name="close-circle" size={20} color={Palette.red} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -3390,7 +3390,7 @@ function NotesTab({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setShowAddNote(!showAddNote);
             }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: showAddNote ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: showAddNote ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)') : Palette.purple, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
             <Ionicons name={showAddNote ? 'close' : 'add'} size={16} color={showAddNote ? subtitleColor : 'white'} />
             <Text style={{ color: showAddNote ? subtitleColor : 'white', fontSize: 12, fontWeight: '600' }}>{showAddNote ? 'Close' : 'Add'}</Text>
@@ -3416,9 +3416,9 @@ function NotesTab({
               disabled={!noteContent.trim() || saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
               ) : (
-                <Text style={styles.addNoteButtonText}>Add Note</Text>
+                <Text style={[styles.addNoteButtonText, { color: colors.primaryForeground }]}>Add Note</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -3604,17 +3604,17 @@ function QuotesTab({
             onPress={() => router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId } })}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
-            <Ionicons name="add" size={16} color="white" />
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>New</Text>
+            <Ionicons name="add" size={16} color={colors.primaryForeground} />
+            <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '600' }}>New</Text>
           </TouchableOpacity>
         </View>
 
         {errorMsg ? (
           <View style={styles.emptyTabContent}>
-            <Ionicons name="alert-circle-outline" size={36} color="#ef4444" />
+            <Ionicons name="alert-circle-outline" size={36} color={Palette.red} />
             <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>{errorMsg}</Text>
             <TouchableOpacity onPress={fetchQuotesList} style={{ marginTop: 8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary }}>
-              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Retry</Text>
+              <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '600' }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : quotes.length === 0 ? (
@@ -3745,7 +3745,7 @@ function InvoicesTab({
           <TouchableOpacity
             onPress={handleCreateInvoice}
             disabled={creating}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#ef4444', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, opacity: creating ? 0.6 : 1 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Palette.red, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, opacity: creating ? 0.6 : 1 }}
           >
             {creating ? (
               <ActivityIndicator size="small" color="white" />
@@ -3760,10 +3760,10 @@ function InvoicesTab({
 
         {errorMsg ? (
           <View style={styles.emptyTabContent}>
-            <Ionicons name="alert-circle-outline" size={36} color="#ef4444" />
+            <Ionicons name="alert-circle-outline" size={36} color={Palette.red} />
             <Text style={[styles.emptyTabText, { color: emptyTextColor }]}>{errorMsg}</Text>
             <TouchableOpacity onPress={fetchInvoicesList} style={{ marginTop: 8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary }}>
-              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Retry</Text>
+              <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: '600' }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : invoices.length === 0 ? (
@@ -3805,7 +3805,7 @@ function InvoicesTab({
                       {formatAmount(invoice.total, invoice.currency?.symbol)}
                     </Text>
                     {showAmountDue && (
-                      <Text style={[{ fontSize: 11, color: '#ef4444', fontWeight: '500' }]}>
+                      <Text style={[{ fontSize: 11, color: Palette.red, fontWeight: '500' }]}>
                         Due: {formatAmount(invoice.amountDue, invoice.currency?.symbol)}
                       </Text>
                     )}
@@ -4389,11 +4389,11 @@ export default function LeadDetailScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Ionicons name="alert-circle-outline" size={64} color={Palette.red} />
           <Text style={[styles.errorTitle, { color: textColor }]}>Failed to load lead</Text>
           <Text style={[styles.errorMessage, { color: subtitleColor }]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => fetchLead()}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -4457,7 +4457,7 @@ export default function LeadDetailScreen() {
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {lead.contact?.phone && (
               <TouchableOpacity onPress={handleCall} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.08)', alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="call" size={18} color="#22c55e" />
+                <Ionicons name="call" size={18} color={Palette.emerald} />
               </TouchableOpacity>
             )}
             {lead.contact?.phone && (
@@ -4471,12 +4471,12 @@ export default function LeadDetailScreen() {
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={handleStartVisitPress} style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: isDark ? 'rgba(139,92,246,0.12)' : 'rgba(139,92,246,0.08)', alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="navigate-outline" size={17} color="#8b5cf6" />
+              <Ionicons name="navigate-outline" size={17} color={Palette.purple} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={handleFollowUpPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 }}>
-            <Ionicons name="add" size={16} color="white" />
-            <Text style={{ color: 'white', fontSize: 13, fontWeight: '600' }}>Follow Up</Text>
+            <Ionicons name="add" size={16} color={colors.primaryForeground} />
+            <Text style={{ color: colors.primaryForeground, fontSize: 13, fontWeight: '600' }}>Follow Up</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -4564,10 +4564,10 @@ export default function LeadDetailScreen() {
           gap: 12,
         }}>
           {[
-            { icon: 'document-text-outline' as const, label: 'Quote', color: colors.primary, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId: id } }); } },
-            { icon: 'receipt-outline' as const, label: 'Invoice', color: '#ef4444', onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/invoices/create' as any, params: { leadId: id } }); } },
-            { icon: 'location-outline' as const, label: 'Log Visit', color: '#8b5cf6', onPress: () => { setFabOpen(false); handleStartVisitPress(); } },
-            { icon: 'add-circle-outline' as const, label: 'Follow Up', color: '#f59e0b', onPress: () => { setFabOpen(false); handleFollowUpPress(); } },
+            { icon: 'document-text-outline' as const, label: 'Quote', color: colors.primary, iconColor: colors.primaryForeground, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId: id } }); } },
+            { icon: 'receipt-outline' as const, label: 'Invoice', color: Palette.red, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/invoices/create' as any, params: { leadId: id } }); } },
+            { icon: 'location-outline' as const, label: 'Log Visit', color: Palette.purple, onPress: () => { setFabOpen(false); handleStartVisitPress(); } },
+            { icon: 'add-circle-outline' as const, label: 'Follow Up', color: Palette.amber, onPress: () => { setFabOpen(false); handleFollowUpPress(); } },
           ].map((item) => (
             <TouchableOpacity
               key={item.label}
@@ -4608,7 +4608,7 @@ export default function LeadDetailScreen() {
                 shadowRadius: 6,
                 elevation: 6,
               }}>
-                <Ionicons name={item.icon} size={22} color="white" />
+                <Ionicons name={item.icon} size={22} color={(item as any).iconColor ?? 'white'} />
               </View>
             </TouchableOpacity>
           ))}
@@ -4629,7 +4629,7 @@ export default function LeadDetailScreen() {
           width: 56,
           height: 56,
           borderRadius: 28,
-          backgroundColor: fabOpen ? '#ef4444' : colors.primary,
+          backgroundColor: fabOpen ? Palette.red : colors.primary,
           alignItems: 'center',
           justifyContent: 'center',
           shadowColor: '#000',
@@ -4640,7 +4640,7 @@ export default function LeadDetailScreen() {
           zIndex: 999,
         }}
       >
-        <Ionicons name={fabOpen ? 'close' : 'add'} size={28} color="white" />
+        <Ionicons name={fabOpen ? 'close' : 'add'} size={28} color={fabOpen ? 'white' : colors.primaryForeground} />
       </TouchableOpacity>
 
       {/* Follow-up Action Sheet */}
@@ -4695,7 +4695,7 @@ export default function LeadDetailScreen() {
               }}
             >
               <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(34,197,94,0.15)' }]}>
-                <Ionicons name="swap-horizontal" size={20} color="#22c55e" />
+                <Ionicons name="swap-horizontal" size={20} color={Palette.emerald} />
               </View>
               <View style={styles.moreActionText}>
                 <Text style={[styles.moreActionLabel, { color: textColor }]}>Convert Lead</Text>
@@ -4745,7 +4745,7 @@ export default function LeadDetailScreen() {
                 }}
               >
                 <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-                  <Ionicons name="close-circle" size={20} color="#ef4444" />
+                  <Ionicons name="close-circle" size={20} color={Palette.red} />
                 </View>
                 <View style={styles.moreActionText}>
                   <Text style={[styles.moreActionLabel, { color: textColor }]}>Mark as Lost</Text>
@@ -4765,10 +4765,10 @@ export default function LeadDetailScreen() {
               disabled={deleting}
             >
               <View style={[styles.moreActionIcon, { backgroundColor: 'rgba(239,68,68,0.15)' }]}>
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                <Ionicons name="trash-outline" size={20} color={Palette.red} />
               </View>
               <View style={styles.moreActionText}>
-                <Text style={[styles.moreActionLabel, { color: '#ef4444' }]}>Delete Lead</Text>
+                <Text style={[styles.moreActionLabel, { color: Palette.red }]}>Delete Lead</Text>
                 <Text style={[styles.moreActionDesc, { color: subtitleColor }]}>Permanently remove this lead</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={subtitleColor} />
@@ -4825,7 +4825,7 @@ export default function LeadDetailScreen() {
                 numberOfLines={3}
               />
               <TouchableOpacity
-                style={[styles.modalSaveButton, { backgroundColor: colors.primary }, { backgroundColor: '#ef4444' }, qualifyingOrMarking && { opacity: 0.5 }]}
+                style={[styles.modalSaveButton, { backgroundColor: colors.primary }, { backgroundColor: Palette.red }, qualifyingOrMarking && { opacity: 0.5 }]}
                 onPress={handleMarkLost}
                 disabled={qualifyingOrMarking}
               >
@@ -4891,7 +4891,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -4932,14 +4932,13 @@ const styles = StyleSheet.create({
   followUpButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 22,
     gap: 6,
   },
   followUpButtonText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -5033,7 +5032,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   ownerAvatarText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -5062,7 +5061,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   contactAvatarText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -5078,12 +5077,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   contactEmail: {
-    color: Colors.light.primary,
     fontSize: 13,
     marginTop: 4,
   },
   contactPhone: {
-    color: '#22c55e',
+    color: Palette.emerald,
     fontSize: 13,
     marginTop: 2,
   },
@@ -5176,14 +5174,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   retryButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
     marginTop: 24,
   },
   retryButtonText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -5245,13 +5242,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalSaveButton: {
-    backgroundColor: Colors.light.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   modalSaveButtonText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -5260,7 +5256,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     borderRadius: 28,
-    shadowColor: Colors.light.primary,
+    shadowColor: '#343434',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -5275,7 +5271,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   fabText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -5398,7 +5394,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   formSubmitButton: {
-    backgroundColor: Colors.light.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -5407,7 +5402,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   formSubmitButtonText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -5423,14 +5418,13 @@ const styles = StyleSheet.create({
     width: '85%',
   },
   datePickerDone: {
-    backgroundColor: Colors.light.primary,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 10,
   },
   datePickerDoneText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -5477,12 +5471,12 @@ const styles = StyleSheet.create({
   tagPickerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#252525',
+    color: 'white',
     marginBottom: 4,
   },
   tagPickerSubtitle: {
     fontSize: 13,
-    color: '#454545',
+    color: 'rgba(255,255,255,0.85)',
   },
   tagPickerCloseBtn: {
     width: 32,
@@ -5573,8 +5567,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tagPickerItemCheckboxSelected: {
-    backgroundColor: '#22c55e',
-    borderColor: '#22c55e',
+    backgroundColor: Palette.emerald,
+    borderColor: Palette.emerald,
   },
   tagPickerEmpty: {
     alignItems: 'center',
@@ -5624,7 +5618,6 @@ const styles = StyleSheet.create({
   tagPickerCreateBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.light.primary,
   },
   tagPickerCreateForm: {
     gap: 12,
@@ -5726,7 +5719,7 @@ const styles = StyleSheet.create({
   tagPickerSaveBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#252525',
+    color: 'white',
   },
   // Tags Tab styles
   tagsTabContainer: {
@@ -5774,7 +5767,6 @@ const styles = StyleSheet.create({
   tagsTabManageBtnText: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.light.primary,
   },
   tagsTabEmptyContainer: {
     alignItems: 'center',
@@ -5814,7 +5806,7 @@ const styles = StyleSheet.create({
   tagsTabAddBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#252525',
+    color: 'white',
   },
   tagsTabGrid: {
     padding: 16,
@@ -5874,7 +5866,6 @@ const styles = StyleSheet.create({
   tagsTabAddMoreText: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.light.primary,
   },
   // Documents Tab styles
   docsTabContainer: {
@@ -5922,7 +5913,7 @@ const styles = StyleSheet.create({
   docsTabUploadBtnText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#8b5cf6',
+    color: Palette.purple,
   },
   docsTabEmptyContainer: {
     alignItems: 'center',
@@ -5962,7 +5953,7 @@ const styles = StyleSheet.create({
   docsTabAddBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#252525',
+    color: 'white',
   },
   docsTabList: {
     padding: 16,
@@ -5993,7 +5984,7 @@ const styles = StyleSheet.create({
   docsTabAddMoreText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#8b5cf6',
+    color: Palette.purple,
   },
   // Document Item styles
   docItemCard: {
@@ -6023,7 +6014,7 @@ const styles = StyleSheet.create({
   docItemTypeBadgeText: {
     fontSize: 8,
     fontWeight: '700',
-    color: '#252525',
+    color: 'white',
     letterSpacing: 0.3,
   },
   docItemContent: {
@@ -6085,11 +6076,11 @@ const styles = StyleSheet.create({
   uploadModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#252525',
+    color: 'white',
   },
   uploadModalSubtitle: {
     fontSize: 13,
-    color: '#454545',
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 2,
   },
   uploadModalOptions: {
@@ -6159,7 +6150,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   convertModalIconWrapper: {
-    shadowColor: '#22c55e',
+    shadowColor: Palette.emerald,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -6266,13 +6257,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   convertSwitchActive: {
-    backgroundColor: '#22c55e',
+    backgroundColor: Palette.emerald,
   },
   convertSwitchThumb: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -6320,7 +6311,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   convertSubmitText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -6350,7 +6341,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   convertCompanyAvatarText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -6528,13 +6519,12 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   addNoteButton: {
-    backgroundColor: Colors.light.primary,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
   },
   addNoteButtonText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 14,
     fontWeight: '600',
   },

@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import type { Lead } from '@/types/lead';
 import { LeadStatusBadge, ScoreIndicator } from './LeadStatusBadge';
 import { getContactFullName, getContactInitials, getAvatarColor } from '@/types/contact';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 
 interface LeadCardProps {
   lead: Lead;
@@ -152,7 +152,7 @@ export function LeadCard({ lead, onPress, onLongPress, isDark = true, selectionM
                   onPress={handleCall}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="call-outline" size={18} color="#22c55e" />
+                  <Ionicons name="call-outline" size={18} color={Palette.emerald} />
                 </TouchableOpacity>
               )}
               {lead.contact?.phone && (

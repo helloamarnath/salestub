@@ -1,4 +1,5 @@
 // Company (Organization) type definitions for SalesTub CRM Mobile App
+import { Palette } from '@/constants/theme';
 
 export type CompanyType = 'PROSPECT' | 'CUSTOMER' | 'PARTNER' | 'COMPETITOR' | 'RESELLER';
 
@@ -105,11 +106,11 @@ export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {
 
 // Company type colors for badges
 export const COMPANY_TYPE_COLORS: Record<CompanyType, string> = {
-  PROSPECT: '#f59e0b', // Amber
-  CUSTOMER: '#22c55e', // Green
-  PARTNER: '#3b82f6', // Blue
-  COMPETITOR: '#ef4444', // Red
-  RESELLER: '#8b5cf6', // Purple
+  PROSPECT: Palette.amber, // Amber
+  CUSTOMER: Palette.emerald, // Green
+  PARTNER: Palette.blue, // Blue
+  COMPETITOR: Palette.red, // Red
+  RESELLER: Palette.purple, // Purple
 };
 
 // Helper to get company initials

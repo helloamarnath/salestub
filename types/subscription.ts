@@ -1,4 +1,5 @@
 // Subscription type definitions for SalesTub CRM Mobile App
+import { Palette } from '@/constants/theme';
 
 /**
  * Subscription Plan from backend
@@ -144,11 +145,11 @@ export interface VerifyPaymentResponse {
 
 // UI Constants
 export const SUBSCRIPTION_STATUS_COLORS: Record<SubscriptionStatus, string> = {
-  TRIAL: '#f59e0b', // Amber
-  ACTIVE: '#22c55e', // Green
-  PAST_DUE: '#ef4444', // Red
+  TRIAL: Palette.amber, // Amber
+  ACTIVE: Palette.emerald, // Green
+  PAST_DUE: Palette.red, // Red
   CANCELED: '#6b7280', // Gray
-  EXPIRED: '#dc2626', // Red
+  EXPIRED: Palette.redMuted, // Red
 };
 
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {

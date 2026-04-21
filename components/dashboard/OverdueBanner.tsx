@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Palette } from '@/constants/theme';
 
 interface OverdueBannerProps {
   count: number;
@@ -43,11 +44,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#ef4444',
+    backgroundColor: Palette.red,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
-    shadowColor: '#ef4444',
+    shadowColor: Palette.red,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,

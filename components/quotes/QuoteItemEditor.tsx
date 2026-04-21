@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getProducts } from '@/lib/api/products';
 import type { Product } from '@/types/product';
 import type { CreateQuoteItemDto } from '@/types/quote';
@@ -318,7 +318,7 @@ export function QuoteItemEditor({
 
                 {/* Remove */}
                 <TouchableOpacity style={styles.removeBtn} onPress={() => removeItem(index)}>
-                  <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  <Ionicons name="trash-outline" size={16} color={Palette.red} />
                   <Text style={styles.removeBtnText}>Remove Item</Text>
                 </TouchableOpacity>
               </View>
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   taxRateBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1 },
   taxRateBtnText: { fontSize: 13, fontWeight: '600' },
   removeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 6 },
-  removeBtnText: { color: '#ef4444', fontSize: 13, fontWeight: '500' },
+  removeBtnText: { color: Palette.red, fontSize: 13, fontWeight: '500' },
   addItemBtn: {
     flexDirection: 'row',
     alignItems: 'center',

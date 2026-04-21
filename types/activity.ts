@@ -1,4 +1,5 @@
 // Activity type definitions for SalesTub CRM Mobile App
+import { Palette } from '@/constants/theme';
 
 export type ActivityType = 'CALL' | 'EMAIL' | 'MEETING' | 'TASK' | 'NOTE';
 
@@ -104,6 +105,8 @@ export interface ActivityFilters {
   leadId?: string;
   contactId?: string;
   companyId?: string;
+  dueDateFrom?: string;
+  dueDateTo?: string;
 }
 
 export interface PaginatedActivitiesResponse {
@@ -142,10 +145,10 @@ export const ACTIVITY_TYPE_ICONS: Record<ActivityType, string> = {
 
 // Activity type colors
 export const ACTIVITY_TYPE_COLORS: Record<ActivityType, string> = {
-  CALL: '#22c55e', // Green
-  EMAIL: '#3b82f6', // Blue
-  MEETING: '#8b5cf6', // Purple
-  TASK: '#f59e0b', // Amber
+  CALL: Palette.emerald, // Green
+  EMAIL: Palette.blue, // Blue
+  MEETING: Palette.purple, // Purple
+  TASK: Palette.amber, // Amber
   NOTE: '#64748b', // Slate
 };
 
@@ -159,17 +162,17 @@ export const ACTIVITY_STATUS_LABELS: Record<ActivityStatus, string> = {
 
 // Activity status colors
 export const ACTIVITY_STATUS_COLORS: Record<ActivityStatus, string> = {
-  PENDING: '#f59e0b', // Amber
-  IN_PROGRESS: '#3b82f6', // Blue
-  COMPLETED: '#22c55e', // Green
+  PENDING: Palette.amber, // Amber
+  IN_PROGRESS: Palette.blue, // Blue
+  COMPLETED: Palette.emerald, // Green
   CANCELLED: '#64748b', // Slate
 };
 
 // Priority colors
 export const ACTIVITY_PRIORITY_COLORS: Record<ActivityPriority, string> = {
   LOW: '#64748b', // Slate
-  MEDIUM: '#f59e0b', // Amber
-  HIGH: '#ef4444', // Red
+  MEDIUM: Palette.amber, // Amber
+  HIGH: Palette.red, // Red
 };
 
 // Format duration for display

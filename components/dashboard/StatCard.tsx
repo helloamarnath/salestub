@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 
 interface StatCardProps {
   title: string;
@@ -79,12 +79,12 @@ export function StatCard({
               <Ionicons
                 name={isPositive ? 'trending-up' : 'trending-down'}
                 size={12}
-                color={isPositive ? '#22c55e' : '#ef4444'}
+                color={isPositive ? Palette.emerald : Palette.red}
               />
               <Text
                 style={[
                   styles.changeText,
-                  { color: isPositive ? '#22c55e' : '#ef4444' },
+                  { color: isPositive ? Palette.emerald : Palette.red },
                 ]}
               >
                 {Math.abs(changePercent || 0)}%

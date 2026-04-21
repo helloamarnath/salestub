@@ -5,7 +5,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -27,7 +27,7 @@ function NotificationToggle({
   value,
   onValueChange,
   isDark,
-  color = Colors.light.primary,
+  color = Palette.indigo,
   disabled = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -265,7 +265,7 @@ export default function NotificationSettingsScreen() {
                   <Ionicons
                     name={getEnabledCount() > 0 ? 'notifications' : 'notifications-off'}
                     size={24}
-                    color={getEnabledCount() > 0 ? '#22c55e' : '#ef4444'}
+                    color={getEnabledCount() > 0 ? Palette.emerald : Palette.red}
                   />
                 </View>
                 <View style={styles.statusText}>
@@ -310,7 +310,7 @@ export default function NotificationSettingsScreen() {
                   value={preferences.emailNotificationsEnabled}
                   onValueChange={(value) => updatePreference('emailNotificationsEnabled', value)}
                   isDark={isDark}
-                  color="#ef4444"
+                  color={Palette.red}
                   disabled={isSaving}
                 />
                 <NotificationToggle
@@ -320,7 +320,7 @@ export default function NotificationSettingsScreen() {
                   value={preferences.smsNotificationsEnabled}
                   onValueChange={(value) => updatePreference('smsNotificationsEnabled', value)}
                   isDark={isDark}
-                  color="#10b981"
+                  color={Palette.green}
                   disabled={isSaving}
                 />
                 <NotificationToggle
@@ -367,7 +367,7 @@ export default function NotificationSettingsScreen() {
                 <View style={styles.testNotificationContent}>
                   <View style={styles.testNotificationInfo}>
                     <View style={[styles.testNotificationIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-                      <Ionicons name="paper-plane-outline" size={22} color="#8b5cf6" />
+                      <Ionicons name="paper-plane-outline" size={22} color={Palette.purple} />
                     </View>
                     <View style={styles.testNotificationText}>
                       <Text style={[styles.testNotificationTitle, { color: colors.foreground }]}>
@@ -381,7 +381,7 @@ export default function NotificationSettingsScreen() {
                   <TouchableOpacity
                     style={[
                       styles.testButton,
-                      { backgroundColor: '#8b5cf6' },
+                      { backgroundColor: Palette.purple },
                       isSendingTest && styles.testButtonDisabled,
                     ]}
                     onPress={sendTestNotification}

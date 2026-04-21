@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import type { LeadStage } from '@/types/lead';
 import { STAGE_TYPE_COLORS, SOURCE_COLORS } from '@/types/lead';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
+import { useTheme } from '@/contexts/theme-context';
 
 interface LeadStatusBadgeProps {
   stage?: LeadStage;
@@ -76,13 +77,13 @@ interface ScoreIndicatorProps {
 }
 
 export function ScoreIndicator({ score = 0, size = 8 }: ScoreIndicatorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const themeColors = Colors[scheme];
+  const { resolvedTheme } = useTheme();
+  const themeColors = Colors[resolvedTheme];
   const getScoreColor = (s: number): string => {
     if (s >= 80) return themeColors.primary; // High
-    if (s >= 60) return '#22c55e'; // Medium-High - Green
-    if (s >= 40) return '#f59e0b'; // Medium - Amber
-    return '#ef4444'; // Low - Red
+    if (s >= 60) return Palette.emerald; // Medium-High - Green
+    if (s >= 40) return Palette.amber; // Medium - Amber
+    return Palette.red; // Low - Red
   };
 
   return (

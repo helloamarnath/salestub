@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { Palette } from '@/constants/theme';
 import { api, ApiResponse } from './api/client';
 
 // Lazy-load expo-notifications to avoid crashes in Expo Go (SDK 53+)
@@ -202,7 +203,7 @@ class NotificationService {
         name: 'Default',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#3b82f6',
+        lightColor: Palette.blue,
       });
     }
   }

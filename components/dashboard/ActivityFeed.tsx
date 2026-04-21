@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { DashboardActivities, DashboardActivity } from '@/types/dashboard';
 
 interface ActivityFeedProps {
@@ -76,10 +76,10 @@ function ActivityItem({
   onPress,
 }: ActivityItemProps) {
   const statusColors = {
-    overdue: '#ef4444',
-    today: '#f59e0b',
+    overdue: Palette.red,
+    today: Palette.amber,
     upcoming: colors.primary,
-    completed: '#22c55e',
+    completed: Palette.emerald,
   };
 
   const icon = ACTIVITY_TYPE_ICONS[activity.type] || 'ellipse-outline';
@@ -128,7 +128,7 @@ function ActivityItem({
             <Text
               style={[
                 styles.activityTime,
-                { color: status === 'overdue' ? '#ef4444' : statusColor },
+                { color: status === 'overdue' ? Palette.red : statusColor },
               ]}
             >
               {formatDate(activity.dueDate)}
@@ -246,7 +246,7 @@ export function ActivityFeed({
               { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
             ]}
           >
-            <Ionicons name="warning-outline" size={14} color="#ef4444" />
+            <Ionicons name="warning-outline" size={14} color={Palette.red} />
             <Text style={styles.overdueText}>
               {activities.counts.overdue} overdue{' '}
               {activities.counts.overdue === 1 ? 'task' : 'tasks'}
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   overdueText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 12,
     fontWeight: '500',
   },

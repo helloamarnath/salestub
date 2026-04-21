@@ -21,7 +21,7 @@ import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { createQuote, updateQuote, getQuote } from '@/lib/api/quotes';
 import { getLeads } from '@/lib/api/leads';
 import { searchContacts } from '@/lib/api/contacts';
@@ -291,14 +291,14 @@ export default function CreateQuoteScreen() {
           {isEditMode ? 'Edit Quote' : 'Create Quote'}
         </Text>
         <TouchableOpacity
-          style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+          style={[styles.saveBtn, { backgroundColor: colors.primary }, saving && { opacity: 0.6 }]}
           onPress={handleSubmit}
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="white" />
+            <ActivityIndicator size="small" color={colors.primaryForeground} />
           ) : (
-            <Text style={styles.saveBtnText}>{isEditMode ? 'Save' : 'Create'}</Text>
+            <Text style={[styles.saveBtnText, { color: colors.primaryForeground }]}>{isEditMode ? 'Save' : 'Create'}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -312,7 +312,7 @@ export default function CreateQuoteScreen() {
           <Text style={[styles.sectionLabel, { color: subtitleColor }]}>LEAD & CONTACT</Text>
 
           <TouchableOpacity
-            style={[styles.pickerBtn, { backgroundColor: inputBg, borderColor: errors.leadId ? '#ef4444' : inputBorder }]}
+            style={[styles.pickerBtn, { backgroundColor: inputBg, borderColor: errors.leadId ? Palette.red : inputBorder }]}
             onPress={() => setShowLeadPicker(true)}
           >
             <Ionicons name="briefcase-outline" size={18} color={selectedLead ? textColor : subtitleColor} />
@@ -324,7 +324,7 @@ export default function CreateQuoteScreen() {
           {errors.leadId ? <Text style={styles.errorText}>{errors.leadId}</Text> : null}
 
           <TouchableOpacity
-            style={[styles.pickerBtn, { backgroundColor: inputBg, borderColor: errors.contactId ? '#ef4444' : inputBorder }]}
+            style={[styles.pickerBtn, { backgroundColor: inputBg, borderColor: errors.contactId ? Palette.red : inputBorder }]}
             onPress={() => { setShowContactPicker(true); handleContactSearch(''); }}
           >
             <Ionicons name="person-outline" size={18} color={selectedContact ? textColor : subtitleColor} />
@@ -654,8 +654,8 @@ const styles = StyleSheet.create({
   },
   headerBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: '700' },
-  saveBtn: { backgroundColor: Colors.light.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
-  saveBtnText: { color: '#fbfbfb', fontWeight: '600', fontSize: 14 },
+  saveBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+  saveBtnText: { fontWeight: '600', fontSize: 14 },
   form: { flex: 1, padding: 16 },
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
   pickerBtn: {
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
   },
   dateBtnLabel: { fontSize: 11, fontWeight: '500' },
   dateBtnValue: { fontSize: 14, fontWeight: '500', marginTop: 1 },
-  errorText: { color: '#ef4444', fontSize: 12, marginTop: -6, marginBottom: 8 },
+  errorText: { color: Palette.red, fontSize: 12, marginTop: -6, marginBottom: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '70%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

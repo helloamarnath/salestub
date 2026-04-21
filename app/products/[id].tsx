@@ -17,7 +17,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getProduct, deleteProduct } from '@/lib/api/products';
 import type { Product } from '@/types/product';
 import { formatProductPrice } from '@/types/product';
@@ -149,11 +149,11 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Ionicons name="alert-circle-outline" size={64} color={Palette.red} />
           <Text style={[styles.errorTitle, { color: textColor }]}>Failed to load product</Text>
           <Text style={[styles.errorMessage, { color: subtitleColor }]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchProduct}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -189,9 +189,9 @@ export default function ProductDetailScreen() {
               disabled={deleting}
             >
               {deleting ? (
-                <ActivityIndicator size="small" color="#ef4444" />
+                <ActivityIndicator size="small" color={Palette.red} />
               ) : (
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                <Ionicons name="trash-outline" size={20} color={Palette.red} />
               )}
             </TouchableOpacity>
           </View>
@@ -266,7 +266,7 @@ export default function ProductDetailScreen() {
         <View style={[styles.section, { backgroundColor: cardBg, borderColor }]}>
           <Text style={[styles.sectionTitle, { color: subtitleColor }]}>Owner</Text>
           <View style={styles.ownerCard}>
-            <View style={[styles.ownerAvatar, { backgroundColor: '#8b5cf6' }]}>
+            <View style={[styles.ownerAvatar, { backgroundColor: Palette.purple }]}>
               <Text style={styles.ownerAvatarText}>
                 {product.owner.userName.charAt(0).toUpperCase()}
               </Text>
@@ -290,7 +290,7 @@ export default function ProductDetailScreen() {
             ]}>
               <Text style={[
                 styles.statusBadgeText,
-                { color: product.isActive ? '#22c55e' : '#ef4444' }
+                { color: product.isActive ? Palette.emerald : Palette.red }
               ]}>
                 {product.isActive ? 'Active' : 'Inactive'}
               </Text>
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   inactiveBadgeText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#22c55e',
+    color: Palette.emerald,
   },
   categoryBadge: {
     paddingHorizontal: 12,
@@ -454,7 +454,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   categoryText: {
-    color: Colors.light.primary,
     fontSize: 13,
     fontWeight: '500',
   },
@@ -488,7 +487,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   ownerAvatarText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -546,7 +545,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#f59e0b',
+    backgroundColor: Palette.amber,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -572,14 +571,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   retryButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
     marginTop: 24,
   },
   retryButtonText: {
-    color: '#252525',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -19,7 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useRBAC } from '@/hooks/use-rbac';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { AccessDenied } from '@/components/AccessDenied';
 import { getContacts } from '@/lib/api/contacts';
 import { getCompanies } from '@/lib/api/companies';
@@ -82,7 +82,7 @@ function CustomerItem({
                 Linking.openURL(`tel:${contact.phone}`);
               }}
             >
-              <Ionicons name="call-outline" size={18} color="#22c55e" />
+              <Ionicons name="call-outline" size={18} color={Palette.emerald} />
             </TouchableOpacity>
           )}
           {contact.phone && (
@@ -170,7 +170,7 @@ function OrganizationItem({
         <View style={styles.itemActions}>
           {company.phone && (
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: actionBg }]}>
-              <Ionicons name="call-outline" size={18} color="#22c55e" />
+              <Ionicons name="call-outline" size={18} color={Palette.emerald} />
             </TouchableOpacity>
           )}
           {company.website && (
@@ -219,8 +219,8 @@ function EmptyState({
       </Text>
       {canCreate && (
         <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]} onPress={onAdd}>
-          <Ionicons name="add" size={20} color="white" />
-          <Text style={styles.emptyButtonText}>
+          <Ionicons name="add" size={20} color={colors.primaryForeground} />
+          <Text style={[styles.emptyButtonText, { color: colors.primaryForeground }]}>
             Add {type === 'customers' ? 'Customer' : 'Organization'}
           </Text>
         </TouchableOpacity>
@@ -491,7 +491,7 @@ export default function ContactsScreen() {
             <Text style={[styles.title, { color: textColor }]}>Contacts</Text>
             {rbac.canCreate('contacts') && (
               <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleAddNew}>
-                <Ionicons name="add" size={24} color="white" />
+                <Ionicons name="add" size={24} color={colors.primaryForeground} />
               </TouchableOpacity>
             )}
           </View>
@@ -563,7 +563,7 @@ export default function ContactsScreen() {
               style={[
                 styles.filterButton,
                 { backgroundColor: searchBg, borderColor: searchBorder },
-                activeFilterCount > 0 && styles.filterButtonActive,
+                activeFilterCount > 0 && { backgroundColor: colors.primary, borderColor: colors.primary },
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -573,7 +573,7 @@ export default function ContactsScreen() {
               <Ionicons
                 name="options-outline"
                 size={20}
-                color={activeFilterCount > 0 ? 'white' : placeholderColor}
+                color={activeFilterCount > 0 ? colors.primaryForeground : placeholderColor}
               />
               {activeFilterCount > 0 && (
                 <View style={styles.filterBadge}>
@@ -679,7 +679,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -736,10 +735,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  filterButtonActive: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.primary,
-  },
+  filterButtonActive: {},
   filterBadge: {
     position: 'absolute',
     top: 4,
@@ -747,7 +743,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#ef4444',
+    backgroundColor: Palette.red,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -842,14 +838,12 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
     gap: 8,
   },
   emptyButtonText: {
-    color: 'white',
     fontWeight: '600',
     fontSize: 16,
   },

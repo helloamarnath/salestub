@@ -173,17 +173,18 @@ export function StartVisitSheet({
             <TouchableOpacity
               style={[
                 styles.startButton,
+                { backgroundColor: colors.primary },
                 (!selectedPurpose || isLoading) && styles.startButtonDisabled,
               ]}
               onPress={handleStart}
               disabled={!selectedPurpose || isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
               ) : (
                 <>
-                  <Ionicons name="navigate" size={18} color="white" />
-                  <Text style={styles.startButtonText}>Start Visit</Text>
+                  <Ionicons name="navigate" size={18} color={colors.primaryForeground} />
+                  <Text style={[styles.startButtonText, { color: colors.primaryForeground }]}>Start Visit</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -289,7 +290,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.light.primary,
     paddingVertical: 14,
     borderRadius: 12,
   },

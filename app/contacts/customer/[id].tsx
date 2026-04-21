@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getContactFull, deleteContact } from '@/lib/api/contacts';
 import { getContactActivities } from '@/lib/api/activities';
 import type { Contact } from '@/types/contact';
@@ -200,7 +200,7 @@ function LeadCard({
         )}
         {lead.score !== undefined && (
           <View style={styles.scoreContainer}>
-            <Ionicons name="star" size={12} color="#f59e0b" />
+            <Ionicons name="star" size={12} color={Palette.amber} />
             <Text style={[styles.scoreText, { color: subtitleColor }]}>{lead.score}</Text>
           </View>
         )}
@@ -425,9 +425,9 @@ export default function CustomerDetailScreen() {
                     <Ionicons name="ellipse" size={20} color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'} style={styles.infoIcon} />
                     <View style={styles.infoContent}>
                       <Text style={[styles.infoLabel, { color: subtitleColor }]}>Status</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: contact.status === 'Active' ? '#22c55e20' : '#ef444420' }]}>
-                        <View style={[styles.statusDot, { backgroundColor: contact.status === 'Active' ? '#22c55e' : '#ef4444' }]} />
-                        <Text style={[styles.statusText, { color: contact.status === 'Active' ? '#22c55e' : '#ef4444' }]}>
+                      <View style={[styles.statusBadge, { backgroundColor: contact.status === 'Active' ? `${Palette.emerald}20` : `${Palette.red}20` }]}>
+                        <View style={[styles.statusDot, { backgroundColor: contact.status === 'Active' ? Palette.emerald : Palette.red }]} />
+                        <Text style={[styles.statusText, { color: contact.status === 'Active' ? Palette.emerald : Palette.red }]}>
                           {contact.status}
                         </Text>
                       </View>
@@ -592,8 +592,8 @@ export default function CustomerDetailScreen() {
             </SectionCard>
             {(contact.primaryAddress || contact.primaryCity) && (
               <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.primary }]} onPress={handleMaps}>
-                <Ionicons name="navigate-outline" size={18} color="white" />
-                <Text style={styles.mapButtonText}>Open in Maps</Text>
+                <Ionicons name="navigate-outline" size={18} color={colors.primaryForeground} />
+                <Text style={[styles.mapButtonText, { color: colors.primaryForeground }]}>Open in Maps</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -656,7 +656,7 @@ export default function CustomerDetailScreen() {
         <Ionicons name="alert-circle-outline" size={64} color={subtitleColor} />
         <Text style={[styles.errorText, { color: textColor }]}>Customer not found</Text>
         <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={[styles.backButtonText, { color: colors.primaryForeground }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -682,9 +682,9 @@ export default function CustomerDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity onPress={handleDelete} style={styles.navButton} disabled={deleting}>
               {deleting ? (
-                <ActivityIndicator size="small" color="#ef4444" />
+                <ActivityIndicator size="small" color={Palette.red} />
               ) : (
-                <Ionicons name="trash-outline" size={22} color="#ef4444" />
+                <Ionicons name="trash-outline" size={22} color={Palette.red} />
               )}
             </TouchableOpacity>
           </View>
@@ -716,7 +716,7 @@ export default function CustomerDetailScreen() {
             {contact.phone && (
               <TouchableOpacity style={styles.quickAction} onPress={() => handleCall(contact.phone)}>
                 <View style={[styles.quickActionIcon, { backgroundColor: '#22c55e20' }]}>
-                  <Ionicons name="call" size={22} color="#22c55e" />
+                  <Ionicons name="call" size={22} color={Palette.emerald} />
                 </View>
                 <Text style={[styles.quickActionLabel, { color: subtitleColor }]}>Call</Text>
               </TouchableOpacity>
@@ -740,15 +740,15 @@ export default function CustomerDetailScreen() {
           </View>
 
           {/* Stats Summary */}
-          <View style={styles.statsRow}>
+          <View style={[styles.statsRow, { borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : colors.border }]}>
             <View style={styles.statItem}>
-              <Ionicons name="flash" size={16} color="#f59e0b" />
+              <Ionicons name="flash" size={16} color={Palette.amber} />
               <Text style={[styles.statValue, { color: textColor }]}>{(leads || []).length}</Text>
               <Text style={[styles.statLabel, { color: subtitleColor }]}>Leads</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
             <View style={styles.statItem}>
-              <Ionicons name="time" size={16} color="#8b5cf6" />
+              <Ionicons name="time" size={16} color={Palette.purple} />
               <Text style={[styles.statValue, { color: textColor }]}>{(activities || []).length}</Text>
               <Text style={[styles.statLabel, { color: subtitleColor }]}>Activities</Text>
             </View>
@@ -795,7 +795,7 @@ export default function CustomerDetailScreen() {
                 </Text>
                 {count !== undefined && count > 0 && (
                   <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
-                    <Text style={styles.tabBadgeText}>{count}</Text>
+                    <Text style={[styles.tabBadgeText, { color: textColor }]}>{count}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   largeAvatarText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 28,
     fontWeight: '600',
   },
@@ -892,7 +892,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#ebebeb',
     width: '100%',
     justifyContent: 'center',
   },
@@ -953,7 +952,6 @@ const styles = StyleSheet.create({
   tabBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#252525',
   },
   tabContent: {
     paddingHorizontal: 16,
@@ -1180,13 +1178,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.primary,
     paddingVertical: 12,
     borderRadius: 10,
     gap: 8,
   },
   mapButtonText: {
-    color: '#252525',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1196,13 +1192,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   backButtonText: {
-    color: '#252525',
     fontWeight: '600',
     fontSize: 16,
   },

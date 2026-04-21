@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { StageMetric } from '@/types/dashboard';
 
 interface PipelineProgressProps {
@@ -14,12 +14,12 @@ interface PipelineProgressProps {
 
 // Stage colors for visual differentiation
 const STAGE_COLORS: Record<string, string> = {
-  PROSPECTING: '#8b5cf6',
-  QUALIFICATION: Colors.light.primary,
-  PROPOSAL: '#06b6d4',
-  NEGOTIATION: '#f59e0b',
-  CLOSED_WON: '#22c55e',
-  CLOSED_LOST: '#ef4444',
+  PROSPECTING: Palette.purple,
+  QUALIFICATION: Palette.blue,
+  PROPOSAL: Palette.cyan,
+  NEGOTIATION: Palette.amber,
+  CLOSED_WON: Palette.emerald,
+  CLOSED_LOST: Palette.red,
 };
 
 const STAGE_LABELS: Record<string, string> = {

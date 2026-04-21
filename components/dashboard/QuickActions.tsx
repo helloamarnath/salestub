@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Pl
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -35,28 +35,28 @@ const primaryActions = (props: QuickActionsProps): QuickAction[] => [
     id: 'lead',
     label: 'Lead',
     icon: 'person-add-outline',
-    color: '#8b5cf6',
+    color: Palette.purple,
     onPress: props.onAddLead || (() => {}),
   },
   {
     id: 'task',
     label: 'Task',
     icon: 'checkbox-outline',
-    color: '#f59e0b',
+    color: Palette.amber,
     onPress: props.onAddTask || (() => {}),
   },
   {
     id: 'contact',
     label: 'Contact',
     icon: 'people-outline',
-    color: Colors.light.primary,
+    color: Palette.blue,
     onPress: props.onAddContact || (() => {}),
   },
   {
     id: 'visit',
     label: 'Visit',
     icon: 'location-outline',
-    color: '#22c55e',
+    color: Palette.emerald,
     onPress: props.onLogVisit || (() => {}),
   },
 ];
@@ -66,21 +66,21 @@ const secondaryActions = (props: QuickActionsProps): QuickAction[] => [
     id: 'quote',
     label: 'Quote',
     icon: 'document-text-outline',
-    color: '#06b6d4',
+    color: Palette.cyan,
     onPress: props.onCreateQuote || (() => {}),
   },
   {
     id: 'invoice',
     label: 'Invoice',
     icon: 'receipt-outline',
-    color: '#6366f1',
+    color: Palette.indigo,
     onPress: props.onCreateInvoice || (() => {}),
   },
   {
     id: 'import',
     label: 'Import',
     icon: 'cloud-upload-outline',
-    color: '#ec4899',
+    color: Palette.pink,
     onPress: props.onImportLeads || (() => {}),
   },
   {

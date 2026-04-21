@@ -1,4 +1,5 @@
 // Invoice type definitions for SalesTub CRM Mobile App
+import { Palette } from '@/constants/theme';
 
 export type InvoiceStatus = 'DRAFT' | 'SENT' | 'VIEWED' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'REFUNDED';
 
@@ -159,13 +160,13 @@ export interface CreateInvoiceDto {
 // Status colors for UI
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   DRAFT: '#6b7280',
-  SENT: '#3b82f6',
-  VIEWED: '#8b5cf6',
-  PARTIALLY_PAID: '#f59e0b',
-  PAID: '#22c55e',
-  OVERDUE: '#ef4444',
+  SENT: Palette.blue,
+  VIEWED: Palette.purple,
+  PARTIALLY_PAID: Palette.amber,
+  PAID: Palette.emerald,
+  OVERDUE: Palette.red,
   CANCELLED: '#6b7280',
-  REFUNDED: '#06b6d4',
+  REFUNDED: Palette.cyan,
 };
 
 export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {

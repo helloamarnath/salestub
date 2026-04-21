@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import type { VisitStatus, VisitPurpose } from '@/types/visit';
 import { VISIT_STATUS_LABELS, VISIT_PURPOSE_LABELS } from '@/types/visit';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 
 interface VisitStatusBadgeProps {
   status: VisitStatus;
@@ -13,8 +13,8 @@ export function VisitStatusBadge({ status, size = 'medium' }: VisitStatusBadgePr
   const themeColors = Colors[scheme];
   const statusColors: Record<VisitStatus, string> = {
     IN_PROGRESS: themeColors.primary,
-    COMPLETED: '#22c55e',
-    CANCELLED: '#ef4444',
+    COMPLETED: Palette.emerald,
+    CANCELLED: Palette.red,
   };
   const label = VISIT_STATUS_LABELS[status] || status;
   const color = statusColors[status] || '#6b7280';

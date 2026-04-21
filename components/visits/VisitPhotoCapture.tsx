@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { uploadVisitPhoto } from '@/lib/api/visits';
 import type { VisitPhoto } from '@/types/visit';
 
@@ -137,7 +137,7 @@ export function VisitPhotoCapture({
         <View style={styles.thumbnailContainer}>
           <Image source={{ uri: lastPhoto }} style={styles.thumbnail} />
           <View style={styles.thumbnailBadge}>
-            <Ionicons name="checkmark-circle" size={14} color="#22c55e" />
+            <Ionicons name="checkmark-circle" size={14} color={Palette.emerald} />
           </View>
         </View>
       )}

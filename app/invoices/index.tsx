@@ -18,7 +18,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getInvoices } from '@/lib/api/invoices';
 import type { Invoice, InvoiceStatus } from '@/types/invoice';
 import { INVOICE_STATUS_COLORS, INVOICE_STATUS_LABELS } from '@/types/invoice';
@@ -34,10 +34,10 @@ interface FilterTab {
 const FILTER_TABS: FilterTab[] = [
   { id: 'all', label: 'All', color: '#6b7280' },
   { id: 'draft', label: 'Draft', status: 'DRAFT', color: '#6b7280' },
-  { id: 'sent', label: 'Sent', status: 'SENT', color: Colors.light.primary },
-  { id: 'paid', label: 'Paid', status: 'PAID', color: '#22c55e' },
-  { id: 'overdue', label: 'Overdue', status: 'OVERDUE', color: '#ef4444' },
-  { id: 'partial', label: 'Partial', status: 'PARTIALLY_PAID', color: '#f59e0b' },
+  { id: 'sent', label: 'Sent', status: 'SENT', color: Palette.blue },
+  { id: 'paid', label: 'Paid', status: 'PAID', color: Palette.emerald },
+  { id: 'overdue', label: 'Overdue', status: 'OVERDUE', color: Palette.red },
+  { id: 'partial', label: 'Partial', status: 'PARTIALLY_PAID', color: Palette.amber },
   { id: 'cancelled', label: 'Cancelled', status: 'CANCELLED', color: '#6b7280' },
 ];
 
@@ -120,7 +120,7 @@ function InvoiceCard({
             {formatAmount(invoice.total, invoice.currency?.symbol)}
           </Text>
           {showAmountDue && (
-            <Text style={{ fontSize: 11, color: '#ef4444', fontWeight: '500' }}>
+            <Text style={{ fontSize: 11, color: Palette.red, fontWeight: '500' }}>
               Due: {formatAmount(invoice.amountDue, invoice.currency?.symbol)}
             </Text>
           )}
@@ -276,7 +276,7 @@ export default function InvoicesScreen() {
             style={{ backgroundColor: colors.primary, width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
             onPress={() => router.push('/invoices/create' as any)}
           >
-            <Ionicons name="add" size={24} color="white" />
+            <Ionicons name="add" size={24} color={colors.primaryForeground} />
           </TouchableOpacity>
         </View>
 
@@ -347,12 +347,12 @@ export default function InvoicesScreen() {
         </View>
       ) : error ? (
         <View style={styles.emptyState}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Ionicons name="alert-circle-outline" size={64} color={Palette.red} />
           <Text style={[styles.emptyTitle, { color: textColor }]}>Something went wrong</Text>
           <Text style={[styles.emptySubtitle, { color: subtitleColor }]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => fetchInvoices(1)}>
-            <Ionicons name="refresh" size={18} color="white" />
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <Ionicons name="refresh" size={18} color={colors.primaryForeground} />
+            <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -478,11 +478,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
     marginTop: 12,
   },
-  retryButtonText: { color: 'white', fontSize: 14, fontWeight: '600' },
+  retryButtonText: { fontSize: 14, fontWeight: '600' },
 });

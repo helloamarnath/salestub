@@ -20,7 +20,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { createLead, updateLead, getLead, getLeadSources } from '@/lib/api/leads';
 import { searchContacts } from '@/lib/api/contacts';
 import { LEAD_SOURCES, SOURCE_COLORS } from '@/types/lead';
@@ -29,9 +29,10 @@ import type { Contact } from '@/types/contact';
 import { getContactFullName, getContactInitials, getAvatarColor } from '@/types/contact';
 
 // Form section header
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, isDark }: { title: string; isDark?: boolean }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   return (
-    <Text style={styles.sectionHeader}>{title}</Text>
+    <Text style={[styles.sectionHeader, { color: colors.mutedForeground }]}>{title}</Text>
   );
 }
 
@@ -45,6 +46,7 @@ function FormInput({
   multiline = false,
   error,
   required,
+  isDark,
 }: {
   label: string;
   value: string;
@@ -54,20 +56,22 @@ function FormInput({
   multiline?: boolean;
   error?: string;
   required?: boolean;
+  isDark?: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   return (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>
+      <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>
         {label}
         {required && <Text style={styles.required}> *</Text>}
       </Text>
-      <View style={[styles.inputWrapper, error && styles.inputError]}>
+      <View style={[styles.inputWrapper, { backgroundColor: colors.secondary, borderColor: colors.border }, error && styles.inputError]}>
         <TextInput
-          style={[styles.input, multiline && styles.inputMultiline]}
+          style={[styles.input, { color: colors.foreground }, multiline && styles.inputMultiline]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={Colors.light.mutedForeground}
+          placeholderTextColor={colors.mutedForeground}
           keyboardType={keyboardType}
           multiline={multiline}
           numberOfLines={multiline ? 4 : 1}
@@ -82,21 +86,24 @@ function FormInput({
 function ScoreSlider({
   value,
   onChange,
+  isDark,
 }: {
   value: number;
   onChange: (val: number) => void;
+  isDark?: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const getScoreColor = (score: number) => {
-    if (score >= 70) return '#22c55e';
-    if (score >= 40) return '#f59e0b';
-    return '#ef4444';
+    if (score >= 70) return Palette.emerald;
+    if (score >= 40) return Palette.amber;
+    return Palette.red;
   };
 
   return (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>Lead Score</Text>
-      <View style={styles.scoreContainer}>
-        <View style={styles.scoreSliderTrack}>
+      <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Lead Score</Text>
+      <View style={[styles.scoreContainer, { backgroundColor: colors.muted }]}>
+        <View style={[styles.scoreSliderTrack, { backgroundColor: colors.border }]}>
           <View
             style={[
               styles.scoreSliderFill,
@@ -109,19 +116,19 @@ function ScoreSlider({
         </View>
         <View style={styles.scoreButtons}>
           <TouchableOpacity
-            style={styles.scoreButton}
+            style={[styles.scoreButton, { backgroundColor: colors.border }]}
             onPress={() => onChange(Math.max(0, value - 10))}
           >
-            <Ionicons name="remove" size={20} color="#252525" />
+            <Ionicons name="remove" size={20} color={colors.foreground} />
           </TouchableOpacity>
           <Text style={[styles.scoreValue, { color: getScoreColor(value) }]}>
             {value}
           </Text>
           <TouchableOpacity
-            style={styles.scoreButton}
+            style={[styles.scoreButton, { backgroundColor: colors.border }]}
             onPress={() => onChange(Math.min(100, value + 10))}
           >
-            <Ionicons name="add" size={20} color="#252525" />
+            <Ionicons name="add" size={20} color={colors.foreground} />
           </TouchableOpacity>
         </View>
       </View>
@@ -135,19 +142,22 @@ function SourcePicker({
   onChange,
   sources,
   loading,
+  isDark,
 }: {
   value: string;
   onChange: (source: string) => void;
   sources: string[];
   loading?: boolean;
+  isDark?: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const [expanded, setExpanded] = useState(false);
 
   return (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>Source</Text>
+      <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Source</Text>
       <TouchableOpacity
-        style={styles.pickerButton}
+        style={[styles.pickerButton, { backgroundColor: colors.secondary, borderColor: colors.border }]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setExpanded(!expanded);
@@ -161,23 +171,23 @@ function SourcePicker({
                 { backgroundColor: SOURCE_COLORS[value] || '#6b7280' },
               ]}
             />
-            <Text style={styles.pickerButtonText}>{value}</Text>
+            <Text style={[styles.pickerButtonText, { color: colors.foreground }]}>{value}</Text>
           </View>
         ) : (
-          <Text style={styles.pickerPlaceholder}>Select source...</Text>
+          <Text style={[styles.pickerPlaceholder, { color: colors.mutedForeground }]}>Select source...</Text>
         )}
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color="#8e8e8e"
+          color={colors.mutedForeground}
         />
       </TouchableOpacity>
 
       {expanded && (
-        <View style={styles.sourceList}>
+        <View style={[styles.sourceList, { backgroundColor: colors.secondary }]}>
           {loading ? (
             <View style={styles.sourceLoading}>
-              <ActivityIndicator size="small" color={Colors.dark.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : (
             sources.map((source) => (
@@ -185,6 +195,7 @@ function SourcePicker({
                 key={source}
                 style={[
                   styles.sourceOption,
+                  { borderBottomColor: colors.border },
                   value === source && styles.sourceOptionSelected,
                 ]}
                 onPress={() => {
@@ -202,13 +213,14 @@ function SourcePicker({
                 <Text
                   style={[
                     styles.sourceOptionText,
+                    { color: colors.foreground },
                     value === source && styles.sourceOptionTextSelected,
                   ]}
                 >
                   {source}
                 </Text>
                 {value === source && (
-                  <Ionicons name="checkmark" size={18} color={Colors.dark.primary} />
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))
@@ -309,38 +321,38 @@ function ContactPicker({
       <SectionHeader title="Contact" />
 
       {/* Mode toggle */}
-      <View style={styles.modeToggle}>
+      <View style={[styles.modeToggle, { backgroundColor: colors.secondary }]}>
         <TouchableOpacity
-          style={[styles.modeButton, mode === 'search' && styles.modeButtonActive]}
+          style={[styles.modeButton, mode === 'search' && [styles.modeButtonActive, { backgroundColor: colors.primary }]]}
           onPress={() => handleModeChange('search')}
         >
           <Ionicons
             name="search"
             size={16}
-            color={mode === 'search' ? 'white' : 'rgba(255,255,255,0.5)'}
+            color={mode === 'search' ? colors.primaryForeground : colors.mutedForeground}
           />
           <Text
             style={[
               styles.modeButtonText,
-              mode === 'search' && styles.modeButtonTextActive,
+              { color: mode === 'search' ? colors.primaryForeground : colors.mutedForeground },
             ]}
           >
             Link Existing
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.modeButton, mode === 'new' && styles.modeButtonActive]}
+          style={[styles.modeButton, mode === 'new' && [styles.modeButtonActive, { backgroundColor: colors.primary }]]}
           onPress={() => handleModeChange('new')}
         >
           <Ionicons
             name="person-add"
             size={16}
-            color={mode === 'new' ? 'white' : 'rgba(255,255,255,0.5)'}
+            color={mode === 'new' ? colors.primaryForeground : colors.mutedForeground}
           />
           <Text
             style={[
               styles.modeButtonText,
-              mode === 'new' && styles.modeButtonTextActive,
+              { color: mode === 'new' ? colors.primaryForeground : colors.mutedForeground },
             ]}
           >
             Create New
@@ -352,53 +364,53 @@ function ContactPicker({
         <>
           {/* Selected contact display */}
           {selectedContact ? (
-            <View style={styles.selectedContactCard}>
+            <View style={[styles.selectedContactCard, { backgroundColor: colors.secondary }]}>
               <View
                 style={[
                   styles.contactAvatar,
                   { backgroundColor: getAvatarColor(getContactFullName(selectedContact)) },
                 ]}
               >
-                <Text style={styles.contactAvatarText}>
+                <Text style={[styles.contactAvatarText, { color: colors.foreground }]}>
                   {getContactInitials(selectedContact)}
                 </Text>
               </View>
               <View style={styles.contactInfo}>
-                <Text style={styles.contactName}>
+                <Text style={[styles.contactName, { color: colors.foreground }]}>
                   {getContactFullName(selectedContact)}
                 </Text>
                 {selectedContact.email && (
-                  <Text style={styles.contactEmail}>{selectedContact.email}</Text>
+                  <Text style={[styles.contactEmail, { color: colors.mutedForeground }]}>{selectedContact.email}</Text>
                 )}
                 {selectedContact.phone && (
-                  <Text style={styles.contactPhone}>{selectedContact.phone}</Text>
+                  <Text style={[styles.contactPhone, { color: colors.mutedForeground }]}>{selectedContact.phone}</Text>
                 )}
               </View>
               <TouchableOpacity
-                style={styles.clearContactButton}
+                style={[styles.clearContactButton, { backgroundColor: colors.secondary }]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   onSelectContact(null);
                 }}
               >
-                <Ionicons name="close" size={20} color="#8e8e8e" />
+                <Ionicons name="close" size={20} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
           ) : (
             <>
               {/* Search input */}
-              <View style={styles.searchInputContainer}>
+              <View style={[styles.searchInputContainer, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
                 <Ionicons
                   name="search"
                   size={18}
-                  color="#8e8e8e"
+                  color={colors.mutedForeground}
                 />
                 <TextInput
-                  style={styles.searchInput}
+                  style={[styles.searchInput, { color: colors.foreground }]}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Search contacts by name or email..."
-                  placeholderTextColor={Colors.light.mutedForeground}
+                  placeholderTextColor={colors.mutedForeground}
                 />
                 {searching && (
                   <ActivityIndicator size="small" color={colors.primary} />
@@ -407,11 +419,11 @@ function ContactPicker({
 
               {/* Search results */}
               {searchResults.length > 0 && (
-                <View style={styles.searchResults}>
+                <View style={[styles.searchResults, { backgroundColor: colors.secondary }]}>
                   {searchResults.map((contact) => (
                     <TouchableOpacity
                       key={contact.id}
-                      style={styles.searchResultItem}
+                      style={[styles.searchResultItem, { borderBottomColor: colors.border }]}
                       onPress={() => handleSelectContact(contact)}
                     >
                       <View
@@ -420,15 +432,15 @@ function ContactPicker({
                           { backgroundColor: getAvatarColor(getContactFullName(contact)) },
                         ]}
                       >
-                        <Text style={styles.contactAvatarTextSmall}>
+                        <Text style={[styles.contactAvatarTextSmall, { color: colors.foreground }]}>
                           {getContactInitials(contact)}
                         </Text>
                       </View>
                       <View style={styles.searchResultInfo}>
-                        <Text style={styles.searchResultName}>
+                        <Text style={[styles.searchResultName, { color: colors.foreground }]}>
                           {getContactFullName(contact)}
                         </Text>
-                        <Text style={styles.searchResultMeta}>
+                        <Text style={[styles.searchResultMeta, { color: colors.mutedForeground }]}>
                           {contact.email || contact.phone || 'No contact info'}
                         </Text>
                       </View>
@@ -439,7 +451,7 @@ function ContactPicker({
 
               {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
                 <View style={styles.noResults}>
-                  <Text style={styles.noResultsText}>No contacts found</Text>
+                  <Text style={[styles.noResultsText, { color: colors.mutedForeground }]}>No contacts found</Text>
                   <TouchableOpacity
                     style={styles.createNewButton}
                     onPress={() => handleModeChange('new')}
@@ -457,12 +469,12 @@ function ContactPicker({
         <View style={styles.newContactForm}>
           <View style={styles.nameRow}>
             <View style={[styles.inputContainer, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>
                 First Name<Text style={styles.required}> *</Text>
               </Text>
-              <View style={styles.inputWrapper}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.foreground }]}
                   value={newContactData?.firstName || ''}
                   onChangeText={(text) =>
                     onNewContactDataChange({
@@ -471,17 +483,17 @@ function ContactPicker({
                     })
                   }
                   placeholder="First name"
-                  placeholderTextColor={Colors.light.mutedForeground}
+                  placeholderTextColor={colors.mutedForeground}
                 />
               </View>
             </View>
             <View style={[styles.inputContainer, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>
+              <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>
                 Last Name<Text style={styles.required}> *</Text>
               </Text>
-              <View style={styles.inputWrapper}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.foreground }]}
                   value={newContactData?.lastName || ''}
                   onChangeText={(text) =>
                     onNewContactDataChange({
@@ -490,17 +502,17 @@ function ContactPicker({
                     })
                   }
                   placeholder="Last name"
-                  placeholderTextColor={Colors.light.mutedForeground}
+                  placeholderTextColor={colors.mutedForeground}
                 />
               </View>
             </View>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email</Text>
-            <View style={styles.inputWrapper}>
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Email</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.foreground }]}
                 value={newContactData?.email || ''}
                 onChangeText={(text) =>
                   onNewContactDataChange({
@@ -509,7 +521,7 @@ function ContactPicker({
                   })
                 }
                 placeholder="email@example.com"
-                placeholderTextColor={Colors.light.mutedForeground}
+                placeholderTextColor={colors.mutedForeground}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -517,10 +529,10 @@ function ContactPicker({
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Phone</Text>
-            <View style={styles.inputWrapper}>
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Phone</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.foreground }]}
                 value={newContactData?.phone || ''}
                 onChangeText={(text) =>
                   onNewContactDataChange({
@@ -529,17 +541,17 @@ function ContactPicker({
                   })
                 }
                 placeholder="+91 98765 43210"
-                placeholderTextColor={Colors.light.mutedForeground}
+                placeholderTextColor={colors.mutedForeground}
                 keyboardType="phone-pad"
               />
             </View>
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Title / Position</Text>
-            <View style={styles.inputWrapper}>
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Title / Position</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.foreground }]}
                 value={newContactData?.title || ''}
                 onChangeText={(text) =>
                   onNewContactDataChange({
@@ -548,7 +560,7 @@ function ContactPicker({
                   })
                 }
                 placeholder="e.g., Sales Manager"
-                placeholderTextColor={Colors.light.mutedForeground}
+                placeholderTextColor={colors.mutedForeground}
               />
             </View>
           </View>
@@ -744,7 +756,7 @@ export default function CreateLeadScreen() {
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading lead...</Text>
+          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Loading lead...</Text>
         </View>
       </View>
     );
@@ -762,7 +774,7 @@ export default function CreateLeadScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: colors.border }]}>
           <View style={styles.headerRow}>
             <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.secondary }]} onPress={handleBack}>
               <Ionicons name="close" size={24} color={colors.foreground} />
@@ -776,9 +788,9 @@ export default function CreateLeadScreen() {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
               ) : (
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -792,7 +804,7 @@ export default function CreateLeadScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Basic Info Section */}
-          <SectionHeader title="Basic Information" />
+          <SectionHeader title="Basic Information" isDark={isDark} />
 
           <FormInput
             label="Lead Title"
@@ -804,6 +816,7 @@ export default function CreateLeadScreen() {
             placeholder="e.g., Enterprise Software Deal"
             error={errors.title}
             required
+            isDark={isDark}
           />
 
           <FormInput
@@ -812,6 +825,7 @@ export default function CreateLeadScreen() {
             onChangeText={setDescription}
             placeholder="Add details about this lead..."
             multiline
+            isDark={isDark}
           />
 
           <View style={styles.row}>
@@ -826,15 +840,16 @@ export default function CreateLeadScreen() {
                 placeholder="e.g., 50000"
                 keyboardType="numeric"
                 error={errors.value}
+                isDark={isDark}
               />
             </View>
           </View>
 
-          <ScoreSlider value={score} onChange={setScore} />
+          <ScoreSlider value={score} onChange={setScore} isDark={isDark} />
 
           {/* Pipeline Section */}
-          <SectionHeader title="Pipeline" />
-          <SourcePicker value={source} onChange={setSource} sources={leadSources} loading={loadingSources} />
+          <SectionHeader title="Pipeline" isDark={isDark} />
+          <SourcePicker value={source} onChange={setSource} sources={leadSources} loading={loadingSources} isDark={isDark} />
 
           {/* Contact Section */}
           <ContactPicker
@@ -861,7 +876,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   headerRow: {
     flexDirection: 'row',
@@ -872,17 +886,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.light.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: Colors.light.foreground,
     fontSize: 18,
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 12,
@@ -893,7 +904,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   saveButtonText: {
-    color: Colors.light.primaryForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -904,7 +914,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionHeader: {
-    color: Colors.light.mutedForeground,
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -916,35 +925,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: Colors.light.mutedForeground,
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
   },
   required: {
-    color: '#ef4444',
+    color: Palette.red,
   },
   inputWrapper: {
-    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.light.border,
   },
   inputError: {
-    borderColor: '#ef4444',
+    borderColor: Palette.red,
   },
   input: {
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: Colors.light.foreground,
   },
   inputMultiline: {
     minHeight: 100,
     textAlignVertical: 'top',
   },
   errorText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 12,
     marginTop: 4,
   },
@@ -953,13 +958,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   scoreContainer: {
-    backgroundColor: Colors.light.muted,
     borderRadius: 12,
     padding: 16,
   },
   scoreSliderTrack: {
     height: 8,
-    backgroundColor: Colors.light.border,
     borderRadius: 4,
     marginBottom: 16,
     overflow: 'hidden',
@@ -978,7 +981,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -992,19 +994,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   pickerButtonText: {
-    color: Colors.light.foreground,
     fontSize: 16,
   },
   pickerPlaceholder: {
-    color: Colors.light.mutedForeground,
     fontSize: 16,
   },
   sourceChipSelected: {
@@ -1019,7 +1017,6 @@ const styles = StyleSheet.create({
   },
   sourceList: {
     marginTop: 8,
-    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1033,19 +1030,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
     gap: 10,
   },
   sourceOptionSelected: {
     backgroundColor: 'rgba(59,130,246,0.1)',
   },
   sourceOptionText: {
-    color: Colors.light.foreground,
     fontSize: 15,
     flex: 1,
   },
   sourceOptionTextSelected: {
-    color: Colors.light.foreground,
     fontWeight: '500',
   },
   contactPickerContainer: {
@@ -1053,7 +1047,6 @@ const styles = StyleSheet.create({
   },
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
@@ -1067,21 +1060,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 8,
   },
-  modeButtonActive: {
-    backgroundColor: Colors.light.primary,
-  },
+  modeButtonActive: {},
   modeButtonText: {
-    color: Colors.light.mutedForeground,
     fontSize: 14,
     fontWeight: '500',
   },
-  modeButtonTextActive: {
-    color: Colors.light.primaryForeground,
-  },
+  modeButtonTextActive: {},
   selectedContactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     padding: 14,
   },
@@ -1094,7 +1081,6 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   contactAvatarText: {
-    color: Colors.light.foreground,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -1107,7 +1093,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   contactAvatarTextSmall: {
-    color: Colors.light.foreground,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -1115,17 +1100,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactName: {
-    color: Colors.light.foreground,
     fontSize: 16,
     fontWeight: '600',
   },
   contactEmail: {
-    color: Colors.light.mutedForeground,
     fontSize: 13,
     marginTop: 2,
   },
   contactPhone: {
-    color: Colors.light.mutedForeground,
     fontSize: 13,
     marginTop: 1,
   },
@@ -1133,29 +1115,24 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.light.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     gap: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: Colors.light.foreground,
   },
   searchResults: {
     marginTop: 8,
-    backgroundColor: Colors.light.secondary,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1165,18 +1142,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   searchResultInfo: {
     flex: 1,
   },
   searchResultName: {
-    color: Colors.light.foreground,
     fontSize: 15,
     fontWeight: '500',
   },
   searchResultMeta: {
-    color: Colors.light.mutedForeground,
     fontSize: 13,
     marginTop: 2,
   },
@@ -1185,7 +1159,6 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   noResultsText: {
-    color: Colors.light.mutedForeground,
     fontSize: 14,
   },
   createNewButton: {
@@ -1195,7 +1168,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   createNewButtonText: {
-    color: Colors.light.primary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -1212,7 +1184,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    color: Colors.light.mutedForeground,
     fontSize: 14,
     marginTop: 16,
   },

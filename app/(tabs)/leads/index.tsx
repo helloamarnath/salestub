@@ -22,7 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { useRBAC } from '@/hooks/use-rbac';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { AccessDenied } from '@/components/AccessDenied';
 import { getLeads, getKanbanView, bulkDeleteLeads, bulkUpdateStage } from '@/lib/api/leads';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
@@ -45,9 +45,9 @@ interface FilterTab {
 // Category filter colors
 const CATEGORY_COLORS = {
   all: '#6b7280',       // Gray
-  open: Colors.light.primary,      // Blue
-  closed: '#8b5cf6',    // Purple
-  untouched: '#f59e0b', // Amber/Orange
+  open: '#343434',                  // Primary
+  closed: Palette.purple,    // Purple
+  untouched: Palette.amber, // Amber/Orange
 };
 
 // Base category filters (always shown)
@@ -72,6 +72,7 @@ function FilterTabButton({
   onPress: () => void;
   isDark: boolean;
 }) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
   const tabColor = filter.color || '#6b7280';
   const inactiveBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
   const inactiveBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
@@ -95,11 +96,11 @@ function FilterTabButton({
       {!active && (
         <View style={[styles.filterTabDot, { backgroundColor: tabColor }]} />
       )}
-      <Text style={[styles.filterTabLabel, { color: active ? 'white' : inactiveTextColor }]}>
+      <Text style={[styles.filterTabLabel, { color: active ? colors.primaryForeground : inactiveTextColor }]}>
         {filter.label}
       </Text>
       <View style={[styles.filterTabCount, { backgroundColor: active ? countBgActive : countBg }]}>
-        <Text style={[styles.filterTabCountText, { color: active ? 'white' : inactiveTextColor }]}>
+        <Text style={[styles.filterTabCountText, { color: active ? colors.primaryForeground : inactiveTextColor }]}>
           {count}
         </Text>
       </View>
@@ -170,8 +171,8 @@ function EmptyState({ searchQuery, filterLabel, isDark, canCreate }: { searchQue
           style={[styles.emptyButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/(tabs)/leads/create')}
         >
-          <Ionicons name="add" size={20} color="white" />
-          <Text style={styles.emptyButtonText}>Add Lead</Text>
+          <Ionicons name="add" size={20} color={colors.primaryForeground} />
+          <Text style={[styles.emptyButtonText, { color: colors.primaryForeground }]}>Add Lead</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -186,12 +187,12 @@ function ErrorState({ message, onRetry, isDark }: { message: string; onRetry: ()
 
   return (
     <View style={styles.errorState}>
-      <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+      <Ionicons name="alert-circle-outline" size={64} color={Palette.red} />
       <Text style={[styles.errorTitle, { color: textColor }]}>Something went wrong</Text>
       <Text style={[styles.errorMessage, { color: subtitleColor }]}>{message}</Text>
       <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={onRetry}>
-        <Ionicons name="refresh" size={18} color="white" />
-        <Text style={styles.retryButtonText}>Try Again</Text>
+        <Ionicons name="refresh" size={18} color={colors.primaryForeground} />
+        <Text style={[styles.retryButtonText, { color: colors.primaryForeground }]}>Try Again</Text>
       </TouchableOpacity>
     </View>
   );
@@ -302,9 +303,9 @@ export default function LeadsScreen() {
       case 'OPEN':
         return colors.primary; // Blue
       case 'CLOSED_WON':
-        return '#22c55e'; // Green
+        return Palette.emerald; // Green
       case 'CLOSED_LOST':
-        return '#ef4444'; // Red
+        return Palette.red; // Red
       default:
         return '#6b7280'; // Gray
     }
@@ -755,7 +756,7 @@ export default function LeadsScreen() {
                 style={[styles.addButton, { backgroundColor: colors.primary }]}
                 onPress={handleCreatePress}
               >
-                <Ionicons name="add" size={24} color="white" />
+                <Ionicons name="add" size={24} color={colors.primaryForeground} />
               </TouchableOpacity>
             )}
           </View>
@@ -790,7 +791,7 @@ export default function LeadsScreen() {
               style={[
                 styles.filterButton,
                 { backgroundColor: searchBg, borderColor: searchBorder },
-                activeAdvancedFilterCount > 0 && styles.filterButtonActive,
+                activeAdvancedFilterCount > 0 && { backgroundColor: colors.primary, borderColor: colors.primary },
               ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -800,7 +801,7 @@ export default function LeadsScreen() {
               <Ionicons
                 name="options-outline"
                 size={20}
-                color={activeAdvancedFilterCount > 0 ? 'white' : placeholderColor}
+                color={activeAdvancedFilterCount > 0 ? colors.primaryForeground : placeholderColor}
               />
               {activeAdvancedFilterCount > 0 && (
                 <View style={styles.filterBadge}>
@@ -917,11 +918,11 @@ export default function LeadsScreen() {
                   disabled={bulkDeleting}
                 >
                   {bulkDeleting ? (
-                    <ActivityIndicator size="small" color="#ef4444" />
+                    <ActivityIndicator size="small" color={Palette.red} />
                   ) : (
                     <>
-                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                      <Text style={[styles.bulkActionText, { color: colors.primary }, { color: '#ef4444' }]}>Delete</Text>
+                      <Ionicons name="trash-outline" size={20} color={Palette.red} />
+                      <Text style={[styles.bulkActionText, { color: colors.primary }, { color: Palette.red }]}>Delete</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -990,7 +991,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1020,10 +1020,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  filterButtonActive: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.primary,
-  },
+  filterButtonActive: {},
   filterBadge: {
     position: 'absolute',
     top: 4,
@@ -1031,7 +1028,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#ef4444',
+    backgroundColor: Palette.red,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1133,7 +1130,6 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1164,7 +1160,6 @@ const styles = StyleSheet.create({
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1228,7 +1223,6 @@ const styles = StyleSheet.create({
   bulkActionText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.primary,
   },
   // Stage Picker Modal styles
   modalOverlay: {

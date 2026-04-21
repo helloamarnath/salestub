@@ -2,6 +2,7 @@
 // Provides clean interface for native Razorpay SDK
 
 import { useState, useCallback } from 'react';
+import { Palette } from '@/constants/theme';
 import { Alert, Platform } from 'react-native';
 import type {
   CheckoutSessionResponse,
@@ -104,7 +105,7 @@ export function useRazorpay(): UseRazorpayReturn {
         prefill: session.prefill,
         notes: session.notes,
         theme: {
-          color: '#6366f1', // Primary indigo color
+          color: Palette.indigo, // Primary indigo color
         },
       };
 

@@ -16,7 +16,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { getQuote, sendQuote, cancelQuote, deleteQuote } from '@/lib/api/quotes';
@@ -189,7 +189,7 @@ export default function QuoteDetailScreen() {
         <Ionicons name="document-text-outline" size={64} color={subtitleColor} />
         <Text style={[styles.emptyTitle, { color: textColor }]}>Quote not found</Text>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+          <Text style={[styles.backBtnText, { color: colors.primaryForeground }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -253,8 +253,8 @@ export default function QuoteDetailScreen() {
             )}
             {Number(quote.discountAmount) > 0 && (
               <View style={styles.amountRow}>
-                <Text style={[styles.amountRowLabel, { color: '#22c55e' }]}>Discount</Text>
-                <Text style={[styles.amountRowValue, { color: '#22c55e' }]}>
+                <Text style={[styles.amountRowLabel, { color: Palette.emerald }]}>Discount</Text>
+                <Text style={[styles.amountRowValue, { color: Palette.emerald }]}>
                   -{formatAmount(quote.discountAmount, quote.currency?.symbol)}
                 </Text>
               </View>
@@ -314,14 +314,14 @@ export default function QuoteDetailScreen() {
         {/* Primary Actions */}
         {canSend && (
           <TouchableOpacity style={[styles.actionBtnFull, { backgroundColor: colors.primary }]} onPress={handleSend}>
-            <Ionicons name="send" size={16} color="white" />
-            <Text style={styles.actionBtnText}>Send Quote</Text>
+            <Ionicons name="send" size={16} color={colors.primaryForeground} />
+            <Text style={[styles.actionBtnText, { color: colors.primaryForeground }]}>Send Quote</Text>
           </TouchableOpacity>
         )}
         {canCreateInvoice && (
-          <TouchableOpacity style={[styles.actionBtnFull, { backgroundColor: '#22c55e' }]} onPress={handleCreateInvoice}>
+          <TouchableOpacity style={[styles.actionBtnFull, { backgroundColor: Palette.emerald }]} onPress={handleCreateInvoice}>
             <Ionicons name="receipt-outline" size={16} color="white" />
-            <Text style={styles.actionBtnText}>Create Invoice</Text>
+            <Text style={[styles.actionBtnText, { color: 'white' }]}>Create Invoice</Text>
           </TouchableOpacity>
         )}
 
@@ -332,8 +332,8 @@ export default function QuoteDetailScreen() {
             <Text style={[styles.actionBtnText, { color: colors.primary }]}>PDF</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]} onPress={handleCopyLink}>
-            <Ionicons name="link-outline" size={16} color="#8b5cf6" />
-            <Text style={[styles.actionBtnText, { color: '#8b5cf6' }]}>Copy Link</Text>
+            <Ionicons name="link-outline" size={16} color={Palette.purple} />
+            <Text style={[styles.actionBtnText, { color: Palette.purple }]}>Copy Link</Text>
           </TouchableOpacity>
         </View>
 
@@ -342,14 +342,14 @@ export default function QuoteDetailScreen() {
           <View style={styles.actionsRow}>
             {canCancel && (
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)' }]} onPress={handleCancel}>
-                <Ionicons name="close-circle-outline" size={16} color="#f59e0b" />
-                <Text style={[styles.actionBtnText, { color: '#f59e0b' }]}>Cancel Quote</Text>
+                <Ionicons name="close-circle-outline" size={16} color={Palette.amber} />
+                <Text style={[styles.actionBtnText, { color: Palette.amber }]}>Cancel Quote</Text>
               </TouchableOpacity>
             )}
             {canDelete && (
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)' }]} onPress={handleDelete}>
-                <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>Delete</Text>
+                <Ionicons name="trash-outline" size={16} color={Palette.red} />
+                <Text style={[styles.actionBtnText, { color: Palette.red }]}>Delete</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -505,14 +505,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  actionBtnText: { fontSize: 14, fontWeight: '600', color: '#252525' },
+  actionBtnText: { fontSize: 14, fontWeight: '600' },
   emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 12 },
   backBtn: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: Colors.light.primary,
     borderRadius: 10,
   },
-  backBtnText: { color: '#252525', fontWeight: '600' },
+  backBtnText: { fontWeight: '600' },
 });

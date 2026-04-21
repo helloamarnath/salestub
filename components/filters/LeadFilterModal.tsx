@@ -366,7 +366,7 @@ export function LeadFilterModal({
               style={[styles.applyButton, { backgroundColor: colors.primary }]}
               onPress={handleApply}
             >
-              <Text style={styles.applyButtonText}>
+              <Text style={[styles.applyButtonText, { color: colors.primaryForeground }]}>
                 Apply {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
               </Text>
             </TouchableOpacity>

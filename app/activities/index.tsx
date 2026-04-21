@@ -14,12 +14,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Calendar as BigCalendar } from 'react-native-big-calendar';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { getActivities, getCalendarActivities, completeActivity, cancelActivity } from '@/lib/api/activities';
 import type {
   Activity,
@@ -45,15 +45,16 @@ interface FilterTab {
 }
 
 const FILTER_TABS: FilterTab[] = [
-  { id: 'all', label: 'All', status: 'ALL', color: Colors.light.mutedForeground },
-  { id: 'pending', label: 'Pending', status: 'PENDING', color: '#f59e0b' },
-  { id: 'in_progress', label: 'In Progress', status: 'IN_PROGRESS', color: Colors.light.primary },
-  { id: 'completed', label: 'Completed', status: 'COMPLETED', color: '#22c55e' },
+  { id: 'all', label: 'All', status: 'ALL', color: '#6b7280' },
+  { id: 'overdue', label: 'Overdue', status: 'ALL', color: Palette.red },
+  { id: 'pending', label: 'Pending', status: 'PENDING', color: Palette.amber },
+  { id: 'in_progress', label: 'In Progress', status: 'IN_PROGRESS', color: Palette.blue },
+  { id: 'completed', label: 'Completed', status: 'COMPLETED', color: Palette.emerald },
 ];
 
 // Activity type filter tabs
 const TYPE_TABS: { id: ActivityType | 'ALL'; label: string; color: string }[] = [
-  { id: 'ALL', label: 'All Types', color: Colors.light.mutedForeground },
+  { id: 'ALL', label: 'All Types', color: '#6b7280' },
   { id: 'TASK', label: 'Tasks', color: ACTIVITY_TYPE_COLORS.TASK },
   { id: 'CALL', label: 'Calls', color: ACTIVITY_TYPE_COLORS.CALL },
   { id: 'MEETING', label: 'Meetings', color: ACTIVITY_TYPE_COLORS.MEETING },
@@ -110,7 +111,7 @@ function ActivityCard({
       <View
         style={[
           styles.activityIndicator,
-          { backgroundColor: isOverdue ? '#ef4444' : typeColor },
+          { backgroundColor: isOverdue ? Palette.red : typeColor },
         ]}
       />
 
@@ -162,14 +163,14 @@ function ActivityCard({
             <Ionicons
               name="time-outline"
               size={12}
-              color={isOverdue ? '#ef4444' : isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
+              color={isOverdue ? Palette.red : isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}
             />
             <Text
               style={[
                 styles.dueDate,
                 {
                   color: isOverdue
-                    ? '#ef4444'
+                    ? Palette.red
                     : isDark
                     ? 'rgba(255,255,255,0.5)'
                     : 'rgba(0,0,0,0.5)',
@@ -195,7 +196,7 @@ function ActivityCard({
               onComplete();
             }}
           >
-            <Ionicons name="checkmark" size={16} color="#22c55e" />
+            <Ionicons name="checkmark" size={16} color={Palette.emerald} />
           </TouchableOpacity>
         </View>
       )}
@@ -207,17 +208,18 @@ export default function ActivitiesScreen() {
   const insets = useSafeAreaInsets();
   const { accessToken } = useAuth();
   const { resolvedTheme } = useTheme();
+  const { filter } = useLocalSearchParams<{ filter?: string }>();
 
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeStatusFilter, setActiveStatusFilter] = useState('all');
+  const [activeStatusFilter, setActiveStatusFilter] = useState(filter === 'overdue' ? 'overdue' : 'all');
   const [activeTypeFilter, setActiveTypeFilter] = useState<ActivityType | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>(filter === 'overdue' ? 'list' : 'calendar');
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarMode, setCalendarMode] = useState<'month' | 'week' | 'day'>('week');
   const [calendarActivities, setCalendarActivities] = useState<Activity[]>([]);
@@ -237,19 +239,32 @@ export default function ActivitiesScreen() {
       }
 
       try {
+        const isOverdueFilter = activeStatusFilter === 'overdue';
         const statusFilter = FILTER_TABS.find((t) => t.id === activeStatusFilter);
         const filters: ActivityFilters = {
           page: pageNum,
           limit: 20,
           search: searchQuery || undefined,
-          status: statusFilter?.status !== 'ALL' ? statusFilter?.status : undefined,
+          status: !isOverdueFilter && statusFilter?.status !== 'ALL' ? statusFilter?.status : undefined,
           type: activeTypeFilter !== 'ALL' ? activeTypeFilter : undefined,
+          dueDateTo: isOverdueFilter ? new Date().toISOString() : undefined,
         };
 
         const response = await getActivities(accessToken, filters);
 
         if (response.success && response.data) {
-          const newActivities = response.data.data;
+          let newActivities = response.data.data;
+          // Client-side filter: overdue = past due AND not completed/cancelled
+          if (isOverdueFilter) {
+            const now = new Date();
+            newActivities = newActivities.filter(
+              (a) =>
+                a.dueDate &&
+                new Date(a.dueDate) < now &&
+                a.status !== 'COMPLETED' &&
+                a.status !== 'CANCELLED'
+            );
+          }
           if (pageNum === 1) {
             // Deduplicate in case API returns duplicates
             const seen = new Set<string>();
@@ -482,8 +497,8 @@ export default function ActivitiesScreen() {
         style={[styles.emptyButton, { backgroundColor: colors.primary }]}
         onPress={handleCreateActivity}
       >
-        <Ionicons name="add" size={20} color="white" />
-        <Text style={styles.emptyButtonText}>Create Activity</Text>
+        <Ionicons name="add" size={20} color={colors.primaryForeground} />
+        <Text style={[styles.emptyButtonText, { color: colors.primaryForeground }]}>Create Activity</Text>
       </TouchableOpacity>
     </View>
   );
@@ -542,7 +557,7 @@ export default function ActivitiesScreen() {
             style={[styles.addButton, { backgroundColor: colors.primary }]}
             onPress={handleCreateActivity}
           >
-            <Ionicons name="add" size={24} color="white" />
+            <Ionicons name="add" size={24} color={colors.primaryForeground} />
           </TouchableOpacity>
         </View>
 
@@ -746,7 +761,7 @@ export default function ActivitiesScreen() {
                     main: colors.primary,
                     contrastText: '#fff',
                   },
-                  nowIndicator: '#ef4444',
+                  nowIndicator: Palette.red,
                   gray: {
                     '100': colors.muted,
                     '200': colors.border,
@@ -966,10 +981,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   overdueText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 10,
     fontWeight: '600',
-    backgroundColor: '#ef444415',
+    backgroundColor: `${Palette.red}15`,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1005,7 +1020,6 @@ const styles = StyleSheet.create({
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { TodaysAgendaItem } from '@/types/dashboard';
 
 interface TodaysAgendaProps {
@@ -22,10 +22,10 @@ const TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  TASK: '#f59e0b',
-  CALL: '#3b82f6',
-  MEETING: '#8b5cf6',
-  EMAIL: '#22c55e',
+  TASK: Palette.amber,
+  CALL: Palette.blue,
+  MEETING: Palette.purple,
+  EMAIL: Palette.emerald,
   NOTE: '#64748b',
 };
 
@@ -199,12 +199,12 @@ export function TodaysAgenda({
                     hitSlop={{ top: 6, left: 6, right: 6, bottom: 6 }}
                   >
                     {isCompleting ? (
-                      <ActivityIndicator size="small" color="#22c55e" />
+                      <ActivityIndicator size="small" color={Palette.emerald} />
                     ) : (
                       <Ionicons
                         name="checkmark"
                         size={16}
-                        color="#22c55e"
+                        color={Palette.emerald}
                       />
                     )}
                   </TouchableOpacity>

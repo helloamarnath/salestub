@@ -6,28 +6,31 @@ import {
   Dimensions,
   StyleSheet,
   TouchableOpacity,
+  FlatList,
+  ViewToken,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { router, Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Brand Icon Component - white icon on gradient background
-function LogoIcon({ size = 88 }: { size?: number }) {
+const { width, height } = Dimensions.get('window');
+
+// ─── Brand Logo ───────────────────────────────────────────────────────────────
+function LogoIcon({ size = 72 }: { size?: number }) {
   return (
-    <View style={[logoIconStyles.container, { width: size, height: size, borderRadius: size * 0.22 }]}>
+    <View style={[logoStyles.container, { width: size, height: size, borderRadius: size * 0.22 }]}>
       <LinearGradient
         colors={[Colors.dark.primary, Colors.dark.primary, '#1d4ed8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <View style={logoIconStyles.shine} />
+      <View style={logoStyles.shine} />
       <Image
         source={require('@/assets/logos/icon-white.svg')}
         style={{ width: size * 0.6, height: size * 0.6 }}
@@ -37,977 +40,515 @@ function LogoIcon({ size = 88 }: { size?: number }) {
   );
 }
 
-const logoIconStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
+const logoStyles = StyleSheet.create({
+  container: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   shine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: '50%',
-    bottom: '50%',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderBottomRightRadius: 100,
+    position: 'absolute', top: 0, left: 0, right: '50%', bottom: '50%',
+    backgroundColor: 'rgba(255,255,255,0.15)', borderBottomRightRadius: 100,
   },
 });
 
-const { width, height } = Dimensions.get('window');
+// ─── Sparkle Decoration ───────────────────────────────────────────────────────
+function Sparkle({ size = 16, color = '#f59e0b', style }: { size?: number; color?: string; style?: object }) {
+  return (
+    <View style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}>
+      <View style={{ position: 'absolute', width: size, height: 2, backgroundColor: color, borderRadius: 1, opacity: 0.8 }} />
+      <View style={{ position: 'absolute', width: 2, height: size, backgroundColor: color, borderRadius: 1, opacity: 0.8 }} />
+      <View style={{ position: 'absolute', width: size * 0.7, height: 2, backgroundColor: color, borderRadius: 1, opacity: 0.5, transform: [{ rotate: '45deg' }] }} />
+      <View style={{ position: 'absolute', width: 2, height: size * 0.7, backgroundColor: color, borderRadius: 1, opacity: 0.5, transform: [{ rotate: '45deg' }] }} />
+    </View>
+  );
+}
 
-// Splash Screen Component - shown while checking auth state
-function SplashScreen() {
-  const colors = Colors.dark; // Splash is always dark themed
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0.5)).current;
+// ─── Avatar Circle ─────────────────────────────────────────────────────────────
+function Avatar({ initials, color, size = 52, icon }: { initials?: string; color: string; size?: number; icon?: keyof typeof Ionicons.glyphMap }) {
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: color, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2.5, borderColor: 'white',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4,
+    }}>
+      {icon ? (
+        <View style={{
+          width: size * 0.5, height: size * 0.5, borderRadius: size * 0.25,
+          backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Ionicons name={icon} size={size * 0.3} color="white" />
+        </View>
+      ) : (
+        <Text style={{ color: 'white', fontWeight: '700', fontSize: size * 0.32 }}>{initials}</Text>
+      )}
+    </View>
+  );
+}
 
+// ─── Slide 1 Illustration: Lead Pipeline Orbit ────────────────────────────────
+function Slide1Illustration() {
+  const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    // Pulse animation for the logo
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulse, { toValue: 1.06, duration: 1800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 1800, useNativeDriver: true }),
       ])
-    ).start();
-
-    // Glow animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0.5,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    // Subtle rotation for the gradient ring
-    Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 4000,
-        useNativeDriver: true,
-      })
     ).start();
   }, []);
 
-  const spin = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  const avatars = [
+    { color: '#f97316', initials: 'AK', angle: 0, r: 108 },
+    { color: '#8b5cf6', initials: 'PL', angle: 72, r: 108 },
+    { color: '#06b6d4', initials: 'SR', angle: 144, r: 108 },
+    { color: '#10b981', initials: 'MJ', angle: 216, r: 108 },
+    { color: '#ec4899', initials: 'VN', angle: 288, r: 108 },
+  ];
 
   return (
-    <View style={styles.splashContainer}>
-      <LinearGradient
-        colors={[colors.background, colors.background, colors.card, colors.background, colors.background]}
-        locations={[0, 0.2, 0.5, 0.8, 1]}
-        style={StyleSheet.absoluteFill}
-      />
+    <View style={{ width: 280, height: 280, alignItems: 'center', justifyContent: 'center' }}>
+      {/* Orbit ring */}
+      <View style={{
+        position: 'absolute', width: 240, height: 240, borderRadius: 120,
+        borderWidth: 1.5, borderColor: 'rgba(59,130,246,0.2)', borderStyle: 'dashed',
+      }} />
+      {/* Inner ring */}
+      <View style={{
+        position: 'absolute', width: 170, height: 170, borderRadius: 85,
+        borderWidth: 1, borderColor: 'rgba(59,130,246,0.12)',
+      }} />
 
-      {/* Animated background orbs */}
-      <View style={[styles.splashOrb, styles.splashOrb1]} />
-      <View style={[styles.splashOrb, styles.splashOrb2]} />
-      <View style={[styles.splashOrb, styles.splashOrb3]} />
-
-      {/* Center content */}
-      <View style={styles.splashContent}>
-        {/* Outer glow ring */}
-        <Animated.View
-          style={[
-            styles.splashGlowRing,
-            { opacity: glowAnim, transform: [{ scale: pulseAnim }] },
-          ]}
-        />
-
-        {/* Animated ring behind logo */}
-        <Animated.View
-          style={[
-            styles.splashRing,
-            { transform: [{ rotate: spin }] },
-          ]}
-        >
-          <LinearGradient
-            colors={[colors.primary, '#8b5cf6', '#06b6d4', '#10b981', colors.primary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.splashRingGradient}
-          />
-        </Animated.View>
-
-        {/* Logo with pulse */}
-        <Animated.View
-          style={[
-            styles.splashLogoContainer,
-            { transform: [{ scale: pulseAnim }] },
-          ]}
-        >
-          <LogoIcon size={72} />
-        </Animated.View>
-
-        {/* App name */}
-        <Text style={styles.splashTitle}>SalesTub</Text>
-        <Text style={styles.splashSubtitle}>Loading your workspace...</Text>
-
-        {/* Loading indicator */}
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingBar}>
-            <LoadingProgress />
+      {/* Center logo pill */}
+      <Animated.View style={{ transform: [{ scale: pulse }], alignItems: 'center' }}>
+        <View style={{
+          backgroundColor: 'white', borderRadius: 28, paddingHorizontal: 18, paddingVertical: 10,
+          flexDirection: 'row', alignItems: 'center', gap: 10,
+          shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 8,
+        }}>
+          <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="checkmark" size={16} color="white" />
           </View>
+          <Text style={{ fontWeight: '700', fontSize: 15, color: '#1e293b', letterSpacing: 0.2 }}>SalesTub</Text>
         </View>
+      </Animated.View>
+
+      {/* Orbit avatars */}
+      {avatars.map((a, i) => {
+        const rad = (a.angle - 90) * (Math.PI / 180);
+        const x = Math.cos(rad) * a.r;
+        const y = Math.sin(rad) * a.r;
+        return (
+          <View key={i} style={{ position: 'absolute', transform: [{ translateX: x }, { translateY: y }] }}>
+            <Avatar initials={a.initials} color={a.color} size={48} />
+          </View>
+        );
+      })}
+
+      {/* Badge icons at edges */}
+      <View style={{ position: 'absolute', left: -4, top: 70 }}>
+        <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }}>
+          <Ionicons name="briefcase-outline" size={18} color="white" />
+        </View>
+      </View>
+      <View style={{ position: 'absolute', right: -4, top: 70 }}>
+        <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }}>
+          <Ionicons name="basket-outline" size={18} color="white" />
+        </View>
+      </View>
+
+      {/* Sparkles */}
+      <Sparkle size={14} color="#f59e0b" style={{ position: 'absolute', top: 10, right: 48 }} />
+      <Sparkle size={10} color="#8b5cf6" style={{ position: 'absolute', bottom: 20, left: 44 }} />
+      <Sparkle size={12} color="#06b6d4" style={{ position: 'absolute', top: 55, left: 14 }} />
+    </View>
+  );
+}
+
+// ─── Slide 2 Illustration: Activity Cards Mockup ─────────────────────────────
+function Slide2Illustration() {
+  const slideIn = useRef(new Animated.Value(20)).current;
+  const fadeIn = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideIn, { toValue: 0, duration: 600, useNativeDriver: true }),
+      Animated.timing(fadeIn, { toValue: 1, duration: 600, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ width: 280, opacity: fadeIn, transform: [{ translateY: slideIn }] }}>
+      {/* Card 1 */}
+      <View style={{
+        backgroundColor: 'white', borderRadius: 16, padding: 14,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5,
+        marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
+        <Avatar initials="SR" color="#3b82f6" size={40} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: '600', fontSize: 14, color: '#1e293b' }}>School PTA Meeting</Text>
+          <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>5:00 PM · MIT School</Text>
+        </View>
+        <View style={{ backgroundColor: '#fef3c7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: '#d97706' }}>Today</Text>
+        </View>
+      </View>
+
+      {/* Card 2 */}
+      <View style={{
+        backgroundColor: 'white', borderRadius: 16, padding: 14,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+        marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
+        <Avatar initials="MJ" color="#8b5cf6" size={40} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: '600', fontSize: 14, color: '#1e293b' }}>Demo Call</Text>
+          <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>11:30 AM · Prospect Inc</Text>
+        </View>
+        <View style={{ backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+          <Text style={{ fontSize: 11, fontWeight: '600', color: '#16a34a' }}>Tomorrow</Text>
+        </View>
+      </View>
+
+      {/* Task checkbox */}
+      <View style={{
+        backgroundColor: 'white', borderRadius: 16, padding: 14,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
+        <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: '#3b82f6' }} />
+        </View>
+        <Text style={{ fontSize: 14, fontWeight: '500', color: '#1e293b' }}>Follow up with lead</Text>
+      </View>
+
+      {/* Bottom avatars */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20, gap: 10 }}>
+        {['#f97316', '#3b82f6', '#8b5cf6', '#10b981', '#ec4899'].map((c, i) => (
+          <Avatar key={i} initials={['AK', 'SR', 'PL', 'MJ', 'VN'][i]} color={c} size={38} />
+        ))}
+      </View>
+
+      {/* Sparkles */}
+      <Sparkle size={14} color="#f59e0b" style={{ position: 'absolute', top: -10, right: 20 }} />
+      <Sparkle size={10} color="#10b981" style={{ position: 'absolute', bottom: 56, left: -8 }} />
+    </Animated.View>
+  );
+}
+
+// ─── Slide 3 Illustration: Team Grid ─────────────────────────────────────────
+function Slide3Illustration() {
+  const members = [
+    { color: '#f97316', initials: 'AK', tall: true },
+    { color: '#3b82f6', initials: 'SR', tall: false },
+    { color: '#8b5cf6', initials: 'PL', tall: false },
+    { color: '#10b981', initials: 'MJ', tall: true },
+    { color: '#ec4899', initials: 'RV', tall: false },
+    { color: '#06b6d4', initials: 'VN', tall: false },
+  ];
+
+  const badges = [
+    { icon: 'basket-outline' as keyof typeof Ionicons.glyphMap, color: '#1e293b', col: 1, row: 1 },
+    { icon: 'star-outline' as keyof typeof Ionicons.glyphMap, color: '#1e293b', col: 0, row: 2 },
+    { icon: 'trending-up-outline' as keyof typeof Ionicons.glyphMap, color: '#1e293b', col: 2, row: 1 },
+  ];
+
+  return (
+    <View style={{ width: 280, height: 300, flexDirection: 'row', gap: 8, justifyContent: 'center' }}>
+      {[0, 1, 2].map(col => (
+        <View key={col} style={{ gap: 8, flex: 1, flexDirection: 'column', alignItems: 'center', paddingTop: col === 1 ? 0 : 20 }}>
+          {members
+            .filter((_, i) => i % 3 === col)
+            .map((m, row) => {
+              const badgeInfo = badges.find(b => b.col === col && b.row === row);
+              const h = m.tall ? 160 : 128;
+              return (
+                <View key={row} style={{ position: 'relative' }}>
+                  <View style={{
+                    width: 80, height: h, borderRadius: 40,
+                    backgroundColor: m.color,
+                    alignItems: 'center', justifyContent: 'flex-end',
+                    paddingBottom: 16, overflow: 'hidden',
+                    shadowColor: m.color, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
+                  }}>
+                    {/* Gradient overlay */}
+                    <LinearGradient
+                      colors={['rgba(255,255,255,0.15)', 'rgba(0,0,0,0.2)']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <Text style={{ color: 'white', fontWeight: '700', fontSize: 18 }}>{m.initials}</Text>
+                  </View>
+                  {badgeInfo && (
+                    <View style={{
+                      position: 'absolute', bottom: 10, right: -6,
+                      width: 30, height: 30, borderRadius: 10,
+                      backgroundColor: badgeInfo.color, alignItems: 'center', justifyContent: 'center',
+                      shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4,
+                      borderWidth: 2, borderColor: 'white',
+                    }}>
+                      <Ionicons name={badgeInfo.icon} size={14} color="white" />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+        </View>
+      ))}
+
+      {/* Sparkles */}
+      <Sparkle size={14} color="#f59e0b" style={{ position: 'absolute', top: 10, left: 10 }} />
+      <Sparkle size={10} color="#8b5cf6" style={{ position: 'absolute', top: 30, right: 8 }} />
+      <Sparkle size={12} color="#10b981" style={{ position: 'absolute', bottom: 20, left: 30 }} />
+    </View>
+  );
+}
+
+// ─── Onboarding Data ──────────────────────────────────────────────────────────
+const SLIDES = [
+  {
+    key: 'slide1',
+    bg1: '#fff8f0' as const,
+    bg2: '#ffeedd' as const,
+    accent: '#f97316',
+    title: 'Manage All Your\nLeads Effortlessly',
+    description: 'Capture, organize & nurture leads with a visual pipeline built for sales teams.',
+    illustration: <Slide1Illustration />,
+  },
+  {
+    key: 'slide2',
+    bg1: '#f8faff' as const,
+    bg2: '#eef3ff' as const,
+    accent: '#3b82f6',
+    title: 'Never Miss a\nFollow-Up Again',
+    description: 'AI suggests next steps, reminds tasks, and keeps your deals moving forward.',
+    illustration: <Slide2Illustration />,
+  },
+  {
+    key: 'slide3',
+    bg1: '#f8fff9' as const,
+    bg2: '#eefff2' as const,
+    accent: '#10b981',
+    title: 'Your Whole Team\nin Perfect Sync',
+    description: 'Assign leads, share notes, and keep every team member aligned in real time.',
+    illustration: <Slide3Illustration />,
+  },
+];
+
+// ─── Splash Screen ─────────────────────────────────────────────────────────────
+function SplashScreen() {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0.5)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const colors = Colors.dark;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.06, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.5, duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(progressAnim, { toValue: 1, duration: 1400, useNativeDriver: false }),
+        Animated.timing(progressAnim, { toValue: 0, duration: 0, useNativeDriver: false }),
+      ])
+    ).start();
+  }, []);
+
+  const progressWidth = progressAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+      <View style={[splashStyles.orb, { top: -100, left: -80, backgroundColor: 'rgba(59,130,246,0.12)' }]} />
+      <View style={[splashStyles.orb, { bottom: -80, right: -80, backgroundColor: 'rgba(139,92,246,0.12)', width: 250, height: 250 }]} />
+      <Animated.View style={{ transform: [{ scale: pulseAnim }], alignItems: 'center' }}>
+        <Animated.View style={{ position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(59,130,246,0.15)', opacity: glowAnim }} />
+        <LogoIcon size={80} />
+      </Animated.View>
+      <Text style={{ fontSize: 32, fontWeight: '700', color: 'white', marginTop: 24 }}>SalesTub</Text>
+      <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', marginTop: 6 }}>Loading your workspace…</Text>
+      <View style={{ marginTop: 36, width: 100, height: 3, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
+        <Animated.View style={{ height: '100%', borderRadius: 2, width: progressWidth, overflow: 'hidden' }}>
+          <LinearGradient colors={[colors.primary, Palette.purple]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+        </Animated.View>
       </View>
     </View>
   );
 }
 
-// Animated loading progress bar
-function LoadingProgress() {
-  const colors = Colors.dark; // Used in splash screen which is always dark
-  const progress = useRef(new Animated.Value(0)).current;
+const splashStyles = StyleSheet.create({
+  orb: { position: 'absolute', width: 300, height: 300, borderRadius: 150 },
+});
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(progress, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: false,
-        }),
-        Animated.timing(progress, {
-          toValue: 0,
-          duration: 0,
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  const progressWidth = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
-
-  return (
-    <Animated.View style={[styles.loadingProgress, { width: progressWidth }]}>
-      <LinearGradient
-        colors={[colors.primary, '#8b5cf6']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-    </Animated.View>
-  );
-}
-
-// Welcome Screen Component - shown when not authenticated
-function WelcomeScreen() {
-  const colors = Colors.dark; // Welcome screen is always dark themed
+// ─── Onboarding Screen ─────────────────────────────────────────────────────────
+function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const logoScale = useRef(new Animated.Value(0.5)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoRotate = useRef(new Animated.Value(0)).current;
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslateY = useRef(new Animated.Value(20)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const featuresOpacity = useRef(new Animated.Value(0)).current;
-  const featuresTranslateY = useRef(new Animated.Value(30)).current;
-  const buttonOpacity = useRef(new Animated.Value(0)).current;
-  const buttonTranslateY = useRef(new Animated.Value(30)).current;
-  const glowPulse = useRef(new Animated.Value(0.3)).current;
-
-  // Feature animations
-  const feature1Opacity = useRef(new Animated.Value(0)).current;
-  const feature1TranslateX = useRef(new Animated.Value(-20)).current;
-  const feature2Opacity = useRef(new Animated.Value(0)).current;
-  const feature2TranslateX = useRef(new Animated.Value(-20)).current;
-  const feature3Opacity = useRef(new Animated.Value(0)).current;
-  const feature3TranslateX = useRef(new Animated.Value(-20)).current;
-
-  // Floating orb positions
-  const orb1Position = useRef(new Animated.ValueXY({ x: -80, y: 50 })).current;
-  const orb2Position = useRef(new Animated.ValueXY({ x: width - 100, y: height - 250 })).current;
-  const orb3Position = useRef(new Animated.ValueXY({ x: width / 2 - 50, y: -50 })).current;
-  const orb4Position = useRef(new Animated.ValueXY({ x: 30, y: height - 400 })).current;
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const colors = Colors[resolvedTheme];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listRef = useRef<FlatList>(null);
+  const dot0 = useRef(new Animated.Value(1)).current;
+  const dot1 = useRef(new Animated.Value(0)).current;
+  const dot2 = useRef(new Animated.Value(0)).current;
+  const dotAnimations = [dot0, dot1, dot2];
 
   useEffect(() => {
-    // Floating orbs animation
-    Animated.loop(
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(orb1Position, {
-            toValue: { x: 30, y: 150 },
-            duration: 6000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(orb1Position, {
-            toValue: { x: -80, y: 50 },
-            duration: 6000,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(orb2Position, {
-            toValue: { x: width - 180, y: height - 350 },
-            duration: 7000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(orb2Position, {
-            toValue: { x: width - 100, y: height - 250 },
-            duration: 7000,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(orb3Position, {
-            toValue: { x: width / 2 + 30, y: 100 },
-            duration: 5000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(orb3Position, {
-            toValue: { x: width / 2 - 50, y: -50 },
-            duration: 5000,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(orb4Position, {
-            toValue: { x: -20, y: height - 500 },
-            duration: 8000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(orb4Position, {
-            toValue: { x: 30, y: height - 400 },
-            duration: 8000,
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    ).start();
+    SLIDES.forEach((_, i) => {
+      Animated.timing(dotAnimations[i], {
+        toValue: i === activeIndex ? 1 : 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    });
+  }, [activeIndex]);
 
-    // Glow pulse animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowPulse, {
-          toValue: 0.6,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowPulse, {
-          toValue: 0.3,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+      setActiveIndex(viewableItems[0].index);
+    }
+  }).current;
 
-    // Logo ring rotation
-    Animated.loop(
-      Animated.timing(logoRotate, {
-        toValue: 1,
-        duration: 10000,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    // Staggered content animations
-    Animated.sequence([
-      // Logo entrance
-      Animated.parallel([
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.spring(logoScale, {
-          toValue: 1,
-          friction: 5,
-          tension: 50,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Title
-      Animated.delay(100),
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.spring(titleTranslateY, {
-          toValue: 0,
-          friction: 6,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Subtitle
-      Animated.timing(subtitleOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      // Features container
-      Animated.parallel([
-        Animated.timing(featuresOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.spring(featuresTranslateY, {
-          toValue: 0,
-          friction: 6,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Staggered feature items
-      Animated.parallel([
-        Animated.timing(feature1Opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(feature1TranslateX, { toValue: 0, friction: 6, tension: 40, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(feature2Opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(feature2TranslateX, { toValue: 0, friction: 6, tension: 40, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(feature3Opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(feature3TranslateX, { toValue: 0, friction: 6, tension: 40, useNativeDriver: true }),
-      ]),
-      // Button
-      Animated.parallel([
-        Animated.timing(buttonOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.spring(buttonTranslateY, {
-          toValue: 0,
-          friction: 6,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-  }, []);
-
-  const handleGetStarted = () => {
-    router.replace('/(auth)/login' as Href);
+  const handleNext = () => {
+    if (activeIndex < SLIDES.length - 1) {
+      listRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+    } else {
+      router.replace('/(auth)/login' as Href);
+    }
   };
 
-  const logoSpin = logoRotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  return (
-    <View style={{ flex: 1 }}>
-      {/* Animated gradient background */}
+  const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
+    <View style={{ width, flex: 1 }}>
       <LinearGradient
-        colors={[colors.background, colors.background, '#162033', colors.background, colors.background]}
-        locations={[0, 0.25, 0.5, 0.75, 1]}
+        colors={[item.bg1, item.bg2]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Mesh gradient overlay */}
-      <View style={styles.meshOverlay}>
-        <LinearGradient
-          colors={['rgba(59, 130, 246, 0.08)', 'transparent', 'rgba(139, 92, 246, 0.08)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
+      {/* Top logo bar */}
+      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 24 }}>
+        <Image
+          source={require('@/assets/logos/logo.svg')}
+          style={{ width: 120, height: 30 }}
+          contentFit="contain"
         />
       </View>
 
-      {/* Floating orbs */}
-      <Animated.View
-        style={[
-          styles.orb,
-          styles.orb1,
-          { transform: [{ translateX: orb1Position.x }, { translateY: orb1Position.y }] },
-        ]}
-      >
-        <LinearGradient
-          colors={[colors.primary, colors.border, '#93c5fd']}
-          style={styles.orbGradient}
-        />
-      </Animated.View>
+      {/* Illustration area */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 12 }}>
+        {item.illustration}
+      </View>
+    </View>
+  );
 
-      <Animated.View
-        style={[
-          styles.orb,
-          styles.orb2,
-          { transform: [{ translateX: orb2Position.x }, { translateY: orb2Position.y }] },
-        ]}
-      >
-        <LinearGradient
-          colors={['#8b5cf6', '#a78bfa', '#c4b5fd']}
-          style={styles.orbGradient}
-        />
-      </Animated.View>
+  const slide = SLIDES[activeIndex];
 
-      <Animated.View
-        style={[
-          styles.orb,
-          styles.orb3,
-          { transform: [{ translateX: orb3Position.x }, { translateY: orb3Position.y }] },
-        ]}
-      >
-        <LinearGradient
-          colors={['#06b6d4', '#22d3ee', '#67e8f9']}
-          style={styles.orbGradient}
-        />
-      </Animated.View>
+  return (
+    <View style={{ flex: 1, backgroundColor: slide.bg1 }}>
+      {/* Slide list */}
+      <FlatList
+        ref={listRef}
+        data={SLIDES}
+        renderItem={renderSlide}
+        keyExtractor={i => i.key}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+        style={{ flex: 1 }}
+        scrollEventThrottle={16}
+      />
 
-      <Animated.View
-        style={[
-          styles.orb,
-          styles.orb4,
-          { transform: [{ translateX: orb4Position.x }, { translateY: orb4Position.y }] },
-        ]}
-      >
-        <LinearGradient
-          colors={['#10b981', '#34d399', '#6ee7b7']}
-          style={styles.orbGradient}
-        />
-      </Animated.View>
+      {/* Bottom panel */}
+      <View style={{
+        paddingHorizontal: 28,
+        paddingBottom: insets.bottom + 24,
+        paddingTop: 24,
+        backgroundColor: colors.card,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: isDark ? 0.3 : 0.06,
+        shadowRadius: 20,
+        elevation: 10,
+      }}>
+        {/* Title */}
+        <Text style={{
+          fontSize: 26, fontWeight: '800', color: colors.foreground,
+          textAlign: 'center', lineHeight: 34, marginBottom: 10,
+        }}>
+          {slide.title}
+        </Text>
 
-      {/* Content */}
-      <View style={[styles.welcomeContent, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}>
-        {/* Logo Section */}
-        <View style={styles.logoSection}>
-          <Animated.View
-            style={{
-              opacity: logoOpacity,
-              transform: [{ scale: logoScale }],
-            }}
-          >
-            {/* Glow effect behind logo */}
-            <Animated.View style={[styles.logoGlow, { opacity: glowPulse }]}>
-              <LinearGradient
-                colors={['rgba(59, 130, 246, 0.4)', 'rgba(139, 92, 246, 0.3)', 'transparent']}
-                style={styles.logoGlowGradient}
-              />
-            </Animated.View>
+        {/* Description */}
+        <Text style={{
+          fontSize: 14, color: colors.mutedForeground, textAlign: 'center',
+          lineHeight: 22, marginBottom: 28,
+        }}>
+          {slide.description}
+        </Text>
 
-            {/* Rotating ring */}
-            <Animated.View style={[styles.logoRing, { transform: [{ rotate: logoSpin }] }]}>
-              <LinearGradient
-                colors={[colors.primary, '#8b5cf6', '#06b6d4', '#10b981', colors.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoRingGradient}
-              />
-            </Animated.View>
-
-            {/* Logo container */}
-            <View style={[styles.logoContainer, { shadowColor: colors.primary }]}>
-              <LogoIcon size={88} />
-            </View>
-          </Animated.View>
-
-          {/* Title */}
-          <Animated.View
-            style={{
-              opacity: titleOpacity,
-              transform: [{ translateY: titleTranslateY }],
-              marginTop: 28,
-            }}
-          >
-            <Text style={styles.appTitle}>SalesTub</Text>
-          </Animated.View>
-
-          {/* Subtitle */}
-          <Animated.View style={{ opacity: subtitleOpacity }}>
-            <Text style={styles.appSubtitle}>Your CRM, Simplified</Text>
-          </Animated.View>
-
-          {/* Feature highlights */}
-          <Animated.View
-            style={[
-              styles.featuresContainer,
-              {
-                opacity: featuresOpacity,
-                transform: [{ translateY: featuresTranslateY }],
-              },
-            ]}
-          >
-            <BlurView intensity={25} tint="dark" style={styles.featuresBlur}>
-              <View style={styles.featuresContent}>
-                <Animated.View
-                  style={{
-                    opacity: feature1Opacity,
-                    transform: [{ translateX: feature1TranslateX }],
-                  }}
-                >
-                  <FeatureItem
-                    icon="people"
-                    title="Manage Leads"
-                    description="Capture, organize & nurture leads"
-                    color={colors.primary}
-                    bgColor="rgba(59, 130, 246, 0.15)"
-                  />
-                </Animated.View>
-
-                <View style={styles.featureDivider} />
-
-                <Animated.View
-                  style={{
-                    opacity: feature2Opacity,
-                    transform: [{ translateX: feature2TranslateX }],
-                  }}
-                >
-                  <FeatureItem
-                    icon="trending-up"
-                    title="Track Deals"
-                    description="Visual pipeline & forecasting"
-                    color="#8b5cf6"
-                    bgColor="rgba(139, 92, 246, 0.15)"
-                  />
-                </Animated.View>
-
-                <View style={styles.featureDivider} />
-
-                <Animated.View
-                  style={{
-                    opacity: feature3Opacity,
-                    transform: [{ translateX: feature3TranslateX }],
-                  }}
-                >
-                  <FeatureItem
-                    icon="analytics"
-                    title="Smart Insights"
-                    description="AI-powered analytics & reports"
-                    color="#06b6d4"
-                    bgColor="rgba(6, 182, 212, 0.15)"
-                  />
-                </Animated.View>
-              </View>
-            </BlurView>
-          </Animated.View>
+        {/* Progress dots */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 24, gap: 6 }}>
+          {SLIDES.map((_, i) => {
+            const dotWidth = dotAnimations[i].interpolate({ inputRange: [0, 1], outputRange: [8, 24] });
+            const dotColor = dotAnimations[i].interpolate({ inputRange: [0, 1], outputRange: [colors.border, slide.accent] });
+            return (
+              <Animated.View key={i} style={{ height: 8, borderRadius: 4, width: dotWidth, backgroundColor: dotColor }} />
+            );
+          })}
         </View>
 
-        {/* Bottom Section */}
-        <Animated.View
-          style={{
-            opacity: buttonOpacity,
-            transform: [{ translateY: buttonTranslateY }],
-          }}
-        >
-          {/* Trust badges */}
-          <View style={styles.trustBadges}>
-            <View style={styles.trustBadge}>
-              <Ionicons name="shield-checkmark" size={14} color="#10b981" />
-              <Text style={styles.trustText}>Secure</Text>
-            </View>
-            <View style={styles.trustDot} />
-            <View style={styles.trustBadge}>
-              <Ionicons name="flash" size={14} color="#f59e0b" />
-              <Text style={styles.trustText}>Fast</Text>
-            </View>
-            <View style={styles.trustDot} />
-            <View style={styles.trustBadge}>
-              <Ionicons name="cloud-done" size={14} color={colors.primary} />
-              <Text style={styles.trustText}>Cloud Sync</Text>
-            </View>
+        {/* CTA Button */}
+        <TouchableOpacity onPress={handleNext} activeOpacity={0.85}>
+          <View style={{
+            backgroundColor: isDark ? colors.primary : '#0f172a',
+            borderRadius: 50,
+            paddingVertical: 16, paddingHorizontal: 32,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+            shadowColor: isDark ? 'transparent' : '#0f172a',
+            shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
+          }}>
+            <Text style={{ color: isDark ? colors.primaryForeground : 'white', fontWeight: '700', fontSize: 16 }}>
+              {activeIndex === SLIDES.length - 1 ? 'Get Started' : 'Next'}
+            </Text>
+            <Ionicons name="arrow-forward" size={18} color={isDark ? colors.primaryForeground : 'white'} />
           </View>
+        </TouchableOpacity>
 
-          {/* Get Started Button */}
-          <TouchableOpacity
-            onPress={handleGetStarted}
-            activeOpacity={0.9}
-            style={[styles.buttonContainer, { shadowColor: colors.primary }]}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.primary, '#1d4ed8']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.getStartedButton}
-            >
-              <Text style={styles.buttonText}>Get Started</Text>
-              <View style={styles.buttonIconContainer}>
-                <Ionicons name="arrow-forward" size={18} color="white" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Sign In link */}
-          <TouchableOpacity onPress={handleGetStarted} style={styles.signInContainer}>
-            <Text style={styles.signInText}>
+        {/* Sign in link — only on last slide */}
+        {activeIndex === SLIDES.length - 1 && (
+          <TouchableOpacity onPress={() => router.replace('/(auth)/login' as Href)} style={{ marginTop: 16, alignItems: 'center' }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 14 }}>
               Already have an account?{' '}
-              <Text style={[styles.signInLink, { color: colors.border }]}>Sign In</Text>
+              <Text style={{ color: Palette.blue, fontWeight: '600' }}>Sign In</Text>
             </Text>
           </TouchableOpacity>
-        </Animated.View>
+        )}
       </View>
     </View>
   );
 }
 
-function FeatureItem({
-  icon,
-  title,
-  description,
-  color,
-  bgColor,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  description: string;
-  color: string;
-  bgColor: string;
-}) {
-  return (
-    <View style={styles.featureItem}>
-      <View style={[styles.featureIcon, { backgroundColor: bgColor }]}>
-        <Ionicons name={icon} size={22} color={color} />
-      </View>
-      <View style={styles.featureText}>
-        <Text style={styles.featureTitle}>{title}</Text>
-        <Text style={styles.featureDescription}>{description}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
-    </View>
-  );
-}
-
-// Main Index Screen - handles auth routing
+// ─── Root Screen ───────────────────────────────────────────────────────────────
 export default function IndexScreen() {
   const { isLoading, isAuthenticated } = useAuth();
   const [hasNavigated, setHasNavigated] = useState(false);
 
   useEffect(() => {
-    // Only navigate once loading is complete and we haven't navigated yet
-    if (!isLoading && !hasNavigated) {
-      if (isAuthenticated) {
-        setHasNavigated(true);
-        // Use setTimeout to ensure navigation happens after render
-        setTimeout(() => {
-          router.replace('/(tabs)' as Href);
-        }, 100);
-      }
+    if (!isLoading && !hasNavigated && isAuthenticated) {
+      setHasNavigated(true);
+      setTimeout(() => router.replace('/(tabs)' as Href), 100);
     }
   }, [isLoading, isAuthenticated, hasNavigated]);
 
-  // Show splash screen while loading auth state
-  if (isLoading) {
-    return <SplashScreen />;
-  }
-
-  // If authenticated, keep showing splash until navigation completes
-  if (isAuthenticated) {
-    return <SplashScreen />;
-  }
-
-  // Show welcome screen for unauthenticated users
-  return <WelcomeScreen />;
+  if (isLoading || isAuthenticated) return <SplashScreen />;
+  return <OnboardingScreen />;
 }
-
-const styles = StyleSheet.create({
-  // Splash Screen Styles
-  splashContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  splashOrb: {
-    position: 'absolute',
-    borderRadius: 999,
-  },
-  splashOrb1: {
-    width: 350,
-    height: 350,
-    top: -120,
-    left: -120,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-  },
-  splashOrb2: {
-    width: 280,
-    height: 280,
-    bottom: -100,
-    right: -100,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-  },
-  splashOrb3: {
-    width: 200,
-    height: 200,
-    top: height * 0.3,
-    right: -50,
-    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-  },
-  splashContent: {
-    alignItems: 'center',
-  },
-  splashGlowRing: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-  },
-  splashRing: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    padding: 3,
-  },
-  splashRingGradient: {
-    flex: 1,
-    borderRadius: 80,
-    opacity: 0.7,
-  },
-  splashLogoContainer: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 30,
-    elevation: 10,
-  },
-  splashTitle: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: 'white',
-    marginTop: 28,
-    letterSpacing: 1,
-  },
-  splashSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 8,
-  },
-  loadingContainer: {
-    marginTop: 40,
-    alignItems: 'center',
-  },
-  loadingBar: {
-    width: 120,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  loadingProgress: {
-    height: '100%',
-    borderRadius: 2,
-  },
-
-  // Welcome Screen Styles
-  meshOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  orb: {
-    position: 'absolute',
-    borderRadius: 999,
-    opacity: 0.5,
-  },
-  orb1: {
-    width: 280,
-    height: 280,
-  },
-  orb2: {
-    width: 220,
-    height: 220,
-  },
-  orb3: {
-    width: 180,
-    height: 180,
-  },
-  orb4: {
-    width: 150,
-    height: 150,
-  },
-  orbGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 999,
-  },
-  welcomeContent: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
-  },
-  logoSection: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 20,
-  },
-  logoGlow: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-  },
-  logoGlowGradient: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 100,
-  },
-  logoRing: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    padding: 2,
-    left: -6,
-    top: -6,
-  },
-  logoRingGradient: {
-    flex: 1,
-    borderRadius: 75,
-    opacity: 0.5,
-  },
-  logoContainer: {
-    borderRadius: 22,
-    overflow: 'hidden',
-    shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 25,
-    elevation: 10,
-  },
-  appTitle: {
-    fontSize: 44,
-    fontWeight: '700',
-    color: 'white',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  appSubtitle: {
-    fontSize: 17,
-    color: 'rgba(255, 255, 255, 0.55)',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  featuresContainer: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    width: '100%',
-    maxWidth: 380,
-  },
-  featuresBlur: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-  },
-  featuresContent: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-  },
-  featureDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    marginHorizontal: 4,
-  },
-  featureIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 2,
-  },
-  featureDescription: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.45)',
-  },
-  trustBadges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  trustBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  trustText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '500',
-  },
-  trustDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 12,
-  },
-  buttonContainer: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: Colors.light.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  getStartedButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 17,
-    fontWeight: '600',
-    marginRight: 10,
-  },
-  buttonIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signInContainer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  signInText: {
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontSize: 14,
-  },
-  signInLink: {
-    color: Colors.light.border,
-    fontWeight: '600',
-  },
-});

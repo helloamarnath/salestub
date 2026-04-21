@@ -18,7 +18,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import {
   getActivity,
   updateActivity,
@@ -198,7 +198,7 @@ export default function ActivityDetailScreen() {
       <View style={styles.container}>
         <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Ionicons name="alert-circle-outline" size={64} color={Palette.red} />
           <Text style={[styles.errorText, { color: colors.foreground }]}>
             Activity not found
           </Text>
@@ -206,7 +206,7 @@ export default function ActivityDetailScreen() {
             style={[styles.backToListButton, { backgroundColor: colors.primary }]}
             onPress={() => router.back()}
           >
-            <Text style={styles.backToListText}>Go Back</Text>
+            <Text style={[styles.backToListText, { color: colors.primaryForeground }]}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -261,7 +261,7 @@ export default function ActivityDetailScreen() {
                 style={styles.headerButton}
                 onPress={handleCancelEdit}
               >
-                <Ionicons name="close" size={24} color="#ef4444" />
+                <Ionicons name="close" size={24} color={Palette.red} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerButton}
@@ -269,9 +269,9 @@ export default function ActivityDetailScreen() {
                 disabled={isSaving}
               >
                 {isSaving ? (
-                  <ActivityIndicator size="small" color="#22c55e" />
+                  <ActivityIndicator size="small" color={Palette.emerald} />
                 ) : (
-                  <Ionicons name="checkmark" size={24} color="#22c55e" />
+                  <Ionicons name="checkmark" size={24} color={Palette.emerald} />
                 )}
               </TouchableOpacity>
             </View>
@@ -331,7 +331,7 @@ export default function ActivityDetailScreen() {
               </View>
               {isOverdue && (
                 <View style={[styles.overdueBadge]}>
-                  <Ionicons name="warning" size={12} color="#ef4444" />
+                  <Ionicons name="warning" size={12} color={Palette.red} />
                   <Text style={styles.overdueText}>Overdue</Text>
                 </View>
               )}
@@ -374,7 +374,7 @@ export default function ActivityDetailScreen() {
                   <Text
                     style={[
                       styles.detailValue,
-                      { color: isOverdue ? '#ef4444' : colors.foreground },
+                      { color: isOverdue ? Palette.red : colors.foreground },
                     ]}
                   >
                     {formatActivityDate(activity.dueDate)}
@@ -599,7 +599,7 @@ export default function ActivityDetailScreen() {
               {activity.company && (
                 <TouchableOpacity style={styles.relatedItem}>
                   <View style={[styles.relatedIcon, { backgroundColor: '#22c55e15' }]}>
-                    <Ionicons name="business-outline" size={16} color="#22c55e" />
+                    <Ionicons name="business-outline" size={16} color={Palette.emerald} />
                   </View>
                   <Text style={[styles.relatedName, { color: colors.foreground }]}>
                     {activity.company.name}
@@ -613,7 +613,7 @@ export default function ActivityDetailScreen() {
                   onPress={() => router.push(`/(tabs)/leads/${activity.leadId}` as any)}
                 >
                   <View style={[styles.relatedIcon, { backgroundColor: '#f59e0b15' }]}>
-                    <Ionicons name="flash-outline" size={16} color="#f59e0b" />
+                    <Ionicons name="flash-outline" size={16} color={Palette.amber} />
                   </View>
                   <Text style={[styles.relatedName, { color: colors.foreground }]}>
                     {activity.lead.title}
@@ -700,7 +700,7 @@ export default function ActivityDetailScreen() {
               ]}
             >
               <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                <Ionicons name="trash-outline" size={20} color={Palette.red} />
                 <Text style={styles.deleteText}>Delete Activity</Text>
               </TouchableOpacity>
             </View>
@@ -714,17 +714,17 @@ export default function ActivityDetailScreen() {
               styles.bottomActions,
               {
                 paddingBottom: insets.bottom + 16,
-                backgroundColor: isDark ? 'rgba(15,23,42,0.95)' : 'rgba(255,255,255,0.95)',
+                backgroundColor: isDark ? `${colors.background}F2` : 'rgba(255,255,255,0.95)',
                 borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
               },
             ]}
           >
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.mutedForeground }]}
+              style={[styles.actionButton, { backgroundColor: colors.secondary, borderWidth: 1, borderColor: colors.border }]}
               onPress={handleCancel}
             >
-              <Ionicons name="close-circle-outline" size={20} color="white" />
-              <Text style={styles.actionButtonText}>Cancel</Text>
+              <Ionicons name="close-circle-outline" size={20} color={colors.foreground} />
+              <Text style={[styles.actionButtonText, { color: colors.foreground }]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.completeButton]}
@@ -761,14 +761,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   backToListButton: {
-    backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,
     marginTop: 8,
   },
   backToListText: {
-    color: '#252525',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -873,7 +871,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   overdueText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -954,7 +952,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   deleteText: {
-    color: '#ef4444',
+    color: Palette.red,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -974,10 +972,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   completeButton: {
-    backgroundColor: '#22c55e',
+    backgroundColor: Palette.emerald,
   },
   actionButtonText: {
-    color: '#252525',
+    color: 'white',
     fontSize: 15,
     fontWeight: '600',
   },

@@ -1,4 +1,5 @@
 // Lead type definitions for SalesTub CRM Mobile App
+import { Palette } from '@/constants/theme';
 
 export interface LeadContact {
   id: string;
@@ -287,9 +288,9 @@ export type LeadSource = typeof LEAD_SOURCES[number];
 
 // Status colors for UI
 export const STAGE_TYPE_COLORS = {
-  OPEN: '#3b82f6',      // Blue
-  CLOSED_WON: '#22c55e', // Green
-  CLOSED_LOST: '#ef4444', // Red
+  OPEN: Palette.blue,      // Blue
+  CLOSED_WON: Palette.emerald, // Green
+  CLOSED_LOST: Palette.red, // Red
 } as const;
 
 export const SOURCE_COLORS: Record<string, string> = {
@@ -307,12 +308,12 @@ export const SOURCE_COLORS: Record<string, string> = {
   InfraMarket: '#4caf50',
   JustDial: '#00a651',
   // Direct sources
-  Website: '#3b82f6',
-  Email: '#10b981',
+  Website: Palette.blue,
+  Email: Palette.green,
   WhatsApp: '#25d366',
   // Manual sources
-  Referral: '#8b5cf6',
-  'Cold Call': '#f59e0b',
+  Referral: Palette.purple,
+  'Cold Call': Palette.amber,
   LinkedIn: '#0077b5',
   'Email Campaign': '#ec4899',
   'Trade Show': '#06b6d4',
@@ -320,10 +321,10 @@ export const SOURCE_COLORS: Record<string, string> = {
 };
 
 export const ACTIVITY_TYPE_COLORS = {
-  CALL: '#22c55e',
-  EMAIL: '#3b82f6',
-  MEETING: '#8b5cf6',
-  TASK: '#f59e0b',
+  CALL: Palette.emerald,
+  EMAIL: Palette.blue,
+  MEETING: Palette.purple,
+  TASK: Palette.amber,
   NOTE: '#6b7280',
 } as const;
 

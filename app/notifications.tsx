@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useNotifications } from '@/contexts/notification-context';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors } from '@/constants/theme';
+import { Colors, Palette } from '@/constants/theme';
 import { AppNotification, NotificationType } from '@/lib/notification-service';
 
 const notificationIcons: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
@@ -41,25 +41,25 @@ const notificationIcons: Record<NotificationType, keyof typeof Ionicons.glyphMap
 };
 
 const notificationColors: Record<NotificationType, string> = {
-  LEAD_CREATED: Colors.light.primary,
-  LEAD_ASSIGNED: '#8b5cf6',
-  LEAD_STAGE_CHANGED: '#06b6d4',
-  LEAD_CONVERTED: '#22c55e',
-  LEAD_WON: '#22c55e',
-  LEAD_LOST: '#ef4444',
-  CONTACT_CREATED: Colors.light.primary,
-  CONTACT_ASSIGNED: '#8b5cf6',
-  ACTIVITY_REMINDER: '#f59e0b',
-  ACTIVITY_ASSIGNED: Colors.light.primary,
-  ACTIVITY_COMPLETED: '#22c55e',
-  ACTIVITY_OVERDUE: '#ef4444',
-  TASK_ASSIGNED: Colors.light.primary,
-  TASK_DUE_SOON: '#f59e0b',
-  TASK_OVERDUE: '#ef4444',
-  SYSTEM_ANNOUNCEMENT: '#8b5cf6',
-  WELCOME: '#22c55e',
-  SUBSCRIPTION_EXPIRING: '#f59e0b',
-  STORAGE_WARNING: '#f59e0b',
+  LEAD_CREATED: Palette.indigo,
+  LEAD_ASSIGNED: Palette.purple,
+  LEAD_STAGE_CHANGED: Palette.cyan,
+  LEAD_CONVERTED: Palette.emerald,
+  LEAD_WON: Palette.emerald,
+  LEAD_LOST: Palette.red,
+  CONTACT_CREATED: Palette.indigo,
+  CONTACT_ASSIGNED: Palette.purple,
+  ACTIVITY_REMINDER: Palette.amber,
+  ACTIVITY_ASSIGNED: Palette.indigo,
+  ACTIVITY_COMPLETED: Palette.emerald,
+  ACTIVITY_OVERDUE: Palette.red,
+  TASK_ASSIGNED: Palette.indigo,
+  TASK_DUE_SOON: Palette.amber,
+  TASK_OVERDUE: Palette.red,
+  SYSTEM_ANNOUNCEMENT: Palette.purple,
+  WELCOME: Palette.emerald,
+  SUBSCRIPTION_EXPIRING: Palette.amber,
+  STORAGE_WARNING: Palette.amber,
 };
 
 function formatTimeAgo(dateString: string): string {
