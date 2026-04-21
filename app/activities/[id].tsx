@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -183,14 +184,7 @@ export default function ActivityDetailScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </View>
-    );
+    return <ScreenLoader />;
   }
 
   if (!activity) {

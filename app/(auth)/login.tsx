@@ -10,9 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { router, Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -111,6 +111,164 @@ function HeroIllustration({ cardBg, textColor }: { cardBg: string; textColor: st
     </View>
   );
 }
+
+// ─── Signing In Overlay ────────────────────────────────────────────────────────
+function DotsLoader({ color }: { color: string }) {
+  const d1 = useRef(new Animated.Value(0.3)).current;
+  const d2 = useRef(new Animated.Value(0.3)).current;
+  const d3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const dot = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, { toValue: 1, duration: 380, useNativeDriver: true }),
+          Animated.timing(val, { toValue: 0.3, duration: 380, useNativeDriver: true }),
+          Animated.delay(760 - delay),
+        ])
+      );
+    dot(d1, 0).start();
+    dot(d2, 160).start();
+    dot(d3, 320).start();
+  }, []);
+
+  return (
+    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+      {[d1, d2, d3].map((d, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            width: 8, height: 8, borderRadius: 4,
+            backgroundColor: color,
+            opacity: d,
+            transform: [{ scale: d }],
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+function SigningInOverlay({ visible, isDark }: { visible: boolean; isDark: boolean }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const cardScale = useRef(new Animated.Value(0.88)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(cardScale, { toValue: 1, friction: 8, tension: 50, useNativeDriver: true }),
+        Animated.timing(cardOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 0, duration: 160, useNativeDriver: true }),
+        Animated.timing(cardOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+      ]).start(() => {
+        cardScale.setValue(0.88);
+      });
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const dotColor = isDark ? 'rgba(255,255,255,0.7)' : Palette.blue;
+  const cardBg = isDark ? 'rgba(20,20,30,0.75)' : 'rgba(255,255,255,0.82)';
+  const titleColor = isDark ? 'white' : '#0f172a';
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)';
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, { opacity, zIndex: 50 }]}>
+      <BlurView
+        intensity={isDark ? 60 : 40}
+        tint={isDark ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={overlayStyles.center}>
+        <Animated.View
+          style={[
+            overlayStyles.card,
+            {
+              backgroundColor: cardBg,
+              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
+              opacity: cardOpacity,
+              transform: [{ scale: cardScale }],
+            },
+          ]}
+        >
+          {/* Logo mark */}
+          <View style={overlayStyles.logoWrap}>
+            <Image
+              source={isDark
+                ? require('@/assets/logos/icon-white.svg')
+                : require('@/assets/logos/icon-white.svg')}
+              style={{ width: 28, height: 28 }}
+              contentFit="contain"
+            />
+          </View>
+
+          <Text style={[overlayStyles.title, { color: titleColor }]}>
+            Signing you in
+          </Text>
+          <Text style={[overlayStyles.subtitle, { color: subtitleColor }]}>
+            Setting up your workspace…
+          </Text>
+
+          <View style={{ marginTop: 20 }}>
+            <DotsLoader color={dotColor} />
+          </View>
+        </Animated.View>
+      </View>
+    </Animated.View>
+  );
+}
+
+const overlayStyles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  card: {
+    width: 220,
+    borderRadius: 28,
+    borderWidth: 1,
+    paddingVertical: 32,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.15,
+    shadowRadius: 40,
+    elevation: 20,
+  },
+  logoWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: Palette.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: Palette.blue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: 0.1,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '400',
+  },
+});
 
 // ─── Input Field ───────────────────────────────────────────────────────────────
 function InputField({
@@ -386,18 +544,10 @@ export default function LoginScreen() {
                 <View style={[styles.signInBtn, {
                   backgroundColor: signInBtnBg,
                   shadowColor: isDark ? 'transparent' : '#0f172a',
+                  opacity: isLoading ? 0.6 : 1,
                 }]}>
-                  {isLoading ? (
-                    <>
-                      <ActivityIndicator size="small" color={signInBtnText} />
-                      <Text style={[styles.signInBtnText, { color: signInBtnText }]}>Signing in…</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={[styles.signInBtnText, { color: signInBtnText }]}>Sign In</Text>
-                      <Ionicons name="arrow-forward" size={18} color={signInBtnText} />
-                    </>
-                  )}
+                  <Text style={[styles.signInBtnText, { color: signInBtnText }]}>Sign In</Text>
+                  <Ionicons name="arrow-forward" size={18} color={signInBtnText} />
                 </View>
               </TouchableOpacity>
 
@@ -427,6 +577,9 @@ export default function LoginScreen() {
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Full-screen signing-in overlay */}
+      <SigningInOverlay visible={isLoading} isDark={isDark} />
     </View>
   );
 }

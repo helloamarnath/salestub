@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -186,15 +187,7 @@ export default function PlansScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: subtitleColor }]}>Loading plans...</Text>
-        </View>
-      </View>
-    );
+    return <ScreenLoader />;
   }
 
   return (

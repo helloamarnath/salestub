@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -128,14 +129,7 @@ export default function ProductDetailScreen() {
 
   // Loading state
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors[resolvedTheme].primary} />
-        </View>
-      </View>
-    );
+    return <ScreenLoader />;
   }
 
   // Error state

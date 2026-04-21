@@ -7,7 +7,6 @@ import {
   Animated,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
   ToastAndroid,
   Platform,
   Alert,
@@ -30,6 +29,7 @@ import {
   DashboardActivity,
   TodaysAgendaItem,
 } from '@/types/dashboard';
+import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import {
   PipelineProgress,
   ActivityFeed,
@@ -257,17 +257,7 @@ export default function DashboardScreen() {
   const avgDealValue = wonCountAllTime > 0 ? wonValue / wonCountAllTime : 0;
 
   if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: subtitleColor }]}>
-            Loading dashboard...
-          </Text>
-        </View>
-      </View>
-    );
+    return <ScreenLoader message="Loading dashboard…" />;
   }
 
   return (

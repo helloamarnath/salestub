@@ -30,6 +30,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { startLocationTracking, stopLocationTracking } from '@/lib/firebase/location-tracker';
 import { StartVisitSheet } from '@/components/visits/StartVisitSheet';
 import { ActiveVisitBanner } from '@/components/visits/ActiveVisitBanner';
+import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import { VisitCard } from '@/components/visits/VisitCard';
 import { VisitPhotoCapture } from '@/components/visits/VisitPhotoCapture';
 import { getActiveVisit, startVisit, completeVisit, cancelVisit, getLeadVisits } from '@/lib/api/visits';
@@ -4369,14 +4370,7 @@ export default function LeadDetailScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </View>
-    );
+    return <ScreenLoader />;
   }
 
   if (error || !lead) {

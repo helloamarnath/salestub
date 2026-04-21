@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, View, ActivityIndicator, StyleSheet, DynamicColorIOS } from 'react-native';
+import { Platform, View, StyleSheet, DynamicColorIOS } from 'react-native';
 import { router, Tabs } from 'expo-router';
 import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors } from '@/constants/theme';
+import { ScreenLoader } from '@/components/ui/ScreenLoader';
 
 // Tab bar colors are now derived from theme
 
@@ -45,13 +46,8 @@ export default function TabLayout() {
     }
   }, [isLoading, isAuthenticated, isRedirecting]);
 
-  // Show loading spinner while checking auth or redirecting
   if (isLoading || !isAuthenticated) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={themeColors.tint} />
-      </View>
-    );
+    return <ScreenLoader />;
   }
 
   // iOS: Use NativeTabs for liquid glass effect

@@ -13,6 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -748,18 +749,7 @@ export default function CreateLeadScreen() {
   };
 
   if (loadingLead) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.background, colors.card, colors.background]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Loading lead...</Text>
-        </View>
-      </View>
-    );
+    return <ScreenLoader />;
   }
 
   return (
