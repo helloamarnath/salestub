@@ -36,7 +36,7 @@ export default function PlansScreen() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY');
+  const billingCycle: BillingCycle = 'ANNUAL';
   const [userCount, setUserCount] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -88,18 +88,7 @@ export default function PlansScreen() {
   }, []);
 
   const calculatePrice = (plan: SubscriptionPlan) => {
-    const pricePerUser =
-      billingCycle === 'MONTHLY'
-        ? plan.pricePerUserMonthlyINR
-        : plan.pricePerUserAnnualINR;
-    return pricePerUser * userCount;
-  };
-
-  const calculateSavings = (plan: SubscriptionPlan) => {
-    if (billingCycle !== 'ANNUAL') return 0;
-    const monthlyTotal = plan.pricePerUserMonthlyINR * 12 * userCount;
-    const annualTotal = plan.pricePerUserAnnualINR * userCount;
-    return monthlyTotal - annualTotal;
+    return plan.pricePerUserAnnualINR * userCount;
   };
 
   const handleUserCountChange = (delta: number) => {
@@ -207,47 +196,6 @@ export default function PlansScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 200 }}
       >
-        {/* Billing Toggle */}
-        <View style={styles.section}>
-          <View style={[styles.billingToggle, { backgroundColor: cardBgColor, borderColor }]}>
-            <TouchableOpacity
-              style={[
-                styles.billingOption,
-                billingCycle === 'MONTHLY' && styles.billingOptionActive,
-              ]}
-              onPress={() => setBillingCycle('MONTHLY')}
-            >
-              <Text
-                style={[
-                  styles.billingOptionText,
-                  { color: billingCycle === 'MONTHLY' ? 'white' : subtitleColor },
-                ]}
-              >
-                Monthly
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.billingOption,
-                billingCycle === 'ANNUAL' && styles.billingOptionActive,
-              ]}
-              onPress={() => setBillingCycle('ANNUAL')}
-            >
-              <Text
-                style={[
-                  styles.billingOptionText,
-                  { color: billingCycle === 'ANNUAL' ? 'white' : subtitleColor },
-                ]}
-              >
-                Annual
-              </Text>
-              <View style={styles.saveBadge}>
-                <Text style={styles.saveBadgeText}>Save 20%</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* User Count */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: subtitleColor }]}>NUMBER OF USERS</Text>
@@ -341,25 +289,12 @@ export default function PlansScreen() {
 
                   <View style={styles.planPricing}>
                     <Text style={[styles.planPrice, { color: textColor }]}>
-                      {formatINR(
-                        billingCycle === 'MONTHLY'
-                          ? plan.pricePerUserMonthlyINR
-                          : plan.pricePerUserAnnualINR
-                      )}
+                      {formatINR(plan.pricePerUserAnnualINR)}
                     </Text>
                     <Text style={[styles.planPriceInterval, { color: subtitleColor }]}>
-                      /user/{billingCycle === 'MONTHLY' ? 'month' : 'year'}
+                      /user/year
                     </Text>
                   </View>
-
-                  {billingCycle === 'ANNUAL' && calculateSavings(plan) > 0 && (
-                    <View style={styles.savingsContainer}>
-                      <Ionicons name="pricetag" size={14} color={Palette.emerald} />
-                      <Text style={styles.savingsText}>
-                        Save {formatINR(calculateSavings(plan))} per year
-                      </Text>
-                    </View>
-                  )}
 
                   <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
@@ -409,7 +344,7 @@ export default function PlansScreen() {
             <Text style={[styles.totalAmount, { color: textColor }]}>
               {formatINR(calculatePrice(selectedPlan))}
               <Text style={[styles.totalInterval, { color: subtitleColor }]}>
-                /{billingCycle === 'MONTHLY' ? 'mo' : 'yr'}
+                /yr
               </Text>
             </Text>
           </View>
@@ -487,39 +422,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     marginBottom: 12,
-  },
-  billingToggle: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-  },
-  billingOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
-  },
-  billingOptionActive: {
-    backgroundColor: Palette.indigo,
-  },
-  billingOptionText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  saveBadge: {
-    backgroundColor: Palette.emerald,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  saveBadgeText: {
-    color: '#252525',
-    fontSize: 10,
-    fontWeight: '600',
   },
   userCountContainer: {
     borderRadius: 12,
@@ -604,17 +506,6 @@ const styles = StyleSheet.create({
   planPriceInterval: {
     fontSize: 14,
     marginLeft: 4,
-  },
-  savingsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 8,
-  },
-  savingsText: {
-    color: Palette.emerald,
-    fontSize: 13,
-    fontWeight: '500',
   },
   divider: {
     height: 1,
