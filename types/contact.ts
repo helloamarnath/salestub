@@ -105,6 +105,18 @@ export interface ContactStats {
   inactive: number;
 }
 
+export interface ContactOwnerStat {
+  ownerId: string;
+  ownerName: string;
+  ownerRole: string;
+  count: number;
+}
+
+export interface ContactStatsOverview {
+  total: number;
+  byOwner: ContactOwnerStat[];
+}
+
 // Helper to get full name
 export const getContactFullName = (contact: Contact | { firstName: string; lastName: string }): string => {
   return `${contact.firstName} ${contact.lastName}`.trim();

@@ -36,6 +36,19 @@ export function setAuthCallbacks(
   logoutCallback = logoutFn;
 }
 
+// Safely parse a Response body as JSON. Returns undefined for empty bodies
+// or non-JSON content instead of throwing — many endpoints return 200/201
+// with no body or with non-JSON payloads.
+async function parseJsonSafe<T = unknown>(response: Response): Promise<T | undefined> {
+  const text = await response.text();
+  if (!text) return undefined;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined;
+  }
+}
+
 // Build URL with query params
 function buildUrl(endpoint: string, params?: Record<string, string | number | undefined>): string {
   const url = new URL(`${API_URL}${endpoint}`);
@@ -91,8 +104,8 @@ export async function apiRequest<T>(
         });
 
         if (retryResponse.ok) {
-          const data = await retryResponse.json();
-          return { data, success: true };
+          const data = await parseJsonSafe<T>(retryResponse);
+          return { data: data as T, success: true };
         }
 
         // If retry also fails with 401, logout
@@ -100,7 +113,7 @@ export async function apiRequest<T>(
           logoutCallback();
         }
 
-        const errorData = await retryResponse.json();
+        const errorData = (await parseJsonSafe<{ message?: string; error?: string }>(retryResponse)) ?? {};
         return {
           success: false,
           error: {
@@ -126,7 +139,7 @@ export async function apiRequest<T>(
 
     // Handle other errors
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = (await parseJsonSafe<{ message?: string; error?: string }>(response)) ?? {};
       return {
         success: false,
         error: {
@@ -142,8 +155,8 @@ export async function apiRequest<T>(
       return { data: undefined as T, success: true };
     }
 
-    const data = await response.json();
-    return { data, success: true };
+    const data = await parseJsonSafe<T>(response);
+    return { data: data as T, success: true };
   } catch (error) {
     console.error('API request error:', error);
     return {
@@ -209,7 +222,7 @@ export async function uploadFile(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = (await parseJsonSafe<{ message?: string }>(response)) ?? {};
       return {
         success: false,
         error: {
@@ -219,7 +232,7 @@ export async function uploadFile(
       };
     }
 
-    const data = await response.json();
+    const data = await parseJsonSafe(response);
     return { data, success: true };
   } catch (error) {
     console.error('Upload error:', error);

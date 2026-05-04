@@ -24,11 +24,14 @@ import { useTheme } from '@/contexts/theme-context';
 import { useRBAC } from '@/hooks/use-rbac';
 import { Colors, Palette } from '@/constants/theme';
 import { AccessDenied } from '@/components/AccessDenied';
-import { getLeads, getKanbanView, bulkDeleteLeads, bulkUpdateStage } from '@/lib/api/leads';
+import { getLeads, getKanbanView, bulkDeleteLeads, bulkUpdateStage, exportLeadsToCSV } from '@/lib/api/leads';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import { LeadCard } from '@/components/leads/LeadCard';
 import { LeadFilterModal, type LeadFilterState } from '@/components/filters';
+import { ExportFilterModal, type ExportFilters } from '@/components/export/ExportFilterModal';
 import type { Lead, LeadFilters, KanbanStage } from '@/types/lead';
+import { File, Paths } from 'expo-file-system/next';
+import * as Sharing from 'expo-sharing';
 
 // Filter tab definition
 interface FilterTab {
@@ -269,6 +272,10 @@ export default function LeadsScreen() {
   const [advancedFilters, setAdvancedFilters] = useState<LeadFilterState>({});
   const [userRoleKey, setUserRoleKey] = useState<string | undefined>();
 
+  // Export state
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -280,7 +287,13 @@ export default function LeadsScreen() {
   const activeAdvancedFilterCount =
     (advancedFilters.sources?.length || 0) +
     (advancedFilters.stageIds?.length || 0) +
-    (advancedFilters.ownerMembershipIds?.length || 0);
+    (advancedFilters.ownerMembershipIds?.length || 0) +
+    (advancedFilters.createdFrom ? 1 : 0) +
+    (advancedFilters.createdTo ? 1 : 0) +
+    (advancedFilters.updatedFrom ? 1 : 0) +
+    (advancedFilters.updatedTo ? 1 : 0) +
+    (advancedFilters.scoreMin != null ? 1 : 0) +
+    (advancedFilters.scoreMax != null ? 1 : 0);
 
   // Debounce search
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -507,6 +520,12 @@ export default function LeadsScreen() {
         stageType: stageTypeFilter,
         status: statusFilter,
         ownerMembershipId: advancedFilters.ownerMembershipIds?.join(','),
+        createdFrom: advancedFilters.createdFrom,
+        createdTo: advancedFilters.createdTo,
+        updatedFrom: advancedFilters.updatedFrom,
+        updatedTo: advancedFilters.updatedTo,
+        scoreMin: advancedFilters.scoreMin,
+        scoreMax: advancedFilters.scoreMax,
       };
 
       const response = await getLeads(accessToken, filterParams);
@@ -615,6 +634,49 @@ export default function LeadsScreen() {
   const handleCreatePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push('/(tabs)/leads/create');
+  };
+
+  // Export — uses ExportFilterModal, then writes CSV to cache and opens share sheet.
+  // Mirrors the flow in app/export-import.tsx so behavior stays consistent.
+  const handleExportLeads = async (filters: ExportFilters) => {
+    if (!accessToken) return;
+    setExporting(true);
+    try {
+      const result = await exportLeadsToCSV(accessToken, {
+        stageId: filters.stageIds?.join(','),
+        source: filters.sources?.join(','),
+        createdFrom: filters.dateFrom,
+        createdTo: filters.dateTo,
+      });
+
+      if (result?.success && result.csv) {
+        const filename = result.filename || 'leads-export.csv';
+        const file = new File(Paths.cache, filename);
+        await file.write(result.csv);
+
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(file.uri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Export Leads',
+            UTI: 'public.comma-separated-values-text',
+          });
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Alert.alert(
+            'Export Ready',
+            'CSV file has been saved. Sharing is not available on this device.',
+          );
+        }
+      } else {
+        Alert.alert('Export Failed', result?.error || 'Failed to export leads');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      Alert.alert('Export Failed', 'An error occurred while exporting leads');
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Selection mode handlers
@@ -751,14 +813,39 @@ export default function LeadsScreen() {
                 </Text>
               )}
             </View>
-            {rbac.canCreate('leads') && (
+            <View style={styles.titleActions}>
               <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: colors.primary }]}
-                onPress={handleCreatePress}
+                style={[styles.iconActionButton, { backgroundColor: searchBg, borderColor: searchBorder }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/leads/analytics');
+                }}
               >
-                <Ionicons name="add" size={24} color={colors.primaryForeground} />
+                <Ionicons name="stats-chart-outline" size={20} color={textColor} />
               </TouchableOpacity>
-            )}
+              <TouchableOpacity
+                style={[styles.iconActionButton, { backgroundColor: searchBg, borderColor: searchBorder }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setExportModalVisible(true);
+                }}
+                disabled={exporting}
+              >
+                {exporting ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="download-outline" size={20} color={textColor} />
+                )}
+              </TouchableOpacity>
+              {rbac.canCreate('leads') && (
+                <TouchableOpacity
+                  style={[styles.addButton, { backgroundColor: colors.primary }]}
+                  onPress={handleCreatePress}
+                >
+                  <Ionicons name="add" size={24} color={colors.primaryForeground} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Search bar with filter */}
@@ -879,6 +966,17 @@ export default function LeadsScreen() {
         userRoleKey={userRoleKey}
       />
 
+      {/* Export Modal — pre-populated with the list's current advanced filters */}
+      <ExportFilterModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        onApply={(filters) => {
+          setExportModalVisible(false);
+          handleExportLeads(filters);
+        }}
+        dataType="leads"
+      />
+
       {/* Bulk Action Bar */}
       {selectionMode && (
         <View style={[styles.bulkActionBar, { paddingBottom: insets.bottom + 10, backgroundColor: colors.card, borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
@@ -991,6 +1089,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

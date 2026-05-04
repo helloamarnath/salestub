@@ -8,6 +8,7 @@ import type {
   CreateContactDto,
   UpdateContactDto,
   ContactStats,
+  ContactStatsOverview,
 } from '@/types/contact';
 
 const CONTACTS_BASE = '/api/v1/contacts';
@@ -94,12 +95,21 @@ export async function deleteContact(
 }
 
 /**
- * Get contact statistics
+ * Get contact counts (total / active / inactive) used for filter tabs
  */
 export async function getContactStats(
   token: string | null
 ): Promise<ApiResponse<ContactStats>> {
   return api.get<ContactStats>(`${CONTACTS_BASE}/stats/counts`, token);
+}
+
+/**
+ * Get contact analytics overview (total + per-owner counts)
+ */
+export async function getContactStatsOverview(
+  token: string | null
+): Promise<ApiResponse<ContactStatsOverview>> {
+  return api.get<ContactStatsOverview>(`${CONTACTS_BASE}/stats/overview`, token);
 }
 
 /**

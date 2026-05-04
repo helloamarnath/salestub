@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Pressable,
   Linking,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,8 +22,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRBAC } from '@/hooks/use-rbac';
 import { Colors, Palette } from '@/constants/theme';
 import { AccessDenied } from '@/components/AccessDenied';
-import { getContacts } from '@/lib/api/contacts';
-import { getCompanies } from '@/lib/api/companies';
+import { getContacts, bulkDeleteContacts } from '@/lib/api/contacts';
+import { getCompanies, bulkDeleteCompanies } from '@/lib/api/companies';
 import { getRoleInfo, isSuperAdmin } from '@/lib/api/organization';
 import {
   ContactFilterModal,
@@ -41,10 +42,16 @@ function CustomerItem({
   contact,
   isDark,
   onPress,
+  onLongPress,
+  selectionMode,
+  isSelected,
 }: {
   contact: Contact;
   isDark: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
 }) {
   const colors = Colors[isDark ? 'dark' : 'light'];
   const fullName = getContactFullName(contact);
@@ -57,11 +64,35 @@ function CustomerItem({
   const actionBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-      <View style={[styles.listItem, { borderBottomColor: borderColor }]}>
-        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress} onLongPress={onLongPress}>
+      <View
+        style={[
+          styles.listItem,
+          { borderBottomColor: borderColor },
+          isSelected && {
+            backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
+          },
+        ]}
+      >
+        {selectionMode ? (
+          <View
+            style={[
+              styles.selectCheckbox,
+              {
+                backgroundColor: isSelected ? colors.primary : 'transparent',
+                borderColor: isSelected ? colors.primary : colors.border,
+              },
+            ]}
+          >
+            {isSelected && (
+              <Ionicons name="checkmark" size={18} color={colors.primaryForeground} />
+            )}
+          </View>
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        )}
         <View style={styles.itemInfo}>
           <Text style={[styles.itemTitle, { color: textColor }]}>{fullName}</Text>
           {contact.companyName && (
@@ -73,42 +104,44 @@ function CustomerItem({
             <Text style={[styles.itemSubtitle, { color: subtitleColor }]}>{contact.email}</Text>
           )}
         </View>
-        <View style={styles.itemActions}>
-          {contact.phone && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: actionBg }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                Linking.openURL(`tel:${contact.phone}`);
-              }}
-            >
-              <Ionicons name="call-outline" size={18} color={Palette.emerald} />
-            </TouchableOpacity>
-          )}
-          {contact.phone && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: actionBg }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                const cleanPhone = contact.phone!.replace(/[^0-9+]/g, '').replace(/^\+/, '');
-                Linking.openURL(`https://wa.me/${cleanPhone}`);
-              }}
-            >
-              <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-            </TouchableOpacity>
-          )}
-          {contact.email && (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: actionBg }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                Linking.openURL(`mailto:${contact.email}`);
-              }}
-            >
-              <Ionicons name="mail-outline" size={18} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
+        {!selectionMode && (
+          <View style={styles.itemActions}>
+            {contact.phone && (
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: actionBg }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  Linking.openURL(`tel:${contact.phone}`);
+                }}
+              >
+                <Ionicons name="call-outline" size={18} color={Palette.emerald} />
+              </TouchableOpacity>
+            )}
+            {contact.phone && (
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: actionBg }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  const cleanPhone = contact.phone!.replace(/[^0-9+]/g, '').replace(/^\+/, '');
+                  Linking.openURL(`https://wa.me/${cleanPhone}`);
+                }}
+              >
+                <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
+              </TouchableOpacity>
+            )}
+            {contact.email && (
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: actionBg }]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  Linking.openURL(`mailto:${contact.email}`);
+                }}
+              >
+                <Ionicons name="mail-outline" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -119,10 +152,16 @@ function OrganizationItem({
   company,
   isDark,
   onPress,
+  onLongPress,
+  selectionMode,
+  isSelected,
 }: {
   company: Company;
   isDark: boolean;
   onPress: () => void;
+  onLongPress?: () => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
 }) {
   const colors = Colors[isDark ? 'dark' : 'light'];
   const initials = getCompanyInitials(company);
@@ -132,14 +171,37 @@ function OrganizationItem({
   const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
   const borderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-  const actionBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
 
   return (
-    <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-      <View style={[styles.listItem, { borderBottomColor: borderColor }]}>
-        <View style={[styles.avatar, { backgroundColor: typeColor }]}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+    <TouchableOpacity activeOpacity={0.7} onPress={onPress} onLongPress={onLongPress}>
+      <View
+        style={[
+          styles.listItem,
+          { borderBottomColor: borderColor },
+          isSelected && {
+            backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.08)',
+          },
+        ]}
+      >
+        {selectionMode ? (
+          <View
+            style={[
+              styles.selectCheckbox,
+              {
+                backgroundColor: isSelected ? colors.primary : 'transparent',
+                borderColor: isSelected ? colors.primary : colors.border,
+              },
+            ]}
+          >
+            {isSelected && (
+              <Ionicons name="checkmark" size={18} color={colors.primaryForeground} />
+            )}
+          </View>
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: typeColor }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        )}
         <View style={styles.itemInfo}>
           <View style={styles.titleRow}>
             <Text style={[styles.itemTitle, { color: textColor, flex: 1 }]} numberOfLines={1}>
@@ -167,18 +229,30 @@ function OrganizationItem({
             </Text>
           )}
         </View>
-        <View style={styles.itemActions}>
-          {company.phone && (
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: actionBg }]}>
-              <Ionicons name="call-outline" size={18} color={Palette.emerald} />
-            </TouchableOpacity>
-          )}
-          {company.website && (
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: actionBg }]}>
-              <Ionicons name="globe-outline" size={18} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
+        {!selectionMode && (
+          <View style={styles.itemActions}>
+            {company.phone && (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
+                ]}
+              >
+                <Ionicons name="call-outline" size={18} color={Palette.emerald} />
+              </TouchableOpacity>
+            )}
+            {company.website && (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' },
+                ]}
+              >
+                <Ionicons name="globe-outline" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -275,6 +349,11 @@ export default function ContactsScreen() {
   const [organizationsLoading, setOrganizationsLoading] = useState(true);
   const [organizationsPage, setOrganizationsPage] = useState(1);
   const [organizationsHasMore, setOrganizationsHasMore] = useState(true);
+
+  // Bulk selection state — scoped per active tab; switching tabs exits selection mode.
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Theme-aware colors
   const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
@@ -480,6 +559,84 @@ export default function ContactsScreen() {
   const isLoading = activeTab === 'customers' ? customersLoading : organizationsLoading;
   const data = activeTab === 'customers' ? customers : organizations;
 
+  // ---------- Bulk selection helpers ----------
+  const enterSelectionMode = useCallback((id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectionMode(true);
+    setSelectedIds(new Set([id]));
+  }, []);
+
+  const exitSelectionMode = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelected = useCallback((id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const ids = activeTab === 'customers'
+      ? customers.map((c) => c.id)
+      : organizations.map((o) => o.id);
+    setSelectedIds(new Set(ids));
+  }, [activeTab, customers, organizations]);
+
+  // Switching tabs while selecting is confusing — clear selection.
+  useEffect(() => {
+    if (selectionMode) {
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedIds.size === 0 || !accessToken) return;
+    const tabLabel = activeTab === 'customers' ? 'customer' : 'organization';
+    const count = selectedIds.size;
+    Alert.alert(
+      `Delete ${count} ${tabLabel}${count !== 1 ? 's' : ''}?`,
+      'This cannot be undone. Linked leads, deals, and activities are not deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setBulkDeleting(true);
+            const ids = Array.from(selectedIds);
+            const res =
+              activeTab === 'customers'
+                ? await bulkDeleteContacts(accessToken, ids)
+                : await bulkDeleteCompanies(accessToken, ids);
+            setBulkDeleting(false);
+            if (res.success) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              if (activeTab === 'customers') {
+                setCustomers((prev) => prev.filter((c) => !ids.includes(c.id)));
+              } else {
+                setOrganizations((prev) => prev.filter((o) => !ids.includes(o.id)));
+              }
+              setSelectionMode(false);
+              setSelectedIds(new Set());
+            } else {
+              Alert.alert('Delete failed', res.error?.message || 'Could not delete records.');
+            }
+          },
+        },
+      ],
+    );
+  }, [accessToken, activeTab, selectedIds]);
+
   return (
     <View style={styles.container}>
       <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFill} />
@@ -489,11 +646,22 @@ export default function ContactsScreen() {
         <View style={styles.headerContent}>
           <View style={styles.headerTop}>
             <Text style={[styles.title, { color: textColor }]}>Contacts</Text>
-            {rbac.canCreate('contacts') && (
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleAddNew}>
-                <Ionicons name="add" size={24} color={colors.primaryForeground} />
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[styles.iconActionButton, { backgroundColor: tabBg, borderColor: headerBorderColor }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/contacts/analytics' as any);
+                }}
+              >
+                <Ionicons name="stats-chart-outline" size={20} color={textColor} />
               </TouchableOpacity>
-            )}
+              {rbac.canCreate('contacts') && (
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleAddNew}>
+                  <Ionicons name="add" size={24} color={colors.primaryForeground} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Tab Switcher */}
@@ -598,14 +766,22 @@ export default function ContactsScreen() {
             <CustomerItem
               contact={item}
               isDark={isDark}
-              onPress={() => handleCustomerPress(item)}
+              onPress={() => {
+                if (selectionMode) toggleSelected(item.id);
+                else handleCustomerPress(item);
+              }}
+              onLongPress={() => {
+                if (!selectionMode) enterSelectionMode(item.id);
+              }}
+              selectionMode={selectionMode}
+              isSelected={selectedIds.has(item.id)}
             />
           )}
           onEndReached={loadMoreCustomers}
           onEndReachedThreshold={0.5}
           ListFooterComponent={() => renderFooter(customersLoading && customers.length > 0)}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 160 }}
+          contentContainerStyle={{ paddingBottom: selectionMode ? 220 : 160 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -622,14 +798,22 @@ export default function ContactsScreen() {
             <OrganizationItem
               company={item}
               isDark={isDark}
-              onPress={() => handleOrganizationPress(item)}
+              onPress={() => {
+                if (selectionMode) toggleSelected(item.id);
+                else handleOrganizationPress(item);
+              }}
+              onLongPress={() => {
+                if (!selectionMode) enterSelectionMode(item.id);
+              }}
+              selectionMode={selectionMode}
+              isSelected={selectedIds.has(item.id)}
             />
           )}
           onEndReached={loadMoreOrganizations}
           onEndReachedThreshold={0.5}
           ListFooterComponent={() => renderFooter(organizationsLoading && organizations.length > 0)}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 160 }}
+          contentContainerStyle={{ paddingBottom: selectionMode ? 220 : 160 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -638,6 +822,58 @@ export default function ContactsScreen() {
             />
           }
         />
+      )}
+
+      {/* Bulk Action Bar */}
+      {selectionMode && (
+        <View
+          style={[
+            styles.bulkActionBar,
+            {
+              paddingBottom: insets.bottom + 10,
+              backgroundColor: colors.card,
+              borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+            },
+          ]}
+        >
+          <View style={styles.bulkBarRow}>
+            <TouchableOpacity onPress={exitSelectionMode} style={styles.bulkCloseButton}>
+              <Ionicons name="close" size={24} color={textColor} />
+            </TouchableOpacity>
+            <Text style={[styles.bulkSelectedCount, { color: textColor }]}>
+              {selectedIds.size} selected
+            </Text>
+            <TouchableOpacity
+              onPress={selectAll}
+              style={[
+                styles.bulkSelectAllButton,
+                { borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' },
+              ]}
+            >
+              <Text style={[styles.bulkSelectAllText, { color: textColor }]}>
+                {selectedIds.size === data.length ? 'Clear' : 'Select all'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.bulkActionsRow}>
+            {rbac.canDelete('contacts') && (
+              <TouchableOpacity
+                style={[styles.bulkActionButton, { backgroundColor: Palette.red }]}
+                onPress={handleBulkDelete}
+                disabled={bulkDeleting || selectedIds.size === 0}
+              >
+                {bulkDeleting ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="trash-outline" size={18} color="white" />
+                    <Text style={styles.bulkActionButtonText}>Delete</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       )}
 
       {/* Filter Modal */}
@@ -679,6 +915,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -878,5 +1127,71 @@ const styles = StyleSheet.create({
   loadingFooter: {
     paddingVertical: 20,
     alignItems: 'center',
+  },
+  /* Selection mode */
+  selectCheckbox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  /* Bulk Action Bar */
+  bulkActionBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  bulkBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  bulkCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bulkSelectedCount: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  bulkSelectAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  bulkSelectAllText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  bulkActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  bulkActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  bulkActionButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

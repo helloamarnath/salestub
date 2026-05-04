@@ -106,8 +106,24 @@ interface LoginResult {
   error?: string;
 }
 
+interface GoogleLoginParams {
+  idToken: string;
+  deviceId?: string;
+  deviceName?: string;
+}
+
+interface GoogleLoginResult {
+  success: boolean;
+  /** True when no SalesTub account exists for this Google email — caller should prompt registration. */
+  noAccount?: boolean;
+  /** Google email associated with the credential (set when noAccount is true). */
+  email?: string;
+  error?: string;
+}
+
 interface AuthContextType extends AuthState {
   login: (params: LoginParams) => Promise<LoginResult>;
+  loginWithGoogle: (params: GoogleLoginParams) => Promise<GoogleLoginResult>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
 }
@@ -421,6 +437,74 @@ export function AuthProvider({ children }: AuthProviderProps) {
     []
   );
 
+  const loginWithGoogle = useCallback(
+    async (params: GoogleLoginParams): Promise<GoogleLoginResult> => {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/v1/auth/mobile/google/one-tap`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              credential: params.idToken,
+              audience: 'public',
+              deviceId: params.deviceId,
+              deviceName: params.deviceName,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          return {
+            success: false,
+            error: data.message || 'Google sign-in failed',
+          };
+        }
+
+        // Backend returns { status: 'no_account', email? } when the Google
+        // email has no SalesTub account. Surface this to the caller so the
+        // login screen can prompt the user to register.
+        if (data?.status === 'no_account') {
+          return {
+            success: false,
+            noAccount: true,
+            email: data.email,
+          };
+        }
+
+        const storableUser = getStorableUser(data.user);
+        await Promise.all([
+          secureStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken),
+          secureStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken),
+          secureStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(storableUser)),
+        ]);
+
+        setState({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          isLoading: false,
+          isAuthenticated: true,
+        });
+
+        scheduleTokenRefresh(data.accessToken);
+
+        return { success: true };
+      } catch (error) {
+        console.error('Google sign-in error:', error);
+        return {
+          success: false,
+          error: 'Network error. Please check your connection.',
+        };
+      }
+    },
+    []
+  );
+
   const logout = useCallback(async () => {
     try {
       await clearAuthState();
@@ -456,6 +540,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       value={{
         ...state,
         login,
+        loginWithGoogle,
         logout,
         refreshTokens,
       }}

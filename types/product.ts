@@ -89,29 +89,27 @@ export interface PaginatedProductsResponse {
 // Format product price for display
 export const formatProductPrice = (price?: number, currencySymbol: string = '₹'): string => {
   if (!price && price !== 0) return '';
-  // Price is stored in cents/paise, convert to main unit
-  const mainPrice = price / 100;
-  if (mainPrice >= 10000000) {
-    return `${currencySymbol}${(mainPrice / 10000000).toFixed(1)}Cr`;
+  if (price >= 10000000) {
+    return `${currencySymbol}${(price / 10000000).toFixed(1)}Cr`;
   }
-  if (mainPrice >= 100000) {
-    return `${currencySymbol}${(mainPrice / 100000).toFixed(1)}L`;
+  if (price >= 100000) {
+    return `${currencySymbol}${(price / 100000).toFixed(1)}L`;
   }
-  if (mainPrice >= 1000) {
-    return `${currencySymbol}${(mainPrice / 1000).toFixed(1)}K`;
+  if (price >= 1000) {
+    return `${currencySymbol}${(price / 1000).toFixed(1)}K`;
   }
-  return `${currencySymbol}${mainPrice.toLocaleString()}`;
+  return `${currencySymbol}${price.toLocaleString()}`;
 };
 
 // Format price for input (raw number without formatting)
 export const formatPriceForInput = (price?: number): string => {
   if (!price && price !== 0) return '';
-  return (price / 100).toString();
+  return price.toString();
 };
 
-// Parse price from input (convert to cents/paise)
+// Parse price from input
 export const parsePriceFromInput = (value: string): number => {
   const parsed = parseFloat(value);
   if (isNaN(parsed)) return 0;
-  return Math.round(parsed * 100);
+  return parsed;
 };

@@ -100,6 +100,7 @@ export interface Lead {
   };
   expectedCloseDate?: string;
   closedDate?: string;
+  validUntil?: string;
   pipeline?: {
     id: string;
     name: string;
@@ -139,6 +140,7 @@ export interface CreateLeadDto {
   companyId?: string;
   expectedCloseDate?: string;
   closedDate?: string;
+  validUntil?: string;
   createContact?: {
     firstName: string;
     lastName: string;
@@ -162,6 +164,7 @@ export interface UpdateLeadDto {
   companyId?: string;
   expectedCloseDate?: string;
   closedDate?: string;
+  validUntil?: string;
   ownerMembershipId?: string;
   customFieldValues?: Record<string, unknown>;
 }
@@ -185,6 +188,13 @@ export interface LeadFilters {
   status?: 'untouched' | 'contacted';
   source?: string;
   ownerMembershipId?: string;
+  // Server-side filters (added 2026-05-04)
+  createdFrom?: string; // YYYY-MM-DD
+  createdTo?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
+  scoreMin?: number; // 0-100
+  scoreMax?: number;
 }
 
 export interface PaginatedResponse<T> {

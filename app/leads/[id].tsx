@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Location from 'expo-location';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -882,6 +883,7 @@ function DetailsTab({
   const [showTitleInput, setShowTitleInput] = useState(false);
   const [showDescriptionInput, setShowDescriptionInput] = useState(false);
   const [showExpectedCloseDateInput, setShowExpectedCloseDateInput] = useState(false);
+  const [showValidUntilInput, setShowValidUntilInput] = useState(false);
 
   const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -1071,6 +1073,27 @@ function DetailsTab({
                     : '-'}
                 </Text>
               </View>
+            </View>
+            <View style={styles.detailsRow}>
+              <TouchableOpacity
+                style={styles.detailsCell}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShowValidUntilInput(true);
+                }}
+              >
+                <Text style={[styles.detailsCellLabel, { color: labelColor }]}>VALID UNTIL</Text>
+                <Text style={[styles.detailsCellValue, { color: textColor }]}>
+                  {lead.validUntil
+                    ? new Date(lead.validUntil).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })
+                    : '-'}
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.detailsCell} />
             </View>
           </View>
           {updating && (
@@ -1365,6 +1388,33 @@ function DetailsTab({
           }
         }}
         onClose={() => setShowExpectedCloseDateInput(false)}
+        isDark={isDark}
+        keyboardType="default"
+        placeholder="2026-12-31"
+      />
+
+      <ValueInputModal
+        visible={showValidUntilInput}
+        title="Valid Until (YYYY-MM-DD)"
+        value={
+          lead.validUntil
+            ? new Date(lead.validUntil).toISOString().slice(0, 10)
+            : ''
+        }
+        onSave={(value) => {
+          const trimmed = value.trim();
+          if (!trimmed) {
+            onUpdateField('validUntil', null);
+            return;
+          }
+          const parsed = new Date(trimmed);
+          if (!Number.isNaN(parsed.getTime())) {
+            onUpdateField('validUntil', parsed.toISOString());
+          } else {
+            Alert.alert('Invalid date', 'Please enter a valid date in YYYY-MM-DD format.');
+          }
+        }}
+        onClose={() => setShowValidUntilInput(false)}
         isDark={isDark}
         keyboardType="default"
         placeholder="2026-12-31"
@@ -2954,7 +3004,7 @@ function ProductsTab({
     setSelectedProduct(product);
     setProductSearch('');
     setSearchResults([]);
-    setAddPrice(product.price ? (product.price / 100).toString() : '');
+    setAddPrice(product.price ? product.price.toString() : '');
   };
 
   const handleAddProduct = async () => {
@@ -2965,11 +3015,11 @@ function ProductsTab({
       return;
     }
     setAdding(true);
-    const priceInCents = addPrice ? Math.round(parseFloat(addPrice) * 100) : undefined;
+    const unitPrice = addPrice ? parseFloat(addPrice) : undefined;
     const response = await addLeadProduct(accessToken, leadId, {
       productId: selectedProduct.id,
       quantity: qty,
-      unitPrice: priceInCents,
+      unitPrice,
       notes: addNotes.trim() || undefined,
     });
     if (response.success) {
@@ -3147,10 +3197,10 @@ function ProductsTab({
                             onPress={async () => {
                               if (!quickProductName.trim() || !accessToken) return;
                               setCreatingProduct(true);
-                              const priceInCents = quickProductPrice ? Math.round(parseFloat(quickProductPrice) * 100) : 0;
+                              const price = quickProductPrice ? parseFloat(quickProductPrice) : 0;
                               const createResp = await createProduct(accessToken, {
                                 name: quickProductName.trim(),
-                                price: priceInCents,
+                                price,
                                 sku: quickProductSku.trim() || undefined,
                                 isActive: true,
                               });
@@ -3209,7 +3259,7 @@ function ProductsTab({
                       value={addPrice}
                       onChangeText={setAddPrice}
                       keyboardType="decimal-pad"
-                      placeholder={selectedProduct.price ? (selectedProduct.price / 100).toString() : '0'}
+                      placeholder={selectedProduct.price ? selectedProduct.price.toString() : '0'}
                       placeholderTextColor={placeholderColor}
                     />
                   </View>
@@ -3298,6 +3348,17 @@ function ProductsTab({
   );
 }
 
+// Note types — match web taxonomy in crm-user/src/app/leads/view/[id]
+type NoteType = 'GENERAL' | 'MEETING_NOTES' | 'CALL_NOTES' | 'RESEARCH' | 'OTHER';
+
+const NOTE_TYPES: { value: NoteType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: 'GENERAL', label: 'General', icon: 'chatbox-outline' },
+  { value: 'MEETING_NOTES', label: 'Meeting', icon: 'people-outline' },
+  { value: 'CALL_NOTES', label: 'Call', icon: 'call-outline' },
+  { value: 'RESEARCH', label: 'Research', icon: 'search-outline' },
+  { value: 'OTHER', label: 'Other', icon: 'ellipsis-horizontal' },
+];
+
 // Notes tab content
 function NotesTab({
   leadId,
@@ -3313,6 +3374,7 @@ function NotesTab({
   const [loading, setLoading] = useState(true);
   const [showAddNote, setShowAddNote] = useState(false);
   const [noteContent, setNoteContent] = useState('');
+  const [noteType, setNoteType] = useState<NoteType>('GENERAL');
   const [saving, setSaving] = useState(false);
 
   const textColor = colors.foreground;
@@ -3344,11 +3406,12 @@ function NotesTab({
     setSaving(true);
     const response = await addLeadNoteEndpoint(accessToken, leadId, {
       content: noteContent.trim(),
-      type: 'GENERAL',
+      type: noteType,
     });
     if (response.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setNoteContent('');
+      setNoteType('GENERAL');
       setShowAddNote(false);
       fetchNotes();
     } else {
@@ -3401,6 +3464,52 @@ function NotesTab({
         {/* Add Note Form */}
         {showAddNote && (
           <View style={[styles.addNoteForm, { backgroundColor: cardBg, borderColor }]}>
+            {/* Note type pills */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingBottom: 10 }}
+            >
+              {NOTE_TYPES.map((t) => {
+                const active = noteType === t.value;
+                return (
+                  <TouchableOpacity
+                    key={t.value}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setNoteType(t.value);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      backgroundColor: active ? colors.primary : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'),
+                      borderColor: active ? colors.primary : borderColor,
+                    }}
+                  >
+                    <Ionicons
+                      name={t.icon}
+                      size={14}
+                      color={active ? colors.primaryForeground : subtitleColor}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: '600',
+                        color: active ? colors.primaryForeground : textColor,
+                      }}
+                    >
+                      {t.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
             <TextInput
               style={[styles.noteInput, { backgroundColor: inputBg, color: textColor, borderColor }]}
               value={noteContent}
@@ -3486,6 +3595,13 @@ function MetadataTab({
   const hasCustomFields = lead.customFieldValues && Object.keys(lead.customFieldValues).length > 0;
   const hasMetadata = lead.metadata && Object.keys(lead.metadata).length > 0;
 
+  const copyJson = async (label: string, payload: unknown) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await Clipboard.setStringAsync(JSON.stringify(payload, null, 2));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Copied', `${label} copied to clipboard.`);
+  };
+
   if (!hasCustomFields && !hasMetadata) {
     return (
       <View style={styles.tabContent}>
@@ -3500,12 +3616,41 @@ function MetadataTab({
     );
   }
 
+  const sectionRowStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 10,
+  };
+  const copyChipStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: cardBg,
+    borderWidth: 1,
+    borderColor,
+  };
+
   return (
     <View style={styles.tabContent}>
       {/* Custom Fields */}
       {hasCustomFields && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Custom Fields</Text>
+          <View style={sectionRowStyle}>
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Custom Fields
+            </Text>
+            <TouchableOpacity
+              style={copyChipStyle}
+              onPress={() => copyJson('Custom fields JSON', lead.customFieldValues)}
+            >
+              <Ionicons name="copy-outline" size={12} color={subtitleColor} />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: subtitleColor }}>Copy</Text>
+            </TouchableOpacity>
+          </View>
           {Object.entries(lead.customFieldValues!).map(([key, value]) => (
             <View key={key} style={[styles.metadataRow, { borderBottomColor: borderColor }]}>
               <Text style={[styles.metadataKey, { color: subtitleColor }]}>{key}</Text>
@@ -3520,9 +3665,20 @@ function MetadataTab({
       {/* Raw Metadata */}
       {hasMetadata && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>Source Metadata</Text>
+          <View style={sectionRowStyle}>
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, marginBottom: 0 }]}>
+              Source Metadata
+            </Text>
+            <TouchableOpacity
+              style={copyChipStyle}
+              onPress={() => copyJson('Source metadata JSON', lead.metadata)}
+            >
+              <Ionicons name="copy-outline" size={12} color={subtitleColor} />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: subtitleColor }}>Copy</Text>
+            </TouchableOpacity>
+          </View>
           <View style={[styles.codeBlock, { backgroundColor: codeBg }]}>
-            <Text style={[styles.codeText, { color: textColor }]}>
+            <Text style={[styles.codeText, { color: textColor }]} selectable>
               {JSON.stringify(lead.metadata, null, 2)}
             </Text>
           </View>

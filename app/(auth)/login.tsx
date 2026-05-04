@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -22,6 +23,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors, Palette } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useGoogleAuth, type GoogleAuthResult } from '@/lib/api/google-auth';
 
 const { width } = Dimensions.get('window');
 
@@ -351,7 +353,7 @@ function InputField({
 
 // ─── Main Login Screen ─────────────────────────────────────────────────────────
 export default function LoginScreen() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated, user } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
@@ -372,8 +374,83 @@ export default function LoginScreen() {
   const cardY = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
-    if (isAuthenticated) router.replace('/(tabs)' as Href);
-  }, [isAuthenticated]);
+    if (isAuthenticated && user?.orgId) router.replace('/(tabs)' as Href);
+  }, [isAuthenticated, user]);
+
+  const handleGoogleResult = useCallback(
+    async (result: GoogleAuthResult) => {
+      if (result.type === 'cancel') {
+        setIsLoading(false);
+        return;
+      }
+      if (result.type === 'error' || !result.idToken) {
+        setError(result.error || 'Google sign-in failed.');
+        setIsLoading(false);
+        return;
+      }
+
+      const deviceId = Device.deviceName || Device.modelName || 'Unknown Device';
+      const deviceName = `${Device.brand || ''} ${Device.modelName || ''}`.trim() || 'Mobile Device';
+
+      const auth = await loginWithGoogle({
+        idToken: result.idToken,
+        deviceId,
+        deviceName,
+      });
+
+      if (auth.noAccount) {
+        // Stop the loading overlay before showing the alert so the modal isn't
+        // covered by the signing-in spinner.
+        setIsLoading(false);
+        const emailLine = auth.email
+          ? `We couldn't find a SalesTub account for ${auth.email}.`
+          : `We couldn't find a SalesTub account for that Google address.`;
+        Alert.alert(
+          'No SalesTub account found',
+          `${emailLine}\nCreate one to continue.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Create account',
+              onPress: () => {
+                const baseUrl = 'https://app.salestub.com/auth/register';
+                const url = auth.email
+                  ? `${baseUrl}?email=${encodeURIComponent(auth.email)}`
+                  : baseUrl;
+                WebBrowser.openBrowserAsync(url);
+              },
+            },
+          ],
+          { cancelable: true }
+        );
+        return;
+      }
+
+      if (!auth.success) {
+        setError(auth.error || 'Google sign-in failed. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      router.replace('/(tabs)' as Href);
+      // setIsLoading stays true through navigation; new screen mounts fresh.
+    },
+    [loginWithGoogle]
+  );
+
+  const { request: googleRequest, promptAsync: promptGoogle } = useGoogleAuth(handleGoogleResult);
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      await promptGoogle();
+    } catch (e) {
+      console.error('Google promptAsync error:', e);
+      setError('Could not open Google sign-in. Please try again.');
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     Animated.stagger(100, [
@@ -557,6 +634,23 @@ export default function LoginScreen() {
                 <Text style={{ fontSize: 12, color: colors.mutedForeground, fontWeight: '500' }}>or</Text>
                 <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
               </View>
+
+              {/* Google sign-in */}
+              <TouchableOpacity
+                onPress={handleGoogleSignIn}
+                disabled={!googleRequest || isLoading}
+                activeOpacity={0.85}
+                style={{ marginBottom: 12 }}
+              >
+                <View style={[styles.signUpBtn, {
+                  borderColor: colors.border,
+                  backgroundColor: signUpBtnBg,
+                  opacity: !googleRequest || isLoading ? 0.6 : 1,
+                }]}>
+                  <Ionicons name="logo-google" size={16} color={colors.foreground} />
+                  <Text style={[styles.signUpBtnText, { color: colors.foreground }]}>Continue with Google</Text>
+                </View>
+              </TouchableOpacity>
 
               {/* Sign up */}
               <TouchableOpacity onPress={handleSignUp} activeOpacity={0.85}>

@@ -169,8 +169,8 @@ export function ScreenLoader({ message }: ScreenLoaderProps) {
     // Subtle breathing on logo
     Animated.loop(
       Animated.sequence([
-        Animated.timing(logoScale, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.sine), useNativeDriver: true }),
-        Animated.timing(logoScale, { toValue: 0.94, duration: 1200, easing: Easing.inOut(Easing.sine), useNativeDriver: true }),
+        Animated.timing(logoScale, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(logoScale, { toValue: 0.94, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ])
     ).start();
   }, []);

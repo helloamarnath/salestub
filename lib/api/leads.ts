@@ -48,6 +48,12 @@ export async function getLeads(
     status: filters.status,
     source: filters.source,
     ownerMembershipId: filters.ownerMembershipId,
+    createdFrom: filters.createdFrom,
+    createdTo: filters.createdTo,
+    updatedFrom: filters.updatedFrom,
+    updatedTo: filters.updatedTo,
+    scoreMin: filters.scoreMin,
+    scoreMax: filters.scoreMax,
   };
 
   return api.get<PaginatedResponse<Lead>>(LEADS_BASE, token, params);
@@ -495,4 +501,72 @@ export async function exportLeadsToCSV(
       error: error instanceof Error ? error.message : 'Export failed',
     };
   }
+}
+
+// ============ Analytics ============
+
+export type LeadAnalyticsDateRange = '7d' | '30d' | '90d' | '1y' | 'all';
+
+export interface LeadAnalyticsStats {
+  total: number;
+  conversionRate: number;
+  avgDealSize: number;
+  avgCycleTime: number;
+  avgScore: number;
+  highQualityLeads: number;
+  highQualityPercentage: number;
+  totalValue: number;
+}
+
+export interface LeadAnalyticsFunnelStage {
+  name: string;
+  count: number;
+  percentage: number;
+  value: number;
+  type?: 'OPEN' | 'CLOSED_WON' | 'CLOSED_LOST';
+}
+
+export interface LeadAnalyticsScoreBucket {
+  range: string;
+  count: number;
+  color: string;
+}
+
+export interface LeadAnalyticsSourcePerf {
+  name: string;
+  count: number;
+  value: number;
+  conversionRate: number;
+  avgScore: number;
+  avgValue: number;
+}
+
+export interface LeadAnalyticsResponse {
+  stats: LeadAnalyticsStats;
+  funnel: LeadAnalyticsFunnelStage[];
+  scoreDistribution: LeadAnalyticsScoreBucket[];
+  sourcePerformance: LeadAnalyticsSourcePerf[];
+  trends: {
+    weekly: { date: string; new: number; converted: number }[];
+    monthly: { month: string; new: number; converted: number }[];
+  };
+  dateRange: LeadAnalyticsDateRange;
+  period: { start: string; end: string };
+  isSuperAdmin: boolean;
+  teamMembers: { id: string; userId: string; userName: string; userEmail: string }[];
+}
+
+/**
+ * Get lead analytics — KPIs, funnel, score distribution, source performance, trends.
+ * Super-admins can pass ownerMembershipId to scope to a specific team member.
+ */
+export async function getLeadAnalytics(
+  token: string | null,
+  dateRange: LeadAnalyticsDateRange = '30d',
+  ownerMembershipId?: string,
+): Promise<ApiResponse<LeadAnalyticsResponse>> {
+  return api.get<LeadAnalyticsResponse>(`${LEADS_BASE}/analytics`, token, {
+    dateRange,
+    ownerMembershipId,
+  });
 }

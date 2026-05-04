@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  TextInput,
   Modal,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
@@ -26,6 +29,59 @@ export interface LeadFilterState {
   sources?: string[];
   stageIds?: string[];
   ownerMembershipIds?: string[];
+  // Server-side filters (added 2026-05-04 — backend now accepts on /leads)
+  createdFrom?: string; // YYYY-MM-DD
+  createdTo?: string;
+  updatedFrom?: string;
+  updatedTo?: string;
+  scoreMin?: number; // 0-100
+  scoreMax?: number;
+}
+
+type DateField = 'createdFrom' | 'createdTo' | 'updatedFrom' | 'updatedTo';
+
+function DateButton({
+  label,
+  value,
+  formatDate,
+  textColor,
+  subtitleColor,
+  chipBg,
+  borderColor,
+  onPress,
+  onClear,
+}: {
+  label: string;
+  value?: string;
+  formatDate: (iso?: string) => string;
+  textColor: string;
+  subtitleColor: string;
+  chipBg: string;
+  borderColor: string;
+  onPress: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.dateButton, { backgroundColor: chipBg, borderColor }]}
+      onPress={onPress}
+    >
+      <View style={styles.dateButtonInner}>
+        <Text style={[styles.dateButtonLabel, { color: subtitleColor }]}>{label}</Text>
+        <Text
+          style={[styles.dateButtonValue, { color: value ? textColor : subtitleColor }]}
+          numberOfLines={1}
+        >
+          {formatDate(value)}
+        </Text>
+      </View>
+      {value && (
+        <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="close-circle" size={18} color={subtitleColor} />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+  );
 }
 
 interface PipelineStage {
@@ -64,6 +120,18 @@ export function LeadFilterModal({
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [leadSources, setLeadSources] = useState<string[]>([...LEAD_SOURCES]);
   const [loadingSources, setLoadingSources] = useState(false);
+
+  // Date picker state — one picker shared across the four date fields
+  const [datePickerField, setDatePickerField] = useState<DateField | null>(null);
+  const [tempPickerDate, setTempPickerDate] = useState<Date>(new Date());
+
+  // Score range — keep as strings so users can clear / type freely; coerce on apply
+  const [scoreMinStr, setScoreMinStr] = useState<string>(
+    currentFilters.scoreMin != null ? String(currentFilters.scoreMin) : '',
+  );
+  const [scoreMaxStr, setScoreMaxStr] = useState<string>(
+    currentFilters.scoreMax != null ? String(currentFilters.scoreMax) : '',
+  );
 
   // Theme colors
   const bgColor = colors.card;
@@ -105,6 +173,8 @@ export function LeadFilterModal({
   useEffect(() => {
     if (visible) {
       setFilters(currentFilters);
+      setScoreMinStr(currentFilters.scoreMin != null ? String(currentFilters.scoreMin) : '');
+      setScoreMaxStr(currentFilters.scoreMax != null ? String(currentFilters.scoreMax) : '');
     }
   }, [visible, currentFilters]);
 
@@ -166,9 +236,16 @@ export function LeadFilterModal({
     });
   };
 
+  // Coerce score input strings to clamped numbers; return undefined for empty / invalid.
+  const parseScore = (s: string): number | undefined => {
+    if (!s.trim()) return undefined;
+    const n = Number(s);
+    if (Number.isNaN(n)) return undefined;
+    return Math.min(100, Math.max(0, Math.round(n)));
+  };
+
   const handleApply = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Clean up empty arrays
     const cleanedFilters: LeadFilterState = {};
     if (filters.sources && filters.sources.length > 0) {
       cleanedFilters.sources = filters.sources;
@@ -179,6 +256,26 @@ export function LeadFilterModal({
     if (filters.ownerMembershipIds && filters.ownerMembershipIds.length > 0) {
       cleanedFilters.ownerMembershipIds = filters.ownerMembershipIds;
     }
+    if (filters.createdFrom) cleanedFilters.createdFrom = filters.createdFrom;
+    if (filters.createdTo) cleanedFilters.createdTo = filters.createdTo;
+    if (filters.updatedFrom) cleanedFilters.updatedFrom = filters.updatedFrom;
+    if (filters.updatedTo) cleanedFilters.updatedTo = filters.updatedTo;
+
+    const sMin = parseScore(scoreMinStr);
+    const sMax = parseScore(scoreMaxStr);
+    if (sMin !== undefined) cleanedFilters.scoreMin = sMin;
+    if (sMax !== undefined) cleanedFilters.scoreMax = sMax;
+    // If user inverted the range, swap so the server gets a sane window.
+    if (
+      cleanedFilters.scoreMin !== undefined &&
+      cleanedFilters.scoreMax !== undefined &&
+      cleanedFilters.scoreMin > cleanedFilters.scoreMax
+    ) {
+      const t = cleanedFilters.scoreMin;
+      cleanedFilters.scoreMin = cleanedFilters.scoreMax;
+      cleanedFilters.scoreMax = t;
+    }
+
     onApply(cleanedFilters);
     onClose();
   };
@@ -186,13 +283,39 @@ export function LeadFilterModal({
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFilters({});
+    setScoreMinStr('');
+    setScoreMaxStr('');
   };
 
-  // Count active filters
+  // Count active filters — includes date and score range
   const activeFilterCount =
     (filters.sources?.length || 0) +
     (filters.stageIds?.length || 0) +
-    (filters.ownerMembershipIds?.length || 0);
+    (filters.ownerMembershipIds?.length || 0) +
+    (filters.createdFrom ? 1 : 0) +
+    (filters.createdTo ? 1 : 0) +
+    (filters.updatedFrom ? 1 : 0) +
+    (filters.updatedTo ? 1 : 0) +
+    (parseScore(scoreMinStr) !== undefined ? 1 : 0) +
+    (parseScore(scoreMaxStr) !== undefined ? 1 : 0);
+
+  const openDatePicker = (field: DateField) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const existing = filters[field];
+    setTempPickerDate(existing ? new Date(existing) : new Date());
+    setDatePickerField(field);
+  };
+
+  const formatDate = (iso?: string): string => {
+    if (!iso) return 'Pick a date';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const clearDate = (field: DateField) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFilters((prev) => ({ ...prev, [field]: undefined }));
+  };
 
   return (
     <Modal
@@ -352,7 +475,153 @@ export function LeadFilterModal({
                 )}
               </View>
             )}
+
+            {/* Score Range Filter */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Score range</Text>
+                {(parseScore(scoreMinStr) !== undefined || parseScore(scoreMaxStr) !== undefined) && (
+                  <Text style={[styles.selectedCount, { color: chipActiveBg }]}>
+                    {parseScore(scoreMinStr) ?? 0}–{parseScore(scoreMaxStr) ?? 100}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.scoreRow}>
+                <View style={[styles.scoreInputWrap, { backgroundColor: chipBg, borderColor }]}>
+                  <Text style={[styles.scoreInputLabel, { color: subtitleColor }]}>Min</Text>
+                  <TextInput
+                    style={[styles.scoreInput, { color: textColor }]}
+                    value={scoreMinStr}
+                    onChangeText={setScoreMinStr}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor={subtitleColor}
+                    maxLength={3}
+                  />
+                </View>
+                <Text style={[styles.scoreDash, { color: subtitleColor }]}>–</Text>
+                <View style={[styles.scoreInputWrap, { backgroundColor: chipBg, borderColor }]}>
+                  <Text style={[styles.scoreInputLabel, { color: subtitleColor }]}>Max</Text>
+                  <TextInput
+                    style={[styles.scoreInput, { color: textColor }]}
+                    value={scoreMaxStr}
+                    onChangeText={setScoreMaxStr}
+                    keyboardType="number-pad"
+                    placeholder="100"
+                    placeholderTextColor={subtitleColor}
+                    maxLength={3}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Created Date Range */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Created</Text>
+                {(filters.createdFrom || filters.createdTo) && (
+                  <Text style={[styles.selectedCount, { color: chipActiveBg }]}>
+                    {(filters.createdFrom ? 1 : 0) + (filters.createdTo ? 1 : 0)} active
+                  </Text>
+                )}
+              </View>
+              <View style={styles.dateRow}>
+                <DateButton
+                  label="From"
+                  value={filters.createdFrom}
+                  formatDate={formatDate}
+                  textColor={textColor}
+                  subtitleColor={subtitleColor}
+                  chipBg={chipBg}
+                  borderColor={borderColor}
+                  onPress={() => openDatePicker('createdFrom')}
+                  onClear={() => clearDate('createdFrom')}
+                />
+                <DateButton
+                  label="To"
+                  value={filters.createdTo}
+                  formatDate={formatDate}
+                  textColor={textColor}
+                  subtitleColor={subtitleColor}
+                  chipBg={chipBg}
+                  borderColor={borderColor}
+                  onPress={() => openDatePicker('createdTo')}
+                  onClear={() => clearDate('createdTo')}
+                />
+              </View>
+            </View>
+
+            {/* Updated Date Range */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Last updated</Text>
+                {(filters.updatedFrom || filters.updatedTo) && (
+                  <Text style={[styles.selectedCount, { color: chipActiveBg }]}>
+                    {(filters.updatedFrom ? 1 : 0) + (filters.updatedTo ? 1 : 0)} active
+                  </Text>
+                )}
+              </View>
+              <View style={styles.dateRow}>
+                <DateButton
+                  label="From"
+                  value={filters.updatedFrom}
+                  formatDate={formatDate}
+                  textColor={textColor}
+                  subtitleColor={subtitleColor}
+                  chipBg={chipBg}
+                  borderColor={borderColor}
+                  onPress={() => openDatePicker('updatedFrom')}
+                  onClear={() => clearDate('updatedFrom')}
+                />
+                <DateButton
+                  label="To"
+                  value={filters.updatedTo}
+                  formatDate={formatDate}
+                  textColor={textColor}
+                  subtitleColor={subtitleColor}
+                  chipBg={chipBg}
+                  borderColor={borderColor}
+                  onPress={() => openDatePicker('updatedTo')}
+                  onClear={() => clearDate('updatedTo')}
+                />
+              </View>
+            </View>
           </ScrollView>
+
+          {/* Date Picker — single picker instance reused for all four date fields */}
+          {datePickerField && (
+            <DateTimePicker
+              value={tempPickerDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, selectedDate) => {
+                if (Platform.OS === 'android') {
+                  // Android closes the picker automatically; commit on 'set'.
+                  if (event.type === 'set' && selectedDate) {
+                    setFilters((prev) => ({
+                      ...prev,
+                      [datePickerField]: selectedDate.toISOString().split('T')[0],
+                    }));
+                  }
+                  setDatePickerField(null);
+                } else if (selectedDate) {
+                  // iOS spinner updates live; commit on each change.
+                  setTempPickerDate(selectedDate);
+                  setFilters((prev) => ({
+                    ...prev,
+                    [datePickerField]: selectedDate.toISOString().split('T')[0],
+                  }));
+                }
+              }}
+            />
+          )}
+          {Platform.OS === 'ios' && datePickerField && (
+            <View style={[styles.iosPickerActions, { borderTopColor: borderColor }]}>
+              <TouchableOpacity onPress={() => setDatePickerField(null)}>
+                <Text style={[styles.iosPickerDone, { color: colors.primary }]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Footer */}
           <View style={[styles.footer, { borderTopColor: borderColor }]}>
@@ -476,6 +745,73 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  /* Score range */
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  scoreInputWrap: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  scoreInputLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  scoreInput: {
+    fontSize: 17,
+    fontWeight: '600',
+    paddingVertical: 2,
+  },
+  scoreDash: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  /* Date range */
+  dateRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  dateButtonInner: { flex: 1 },
+  dateButtonLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dateButtonValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  iosPickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  iosPickerDone: {
     fontSize: 16,
     fontWeight: '600',
   },

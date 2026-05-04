@@ -9,7 +9,12 @@ import {
   ActivityIndicator,
   Linking,
   RefreshControl,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +23,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { Colors, Palette } from '@/constants/theme';
-import { getContactFull, deleteContact } from '@/lib/api/contacts';
+import { getContactFull, deleteContact, updateContact } from '@/lib/api/contacts';
 import { getContactActivities } from '@/lib/api/activities';
 import type { Contact } from '@/types/contact';
 import type { Activity } from '@/types/activity';
@@ -69,12 +74,14 @@ function InfoRow({
   value,
   isDark,
   onPress,
+  onEdit,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
   isDark: boolean;
   onPress?: () => void;
+  onEdit?: () => void;
 }) {
   const colors = Colors[isDark ? 'dark' : 'light'];
   const textColor = colors.foreground;
@@ -91,6 +98,18 @@ function InfoRow({
           {displayValue}
         </Text>
       </View>
+      {onEdit && (
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.editIconButton}
+        >
+          <Ionicons name="pencil" size={14} color={iconColor} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -103,6 +122,107 @@ function InfoRow({
   }
 
   return content;
+}
+
+// Inline-edit modal — used by every editable InfoRow on the Details tab.
+function ValueInputModal({
+  visible,
+  title,
+  initialValue,
+  onSave,
+  onClose,
+  isDark,
+  keyboardType = 'default',
+  multiline = false,
+  placeholder,
+}: {
+  visible: boolean;
+  title: string;
+  initialValue: string;
+  onSave: (next: string) => Promise<void> | void;
+  onClose: () => void;
+  isDark: boolean;
+  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  multiline?: boolean;
+  placeholder?: string;
+}) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const [value, setValue] = useState(initialValue);
+  const [saving, setSaving] = useState(false);
+  const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+
+  useEffect(() => {
+    if (visible) setValue(initialValue);
+  }, [visible, initialValue]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(value.trim());
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: overlayColor }]}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
+          >
+            <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>{title}</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={24} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { backgroundColor: inputBg, color: colors.foreground, borderColor },
+                  multiline && styles.modalInputMultiline,
+                ]}
+                value={value}
+                onChangeText={setValue}
+                keyboardType={keyboardType}
+                placeholder={placeholder}
+                placeholderTextColor={placeholderColor}
+                multiline={multiline}
+                autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
+                autoFocus
+              />
+              <TouchableOpacity
+                style={[
+                  styles.modalSaveButton,
+                  { backgroundColor: colors.primary },
+                  saving && { opacity: 0.6 },
+                ]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                ) : (
+                  <Text style={[styles.modalSaveText, { color: colors.primaryForeground }]}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
 }
 
 // Section Card Component
@@ -278,6 +398,53 @@ export default function CustomerDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('details');
 
+  // Inline edit state — single modal per detail page; `editingField` tells the modal which field
+  type EditField = {
+    key: keyof Contact;
+    label: string;
+    keyboardType?: 'default' | 'email-address' | 'phone-pad';
+    multiline?: boolean;
+  };
+  const [editingField, setEditingField] = useState<EditField | null>(null);
+
+  const updateField = useCallback(
+    async (field: keyof Contact, nextValue: string) => {
+      if (!accessToken || !id || !contact) return;
+      const trimmed = nextValue.trim();
+      // Optimistic update
+      setContact((prev) => (prev ? { ...prev, [field]: trimmed || undefined } : prev));
+      const res = await updateContact(accessToken, id as string, {
+        [field]: trimmed || null,
+      } as Partial<Contact> as never);
+      if (res.success && res.data) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setContact(res.data);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Update failed', res.error?.message || `Could not update ${field}.`);
+        // Refetch to revert
+        const fresh = await getContactFull(accessToken, id as string);
+        if (fresh.success && fresh.data) setContact(fresh.data);
+      }
+    },
+    [accessToken, id, contact],
+  );
+
+  const toggleStatus = useCallback(async () => {
+    if (!contact || !accessToken || !id) return;
+    const next = contact.status === 'Active' ? 'Inactive' : 'Active';
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setContact((prev) => (prev ? { ...prev, status: next } : prev));
+    const res = await updateContact(accessToken, id as string, { status: next } as never);
+    if (res.success && res.data) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setContact(res.data);
+    } else {
+      Alert.alert('Update failed', res.error?.message || 'Could not change status.');
+      setContact((prev) => (prev ? { ...prev, status: contact.status } : prev));
+    }
+  }, [accessToken, contact, id]);
+
   const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -417,24 +584,64 @@ export default function CustomerDetailScreen() {
           <View style={styles.tabContentInner}>
             {/* Basic Information */}
             <SectionCard title="Basic Information" isDark={isDark}>
-              <InfoRow icon="person-outline" label="First Name" value={contact.firstName} isDark={isDark} />
-              <InfoRow icon="person-outline" label="Last Name" value={contact.lastName} isDark={isDark} />
-              <InfoRow icon="flag-outline" label="Source" value={contact.source} isDark={isDark} />
+              <InfoRow
+                icon="person-outline"
+                label="First Name"
+                value={contact.firstName}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'firstName', label: 'First Name' })}
+              />
+              <InfoRow
+                icon="person-outline"
+                label="Last Name"
+                value={contact.lastName}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'lastName', label: 'Last Name' })}
+              />
+              <InfoRow
+                icon="flag-outline"
+                label="Source"
+                value={contact.source}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'source', label: 'Source' })}
+              />
               {contact.status && (
-                <View style={styles.statusRow}>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="ellipse" size={20} color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'} style={styles.infoIcon} />
-                    <View style={styles.infoContent}>
-                      <Text style={[styles.infoLabel, { color: subtitleColor }]}>Status</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: contact.status === 'Active' ? `${Palette.emerald}20` : `${Palette.red}20` }]}>
-                        <View style={[styles.statusDot, { backgroundColor: contact.status === 'Active' ? Palette.emerald : Palette.red }]} />
-                        <Text style={[styles.statusText, { color: contact.status === 'Active' ? Palette.emerald : Palette.red }]}>
-                          {contact.status}
-                        </Text>
+                <TouchableOpacity onPress={toggleStatus} activeOpacity={0.7}>
+                  <View style={styles.statusRow}>
+                    <View style={styles.infoRow}>
+                      <Ionicons
+                        name="ellipse"
+                        size={20}
+                        color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'}
+                        style={styles.infoIcon}
+                      />
+                      <View style={styles.infoContent}>
+                        <Text style={[styles.infoLabel, { color: subtitleColor }]}>Status (tap to toggle)</Text>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            { backgroundColor: contact.status === 'Active' ? `${Palette.emerald}20` : `${Palette.red}20` },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.statusDot,
+                              { backgroundColor: contact.status === 'Active' ? Palette.emerald : Palette.red },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.statusText,
+                              { color: contact.status === 'Active' ? Palette.emerald : Palette.red },
+                            ]}
+                          >
+                            {contact.status}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               )}
             </SectionCard>
 
@@ -446,6 +653,9 @@ export default function CustomerDetailScreen() {
                 value={contact.email}
                 isDark={isDark}
                 onPress={contact.email ? () => handleEmail(contact.email) : undefined}
+                onEdit={() =>
+                  setEditingField({ key: 'email', label: 'Email', keyboardType: 'email-address' })
+                }
               />
               <InfoRow
                 icon="mail-outline"
@@ -453,6 +663,13 @@ export default function CustomerDetailScreen() {
                 value={contact.secondaryEmail}
                 isDark={isDark}
                 onPress={contact.secondaryEmail ? () => handleEmail(contact.secondaryEmail) : undefined}
+                onEdit={() =>
+                  setEditingField({
+                    key: 'secondaryEmail',
+                    label: 'Secondary Email',
+                    keyboardType: 'email-address',
+                  })
+                }
               />
               <InfoRow
                 icon="call-outline"
@@ -460,6 +677,7 @@ export default function CustomerDetailScreen() {
                 value={contact.phone}
                 isDark={isDark}
                 onPress={contact.phone ? () => handleCall(contact.phone) : undefined}
+                onEdit={() => setEditingField({ key: 'phone', label: 'Phone', keyboardType: 'phone-pad' })}
               />
               <InfoRow
                 icon="phone-portrait-outline"
@@ -467,14 +685,39 @@ export default function CustomerDetailScreen() {
                 value={contact.mobilePhone}
                 isDark={isDark}
                 onPress={contact.mobilePhone ? () => handleCall(contact.mobilePhone) : undefined}
+                onEdit={() =>
+                  setEditingField({
+                    key: 'mobilePhone',
+                    label: 'Mobile Phone',
+                    keyboardType: 'phone-pad',
+                  })
+                }
               />
             </SectionCard>
 
             {/* Job Information */}
             <SectionCard title="Job Information" isDark={isDark}>
-              <InfoRow icon="briefcase-outline" label="Title" value={contact.title} isDark={isDark} />
-              <InfoRow icon="person-outline" label="Position" value={contact.position} isDark={isDark} />
-              <InfoRow icon="layers-outline" label="Department" value={contact.department} isDark={isDark} />
+              <InfoRow
+                icon="briefcase-outline"
+                label="Title"
+                value={contact.title}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'title', label: 'Title' })}
+              />
+              <InfoRow
+                icon="person-outline"
+                label="Position"
+                value={contact.position}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'position', label: 'Position' })}
+              />
+              <InfoRow
+                icon="layers-outline"
+                label="Department"
+                value={contact.department}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'department', label: 'Department' })}
+              />
               <InfoRow
                 icon="business-outline"
                 label="Company"
@@ -804,6 +1047,22 @@ export default function CustomerDetailScreen() {
           {renderTabContent()}
         </View>
       </ScrollView>
+
+      {/* Inline edit modal — single instance, swapped via editingField */}
+      {editingField && contact && (
+        <ValueInputModal
+          visible={!!editingField}
+          title={editingField.label}
+          initialValue={(contact[editingField.key] as string | undefined) ?? ''}
+          keyboardType={editingField.keyboardType}
+          multiline={editingField.multiline}
+          isDark={isDark}
+          onSave={async (next) => {
+            await updateField(editingField.key, next);
+          }}
+          onClose={() => setEditingField(null)}
+        />
+      )}
     </View>
   );
 }
@@ -1195,5 +1454,57 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontWeight: '600',
     fontSize: 16,
+  },
+  /* Inline edit pencil */
+  editIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /* ValueInputModal */
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '600' },
+  modalBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 12,
+  },
+  modalInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  modalInputMultiline: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  modalSaveButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

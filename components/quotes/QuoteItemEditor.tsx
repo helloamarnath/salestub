@@ -166,7 +166,7 @@ export function QuoteItemEditor({
                   {item.name || 'Untitled Item'}
                 </Text>
                 <Text style={[styles.itemMeta, { color: subtitleColor }]}>
-                  {item.quantity} {item.unit || 'pcs'} × ₹{((item.unitPrice || 0) / 100).toFixed(2)}
+                  {item.quantity} {item.unit || 'pcs'} × ₹{(item.unitPrice || 0).toFixed(2)}
                   {(item.taxRate || 0) > 0 ? ` · ${item.taxRate}% tax` : ''}
                 </Text>
               </View>
@@ -418,7 +418,7 @@ export function QuoteItemEditor({
                       <Text style={[styles.productName, { color: textColor }]}>{product.name}</Text>
                       <Text style={[styles.productSku, { color: subtitleColor }]}>
                         {product.sku ? `SKU: ${product.sku}` : ''}
-                        {product.price ? ` · ₹${(Number(product.price) / 100).toFixed(2)}` : ''}
+                        {product.price ? ` · ₹${Number(product.price).toFixed(2)}` : ''}
                       </Text>
                     </View>
                     <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
