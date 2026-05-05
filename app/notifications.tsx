@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,51 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useNotifications } from '@/contexts/notification-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors, Palette } from '@/constants/theme';
 import { AppNotification, NotificationType } from '@/lib/notification-service';
+
+const READ_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'unread', label: 'Unread' },
+] as const;
+
+type ReadFilter = (typeof READ_FILTERS)[number]['id'];
+
+// Group raw types into the picker menu — same set the web shows in its dropdown,
+// labelled for human eyes.
+const TYPE_OPTIONS: { value: NotificationType | 'all'; label: string }[] = [
+  { value: 'all', label: 'All types' },
+  { value: 'LEAD_CREATED', label: 'Lead created' },
+  { value: 'LEAD_ASSIGNED', label: 'Lead assigned' },
+  { value: 'LEAD_STAGE_CHANGED', label: 'Lead stage changed' },
+  { value: 'LEAD_CONVERTED', label: 'Lead converted' },
+  { value: 'LEAD_WON', label: 'Lead won' },
+  { value: 'LEAD_LOST', label: 'Lead lost' },
+  { value: 'CONTACT_CREATED', label: 'Contact created' },
+  { value: 'CONTACT_ASSIGNED', label: 'Contact assigned' },
+  { value: 'ACTIVITY_REMINDER', label: 'Activity reminder' },
+  { value: 'ACTIVITY_ASSIGNED', label: 'Activity assigned' },
+  { value: 'ACTIVITY_COMPLETED', label: 'Activity completed' },
+  { value: 'ACTIVITY_OVERDUE', label: 'Activity overdue' },
+  { value: 'TASK_ASSIGNED', label: 'Task assigned' },
+  { value: 'TASK_DUE_SOON', label: 'Task due soon' },
+  { value: 'TASK_OVERDUE', label: 'Task overdue' },
+  { value: 'SYSTEM_ANNOUNCEMENT', label: 'System announcement' },
+  { value: 'WELCOME', label: 'Welcome' },
+  { value: 'SUBSCRIPTION_EXPIRING', label: 'Subscription expiring' },
+  { value: 'STORAGE_WARNING', label: 'Storage warning' },
+];
 
 const notificationIcons: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   LEAD_CREATED: 'person-add',
@@ -185,13 +220,31 @@ export default function NotificationsScreen() {
   const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
   const bgColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)';
 
+  const [readFilter, setReadFilter] = useState<ReadFilter>('all');
+  const [typeFilter, setTypeFilter] = useState<NotificationType | 'all'>('all');
+  const [typeSheetOpen, setTypeSheetOpen] = useState(false);
+
+  const fetchParams = useMemo(
+    () => ({
+      unreadOnly: readFilter === 'unread' ? true : undefined,
+      type: typeFilter === 'all' ? undefined : (typeFilter as NotificationType),
+    }),
+    [readFilter, typeFilter],
+  );
+
+  // Refetch whenever filters change
   useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+    fetchNotifications(fetchParams);
+  }, [fetchNotifications, fetchParams]);
 
   const handleRefresh = useCallback(async () => {
-    await fetchNotifications();
-  }, [fetchNotifications]);
+    await fetchNotifications(fetchParams);
+  }, [fetchNotifications, fetchParams]);
+
+  const activeTypeLabel = useMemo(
+    () => TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label ?? 'All types',
+    [typeFilter],
+  );
 
   const handleNotificationPress = (notification: AppNotification) => {
     if (!notification.isRead) {
@@ -227,6 +280,74 @@ export default function NotificationsScreen() {
             </Text>
           </TouchableOpacity>
         )}
+      </View>
+
+      {/* Filter row — All/Unread tabs + Type picker */}
+      <View style={[styles.filterRow, { borderBottomColor: borderColor }]}>
+        <View style={[styles.tabSegment, { backgroundColor: bgColor }]}>
+          {READ_FILTERS.map((f) => {
+            const active = readFilter === f.id;
+            return (
+              <TouchableOpacity
+                key={f.id}
+                style={[
+                  styles.tabSegmentItem,
+                  active && { backgroundColor: colors.primary },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setReadFilter(f.id);
+                }}
+              >
+                <Text
+                  style={{
+                    color: active ? colors.primaryForeground : textColor,
+                    fontSize: 13,
+                    fontWeight: '600',
+                  }}
+                >
+                  {f.label}
+                </Text>
+                {f.id === 'unread' && unreadCount > 0 && (
+                  <View
+                    style={[
+                      styles.tabBadge,
+                      {
+                        backgroundColor: active
+                          ? `${colors.primaryForeground}30`
+                          : Palette.red,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: active ? colors.primaryForeground : 'white',
+                        fontSize: 10,
+                        fontWeight: '700',
+                      }}
+                    >
+                      {unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.typeButton, { backgroundColor: bgColor, borderColor }]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setTypeSheetOpen(true);
+          }}
+        >
+          <Ionicons name="funnel-outline" size={14} color={textColor} />
+          <Text style={[styles.typeButtonText, { color: textColor }]} numberOfLines={1}>
+            {activeTypeLabel}
+          </Text>
+          <Ionicons name="chevron-down" size={14} color={subtitleColor} />
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -311,6 +432,58 @@ export default function NotificationsScreen() {
           </BlurView>
         </View>
       </ScrollView>
+
+      {/* Type picker sheet */}
+      <Modal
+        visible={typeSheetOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTypeSheetOpen(false)}
+      >
+        <Pressable
+          style={styles.sheetOverlay}
+          onPress={() => setTypeSheetOpen(false)}
+        >
+          <Pressable
+            style={[styles.sheetContent, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={[styles.sheetHeader, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.sheetTitle, { color: textColor }]}>Filter by type</Text>
+              <TouchableOpacity onPress={() => setTypeSheetOpen(false)}>
+                <Ionicons name="close" size={24} color={textColor} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 480 }}>
+              {TYPE_OPTIONS.map((opt) => {
+                const active = typeFilter === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[
+                      styles.sheetOption,
+                      { borderBottomColor: borderColor },
+                      active && { backgroundColor: `${colors.primary}15` },
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setTypeFilter(opt.value);
+                      setTypeSheetOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.sheetOptionLabel, { color: textColor }]}>
+                      {opt.label}
+                    </Text>
+                    {active && (
+                      <Ionicons name="checkmark" size={18} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -444,4 +617,81 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+
+  /* Filter row */
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  tabSegment: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: 10,
+    gap: 3,
+  },
+  tabSegmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  tabBadge: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  typeButtonText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  /* Type sheet */
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheetContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 24,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: '600' },
+  sheetOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  sheetOptionLabel: { fontSize: 15, fontWeight: '500' },
 });

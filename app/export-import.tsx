@@ -23,6 +23,7 @@ import { exportLeadsToCSV } from '@/lib/api/leads';
 import { exportContactsToCSV } from '@/lib/api/contacts';
 import { exportActivitiesToCSV } from '@/lib/api/activities';
 import { exportProductsToCSV } from '@/lib/api/products';
+import { exportCompaniesToCSV } from '@/lib/api/companies';
 import { ExportFilterModal, type ExportDataType, type ExportFilters } from '@/components/export/ExportFilterModal';
 
 // Data types available for export/import
@@ -70,6 +71,15 @@ const DATA_TYPES: DataType[] = [
     description: 'Product catalog with pricing',
     icon: 'cube-outline',
     color: Palette.cyan,
+    exportEnabled: true,
+    importEnabled: false,
+  },
+  {
+    id: 'companies',
+    title: 'Companies',
+    description: 'Organizations with industry and revenue',
+    icon: 'business-outline',
+    color: Palette.amber,
     exportEnabled: true,
     importEnabled: false,
   },
@@ -256,6 +266,14 @@ export default function ExportImportScreen() {
           result = await exportProductsToCSV(accessToken, {
             category: filters.category,
             isActive: filters.isActive,
+          });
+          break;
+        case 'companies':
+          result = await exportCompaniesToCSV(accessToken, {
+            // Companies export accepts search/type/industry. The shared
+            // ExportFilterModal currently only collects sources/stages/dates,
+            // none of which apply here — leave filters empty so the user
+            // gets a full export.
           });
           break;
         default:

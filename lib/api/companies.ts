@@ -204,3 +204,57 @@ export async function bulkDeleteCompanies(
     { ids }
   );
 }
+
+// ============ CSV Export ============
+
+export interface CompanyExportFilters {
+  search?: string;
+  type?: string;
+  industry?: string;
+}
+
+/**
+ * Export companies to CSV. Backend serves text/csv with a Content-Disposition
+ * filename. We return the raw CSV string so the caller can write it to a file
+ * and hand it off to Sharing.shareAsync (matching the existing pattern in
+ * other modules' export functions).
+ */
+export async function exportCompaniesToCSV(
+  token: string | null,
+  filters: CompanyExportFilters = {},
+): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || '';
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    if (filters.type) params.set('type', filters.type);
+    if (filters.industry) params.set('industry', filters.industry);
+    const qs = params.toString();
+    const url = `${baseUrl}${COMPANIES_BASE}/export${qs ? `?${qs}` : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errBody.message || `Export failed with status ${response.status}`,
+      };
+    }
+    const cd = response.headers.get('Content-Disposition');
+    let filename = 'companies-export.csv';
+    if (cd) {
+      const m = cd.match(/filename="?([^"]+)"?/);
+      if (m) filename = m[1];
+    }
+    const csv = await response.text();
+    return { success: true, csv, filename };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Export failed',
+    };
+  }
+}

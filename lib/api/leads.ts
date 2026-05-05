@@ -570,3 +570,61 @@ export async function getLeadAnalytics(
     ownerMembershipId,
   });
 }
+
+// ============ Won/Lost Report ============
+// Backed by GET /reports/won-lost. The "period" controls the
+// revenue/period-scoped metrics; the win-rate / counts / avg-time / monthly
+// trend are all all-time or last-12-months regardless of period.
+
+export type WonLostPeriod = 'MONTH' | 'QUARTER' | 'YTD';
+
+export interface WonLostByMonth {
+  month: string;
+  won: number;
+  lost: number;
+}
+
+export interface WonLostTopOwner {
+  ownerMembershipId: string;
+  ownerName: string;
+  leadsWon: number;
+  leadsLost: number;
+  winRate: number;
+}
+
+export interface WonLostBySource {
+  source: string;
+  count: number;
+  value: number;
+}
+
+export interface WonLostFunnelStage {
+  stageId: string;
+  stageName: string;
+  stageType: string;
+  count: number;
+}
+
+export interface WonLostReport {
+  period: WonLostPeriod;
+  dateRange: { start: string; end: string };
+  winRate: number;
+  wonCount: number;
+  lostCount: number;
+  avgDealValueWon: number;
+  avgTimeToCloseDays: number;
+  revenueWon: number;
+  revenueLost: number;
+  wonLostByMonth: WonLostByMonth[];
+  topOwners: WonLostTopOwner[];
+  wonBySource: WonLostBySource[];
+  funnel: WonLostFunnelStage[];
+  generatedAt: string;
+}
+
+export async function getWonLostReport(
+  token: string | null,
+  period: WonLostPeriod = 'MONTH',
+): Promise<ApiResponse<WonLostReport>> {
+  return api.get<WonLostReport>(`/api/v1/reports/won-lost`, token, { period });
+}

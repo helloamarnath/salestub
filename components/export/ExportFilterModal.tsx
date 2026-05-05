@@ -21,7 +21,7 @@ import { getLeadSources } from '@/lib/api/leads';
 import { getPipelines, type Pipeline } from '@/lib/api/pipelines';
 
 // Export filter types
-export type ExportDataType = 'leads' | 'contacts' | 'activities' | 'products';
+export type ExportDataType = 'leads' | 'contacts' | 'activities' | 'products' | 'companies';
 
 export interface ExportFilters {
   // Date range (for leads, contacts, activities)
@@ -324,6 +324,7 @@ export function ExportFilterModal({
       contacts: 'Export Contacts',
       activities: 'Export Activities',
       products: 'Export Products',
+      companies: 'Export Companies',
     };
     return titles[dataType];
   };
@@ -336,7 +337,7 @@ export function ExportFilterModal({
 
   // Render date range filter (for leads, contacts, deals, activities)
   const renderDateRangeFilter = () => {
-    if (dataType === 'products') return null;
+    if (dataType === 'products' || dataType === 'companies') return null;
 
     return (
       <View style={styles.section}>

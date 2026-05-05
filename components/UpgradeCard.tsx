@@ -1,8 +1,7 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors, Palette } from '@/constants/theme';
@@ -16,13 +15,20 @@ interface UpgradeCardProps {
   bullets?: string[];
   /** The plan the user needs (default: "SalesTub One") */
   requiredPlan?: string;
-  /** Where the upgrade button routes to (default: '/subscription/plans') */
-  upgradeHref?: string;
+  /**
+   * Where the upgrade button routes to. Defaults to the web subscription page —
+   * subscription management lives on web by product decision; the mobile CTA
+   * opens that page in the device browser.
+   */
+  upgradeUrl?: string;
   /** Optional plan name on the user's account, shown in the description tail */
   currentPlanDisplayName?: string | null;
 }
 
-const DEFAULT_UPGRADE_HREF = '/subscription/plans';
+function defaultUpgradeUrl(): string {
+  const webBase = process.env.EXPO_PUBLIC_WEB_URL || 'https://crm.salestub.com';
+  return `${webBase}/subscription/plans`;
+}
 
 /**
  * Full-screen upsell shown in place of a plan-locked feature. Mirrors the
@@ -34,9 +40,10 @@ export function UpgradeCard({
   description,
   bullets,
   requiredPlan = 'SalesTub One',
-  upgradeHref = DEFAULT_UPGRADE_HREF,
+  upgradeUrl,
   currentPlanDisplayName,
 }: UpgradeCardProps) {
+  const targetUrl = upgradeUrl || defaultUpgradeUrl();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
@@ -112,16 +119,36 @@ export function UpgradeCard({
           {/* CTA */}
           <TouchableOpacity
             style={[styles.cta, { backgroundColor: colors.primary }]}
-            onPress={() => {
+            onPress={async () => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push(upgradeHref as never);
+              try {
+                const supported = await Linking.canOpenURL(targetUrl);
+                if (supported) {
+                  await Linking.openURL(targetUrl);
+                } else {
+                  Alert.alert(
+                    'Unable to open',
+                    'Visit your account on the web to upgrade.',
+                  );
+                }
+              } catch {
+                Alert.alert(
+                  'Unable to open',
+                  'Visit your account on the web to upgrade.',
+                );
+              }
             }}
           >
             <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
               Upgrade to {requiredPlan}
             </Text>
-            <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+            <Ionicons name="open-outline" size={18} color={colors.primaryForeground} />
           </TouchableOpacity>
+
+          <Text style={[styles.webNote, { color: subtitleColor }]}>
+            Subscription management is handled on the web — the button above will
+            open your browser.
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -199,6 +226,12 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 15,
     fontWeight: '700',
+  },
+  webNote: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
+    marginTop: 6,
   },
 });
 
