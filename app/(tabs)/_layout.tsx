@@ -16,8 +16,8 @@ type IconName = keyof typeof Ionicons.glyphMap;
 
 const tabIcons: Record<string, { default: IconName; selected: IconName }> = {
   index: { default: 'home-outline', selected: 'home' },
+  whatsapp: { default: 'logo-whatsapp', selected: 'logo-whatsapp' },
   leads: { default: 'people-outline', selected: 'people' },
-  quotes: { default: 'document-text-outline', selected: 'document-text' },
   contacts: { default: 'person-circle-outline', selected: 'person-circle' },
   more: { default: 'menu-outline', selected: 'menu' },
 };
@@ -64,6 +64,11 @@ export default function TabLayout() {
           <Label>Home</Label>
         </NativeTabs.Trigger>
 
+        <NativeTabs.Trigger name="whatsapp">
+          <Icon sf={{ default: 'message', selected: 'message.fill' }} />
+          <Label>WhatsApp</Label>
+        </NativeTabs.Trigger>
+
         <NativeTabs.Trigger name="leads">
           <Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
           <Label>Leads</Label>
@@ -72,11 +77,6 @@ export default function TabLayout() {
         <NativeTabs.Trigger name="contacts">
           <Icon sf={{ default: 'person.circle', selected: 'person.circle.fill' }} />
           <Label>Contacts</Label>
-        </NativeTabs.Trigger>
-
-        <NativeTabs.Trigger name="quotes">
-          <Icon sf={{ default: 'doc.text', selected: 'doc.text.fill' }} />
-          <Label>Quotes</Label>
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger name="more">
@@ -122,6 +122,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="whatsapp"
+        options={{
+          title: 'WhatsApp',
+          tabBarIcon: ({ color, size }) => (
+            // logo-whatsapp is a logo glyph — same icon for default + focused;
+            // the active tint is provided by the tab bar's `tabBarActiveTintColor`.
+            <Ionicons name="logo-whatsapp" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="leads"
         options={{
           title: 'Leads',
@@ -141,19 +152,6 @@ export default function TabLayout() {
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons
               name={focused ? tabIcons.contacts.selected : tabIcons.contacts.default}
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="quotes"
-        options={{
-          title: 'Quotes',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name={focused ? tabIcons.quotes.selected : tabIcons.quotes.default}
               size={size}
               color={color}
             />

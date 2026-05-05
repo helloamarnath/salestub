@@ -195,3 +195,147 @@ export async function exportProductsToCSV(
     };
   }
 }
+
+// ============ CSV Import ============
+
+export interface ProductImportResultRow {
+  row: number;
+  name: string;
+  status: 'imported' | 'updated' | 'skipped' | 'failed';
+  reason?: string;
+}
+
+export interface ProductImportResult {
+  totalRows: number;
+  imported: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  details: ProductImportResultRow[];
+}
+
+/**
+ * Download a CSV import template (blank, with column headers).
+ * Backend serves text/csv with a Content-Disposition filename.
+ */
+export async function downloadProductImportTemplate(
+  token: string | null,
+): Promise<{ success: boolean; csv?: string; filename?: string; error?: string }> {
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || '';
+    const res = await fetch(`${baseUrl}${PRODUCTS_BASE}/import/template`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      return { success: false, error: `Template download failed (${res.status})` };
+    }
+    const cd = res.headers.get('Content-Disposition');
+    let filename = 'products-import-template.csv';
+    if (cd) {
+      const m = cd.match(/filename="?([^"]+)"?/);
+      if (m) filename = m[1];
+    }
+    const csv = await res.text();
+    return { success: true, csv, filename };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Template download failed',
+    };
+  }
+}
+
+/**
+ * Upload a CSV file to bulk-import products. Multipart upload — uses fetch directly.
+ * Returns a per-row breakdown so callers can show what succeeded vs. failed.
+ */
+export async function importProductsFromCsv(
+  token: string | null,
+  file: { uri: string; name: string; type: string },
+): Promise<{ success: boolean; data?: ProductImportResult; error?: string }> {
+  if (!token) return { success: false, error: 'Not authenticated' };
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || '';
+    const form = new FormData();
+    // React Native FormData wants the file as a { uri, name, type } object.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.append('file', { uri: file.uri, name: file.name, type: file.type } as any);
+
+    const res = await fetch(`${baseUrl}${PRODUCTS_BASE}/import/csv`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errBody.message || `Import failed (${res.status})`,
+      };
+    }
+    const data = (await res.json()) as ProductImportResult;
+    return { success: true, data };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Import failed',
+    };
+  }
+}
+
+// ============ Categories CRUD ============
+
+export interface CreateProductCategoryDto {
+  name: string;
+  description?: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export type UpdateProductCategoryDto = Partial<CreateProductCategoryDto>;
+
+export interface ProductCategoryDetail {
+  id: string;
+  name: string;
+  description?: string;
+  isDefault?: boolean;
+  isActive?: boolean;
+  sortOrder?: number;
+  productCount?: number;
+}
+
+export async function listAllProductCategories(
+  token: string | null,
+): Promise<ApiResponse<ProductCategoryDetail[]>> {
+  return api.get<ProductCategoryDetail[]>(CATEGORIES_BASE, token);
+}
+
+export async function createProductCategory(
+  token: string | null,
+  data: CreateProductCategoryDto,
+): Promise<ApiResponse<ProductCategoryDetail>> {
+  return api.post<ProductCategoryDetail>(CATEGORIES_BASE, token, data);
+}
+
+export async function updateProductCategory(
+  token: string | null,
+  id: string,
+  data: UpdateProductCategoryDto,
+): Promise<ApiResponse<ProductCategoryDetail>> {
+  return api.put<ProductCategoryDetail>(`${CATEGORIES_BASE}/${id}`, token, data);
+}
+
+export async function deleteProductCategory(
+  token: string | null,
+  id: string,
+): Promise<ApiResponse<void>> {
+  return api.delete<void>(`${CATEGORIES_BASE}/${id}`, token);
+}
+
+export async function seedDefaultCategories(
+  token: string | null,
+): Promise<ApiResponse<{ created: number }>> {
+  return api.post(`${CATEGORIES_BASE}/seed`, token, {});
+}

@@ -145,3 +145,27 @@ export async function getBillingHistory(
     token
   );
 }
+
+// ============ Plan features ============
+
+/**
+ * Plan-feature flags for the current org. Mirrors the web's
+ * GET /subscriptions/me/plan-features response. Used to gate plan-locked
+ * surfaces (WhatsApp CRM, Automation, etc.) behind an upsell card.
+ */
+export interface PlanFeatures {
+  planName: string | null;
+  planDisplayName: string | null;
+  hasApiAccess: boolean;
+  hasAutomation: boolean;
+  hasIntegrations: boolean;
+  hasSSO: boolean;
+  hasWhatsAppNotifications: boolean;
+  hasWhatsappCrm: boolean;
+}
+
+export async function getPlanFeatures(
+  token: string | null,
+): Promise<ApiResponse<PlanFeatures>> {
+  return api.get<PlanFeatures>(`${BASE_URL}/me/plan-features`, token);
+}

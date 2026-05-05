@@ -337,6 +337,14 @@ export default function MoreScreen() {
             isDark={isDark}
           />
           <MenuItem
+            icon="document-text-outline"
+            title="Quotes"
+            subtitle="Send quotes & convert to invoices"
+            color={Palette.indigo}
+            onPress={() => router.push('/quotes' as Href)}
+            isDark={isDark}
+          />
+          <MenuItem
             icon="receipt-outline"
             title="Invoices"
             subtitle="Track invoices & payments"
@@ -376,6 +384,14 @@ export default function MoreScreen() {
             subtitle="CSV and data sync"
             color={Palette.purple}
             onPress={() => router.push('/export-import' as Href)}
+            isDark={isDark}
+          />
+          <MenuItem
+            icon="folder-open-outline"
+            title="Gallery"
+            subtitle="All uploaded files"
+            color={Palette.indigo}
+            onPress={() => router.push('/gallery' as Href)}
             isDark={isDark}
           />
         </MenuSection>

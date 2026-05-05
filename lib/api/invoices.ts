@@ -152,3 +152,51 @@ export async function duplicateInvoice(
 ): Promise<ApiResponse<Invoice>> {
   return api.post<Invoice>(`${INVOICES_BASE}/${id}/duplicate`, token, {});
 }
+
+export interface InvoiceStats {
+  total: number;
+  byStatus: Record<string, number>;
+  totalRevenue: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  overdueAmount: number;
+  thisMonthRevenue: number;
+  lastMonthRevenue: number;
+  revenueGrowth: number;
+  avgInvoiceValue: number;
+  collectionRate: number;
+  draftCount: number;
+  pendingCount: number;
+  paidCount: number;
+  overdueCount: number;
+}
+
+/**
+ * Aggregate stats for invoices: total revenue, outstanding, paid count, overdue, etc.
+ * Powers the dashboard's "Invoicing" section.
+ */
+export async function getInvoiceStats(
+  token: string | null,
+): Promise<ApiResponse<InvoiceStats>> {
+  return api.get<InvoiceStats>(`${INVOICES_BASE}/stats`, token);
+}
+
+export interface RefundInvoiceDto {
+  amount: number;
+  reason: string;
+  reference?: string;
+  notes?: string;
+}
+
+/**
+ * Process a refund (manual tracking — does NOT initiate via payment gateway).
+ * Backend validates that the invoice is in a refundable state and that the
+ * amount does not exceed what was paid.
+ */
+export async function refundInvoice(
+  token: string | null,
+  id: string,
+  data: RefundInvoiceDto,
+): Promise<ApiResponse<Invoice>> {
+  return api.post<Invoice>(`${INVOICES_BASE}/${id}/refund`, token, data);
+}

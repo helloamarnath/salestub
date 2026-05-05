@@ -95,6 +95,26 @@ export interface CompanyStats {
   };
 }
 
+export interface CompanyTypeRevenue {
+  count: number;
+  revenue: number;
+}
+
+export interface CompanyOwnerStat {
+  ownerId: string;
+  ownerName: string;
+  ownerRole: string;
+  accountsCount: number;
+  totalRevenue: number;
+}
+
+export interface CompanyStatsOverview {
+  total: number;
+  byIndustry: Record<string, CompanyTypeRevenue>;
+  byType: Record<string, CompanyTypeRevenue>;
+  byOwner: CompanyOwnerStat[];
+}
+
 // Company type labels for display
 export const COMPANY_TYPE_LABELS: Record<CompanyType, string> = {
   PROSPECT: 'Prospect',

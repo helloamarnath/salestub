@@ -7,3 +7,4 @@ export { LifecycleCard } from './LifecycleCard';
 export { OverdueBanner } from './OverdueBanner';
 export { TodaysAgenda } from './TodaysAgenda';
 export { PerformanceTile } from './PerformanceTile';
+export { InvoicingTile } from './InvoicingTile';

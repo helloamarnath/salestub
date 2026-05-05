@@ -23,6 +23,7 @@ import { Colors, Palette } from '@/constants/theme';
 import { getDashboardData } from '@/lib/api/dashboard';
 import { completeActivity } from '@/lib/api/activities';
 import { getOrganizationSettings } from '@/lib/api/organization';
+import { getInvoiceStats, type InvoiceStats } from '@/lib/api/invoices';
 import {
   DashboardStats,
   DashboardActivities,
@@ -39,6 +40,7 @@ import {
   OverdueBanner,
   TodaysAgenda,
   PerformanceTile,
+  InvoicingTile,
 } from '@/components/dashboard';
 
 function formatCurrency(value: number, symbol: string): string {
@@ -81,6 +83,7 @@ export default function DashboardScreen() {
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<DashboardActivities | null>(null);
+  const [invoiceStats, setInvoiceStats] = useState<InvoiceStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,11 +99,15 @@ export default function DashboardScreen() {
     if (!accessToken) return;
 
     try {
-      const [{ stats: statsResponse, activities: activitiesResponse }, orgResponse] =
-        await Promise.all([
-          getDashboardData(accessToken),
-          getOrganizationSettings(accessToken),
-        ]);
+      const [
+        { stats: statsResponse, activities: activitiesResponse },
+        orgResponse,
+        invoiceStatsResponse,
+      ] = await Promise.all([
+        getDashboardData(accessToken),
+        getOrganizationSettings(accessToken),
+        getInvoiceStats(accessToken),
+      ]);
 
       if (orgResponse.success && orgResponse.data?.currency?.symbol) {
         setCurrencySymbol(orgResponse.data.currency.symbol);
@@ -116,6 +123,16 @@ export default function DashboardScreen() {
         setActivities(activitiesResponse.data);
       } else if (activitiesResponse.error) {
         console.error('Failed to fetch activities:', activitiesResponse.error.message);
+      }
+
+      if (invoiceStatsResponse.success && invoiceStatsResponse.data) {
+        setInvoiceStats(invoiceStatsResponse.data);
+      } else if (invoiceStatsResponse.error) {
+        // Non-fatal — missing permission or feature flag will simply hide the tile
+        console.warn(
+          'Failed to fetch invoice stats:',
+          invoiceStatsResponse.error.message,
+        );
       }
 
       setError(null);
@@ -197,7 +214,7 @@ export default function DashboardScreen() {
   const handleAddContact = () =>
     router.push('/(tabs)/contacts/customer/create' as any);
   const handleLogVisit = () => showToast('Visits coming soon');
-  const handleCreateQuote = () => router.push('/(tabs)/quotes/create' as any);
+  const handleCreateQuote = () => router.push('/quotes/create' as any);
   const handleCreateInvoice = () => router.push('/invoices/create' as any);
   const handleImportLeads = () => router.push('/export-import' as any);
   const handleSendWhatsApp = () => showToast('WhatsApp coming soon');
@@ -473,6 +490,29 @@ export default function DashboardScreen() {
               {stats && stats.revenueWonByMonth.length > 0 && (
                 <View style={styles.section}>
                   <RevenueChart data={stats.revenueWonByMonth} currencySymbol={currencySymbol} />
+                </View>
+              )}
+
+              {/* Invoicing — total revenue / outstanding / pending / overdue / collection rate */}
+              {invoiceStats && (
+                <View style={styles.section}>
+                  <InvoicingTile
+                    stats={invoiceStats}
+                    formatCurrency={(value) => formatCurrency(value, currencySymbol)}
+                    onViewAll={() => router.push('/invoices')}
+                    onViewPending={() =>
+                      router.push({
+                        pathname: '/invoices',
+                        params: { status: 'SENT' },
+                      } as never)
+                    }
+                    onViewOverdue={() =>
+                      router.push({
+                        pathname: '/invoices',
+                        params: { status: 'OVERDUE' },
+                      } as never)
+                    }
+                  />
                 </View>
               )}
 

@@ -651,7 +651,11 @@ export default function ContactsScreen() {
                 style={[styles.iconActionButton, { backgroundColor: tabBg, borderColor: headerBorderColor }]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/contacts/analytics' as any);
+                  router.push(
+                    (activeTab === 'customers'
+                      ? '/contacts/analytics'
+                      : '/contacts/organization-analytics') as any,
+                  );
                 }}
               >
                 <Ionicons name="stats-chart-outline" size={20} color={textColor} />

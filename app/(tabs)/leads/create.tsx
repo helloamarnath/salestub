@@ -1192,7 +1192,17 @@ export default function CreateLeadScreen() {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
   const insets = useSafeAreaInsets();
-  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const params = useLocalSearchParams<{
+    editId?: string;
+    // WhatsApp deep-link pre-fill (matches web's `/leads/new?...` query params)
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    source?: string;
+    whatsappConversationId?: string;
+  }>();
+  const editId = params.editId;
   const { accessToken } = useAuth();
   const isEditing = !!editId;
 
@@ -1201,17 +1211,30 @@ export default function CreateLeadScreen() {
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
   const [score, setScore] = useState(50);
-  const [source, setSource] = useState('');
+  const [source, setSource] = useState(!isEditing && params.source ? params.source : '');
   const [validUntil, setValidUntil] = useState<Date | null>(null);
   const [showValidUntilPicker, setShowValidUntilPicker] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  // When created from a WhatsApp chat, initialize the new-contact form so the
+  // user only has to confirm/correct rather than retype name + phone.
+  const hasWhatsappPrefill = !isEditing && (params.firstName || params.phone);
   const [newContactData, setNewContactData] = useState<{
     firstName: string;
     lastName: string;
     email: string;
     phone: string;
     title: string;
-  } | null>(null);
+  } | null>(
+    hasWhatsappPrefill
+      ? {
+          firstName: params.firstName ?? '',
+          lastName: params.lastName ?? '',
+          email: params.email ?? '',
+          phone: params.phone ?? '',
+          title: '',
+        }
+      : null,
+  );
 
   // Company picker state
   const [companyMode, setCompanyMode] = useState<CompanyMode>('skip');
@@ -1450,6 +1473,20 @@ export default function CreateLeadScreen() {
 
     if (response.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // If we came from a WhatsApp chat, link the new lead back to that conversation
+      // so the chat shows up under "Lead › Conversations" and the panel reflects it.
+      const newLeadId = (response.data as { id?: string } | undefined)?.id;
+      if (!isEditing && params.whatsappConversationId && newLeadId && accessToken) {
+        try {
+          const { updateConversation } = await import('@/lib/api/whatsapp');
+          await updateConversation(accessToken, params.whatsappConversationId, {
+            leadId: newLeadId,
+          });
+        } catch {
+          // Non-fatal — the lead is saved; the user can link manually from the
+          // WhatsApp details screen.
+        }
+      }
       router.back();
     } else {
       Alert.alert('Error', response.error?.message || 'Failed to save lead');

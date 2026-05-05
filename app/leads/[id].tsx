@@ -3758,7 +3758,7 @@ function QuotesTab({
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId } })}
+            onPress={() => router.push({ pathname: '/quotes/create' as any, params: { leadId } })}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}
           >
             <Ionicons name="add" size={16} color={colors.primaryForeground} />
@@ -4714,7 +4714,7 @@ export default function LeadDetailScreen() {
           gap: 12,
         }}>
           {[
-            { icon: 'document-text-outline' as const, label: 'Quote', color: colors.primary, iconColor: colors.primaryForeground, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/(tabs)/quotes/create' as any, params: { leadId: id } }); } },
+            { icon: 'document-text-outline' as const, label: 'Quote', color: colors.primary, iconColor: colors.primaryForeground, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/quotes/create' as any, params: { leadId: id } }); } },
             { icon: 'receipt-outline' as const, label: 'Invoice', color: Palette.red, onPress: () => { setFabOpen(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push({ pathname: '/invoices/create' as any, params: { leadId: id } }); } },
             { icon: 'location-outline' as const, label: 'Log Visit', color: Palette.purple, onPress: () => { setFabOpen(false); handleStartVisitPress(); } },
             { icon: 'add-circle-outline' as const, label: 'Follow Up', color: Palette.amber, onPress: () => { setFabOpen(false); handleFollowUpPress(); } },

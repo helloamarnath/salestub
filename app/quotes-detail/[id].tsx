@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
   Linking,
+  ActivityIndicator,
+  Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLoader } from '@/components/ui/ScreenLoader';
@@ -14,12 +16,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors, Palette } from '@/constants/theme';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
-import { getQuote, sendQuote, cancelQuote, deleteQuote } from '@/lib/api/quotes';
+import {
+  getQuote,
+  sendQuote,
+  cancelQuote,
+  deleteQuote,
+  getQuoteAttachments,
+  uploadQuoteAttachment,
+  deleteQuoteAttachment,
+  getQuoteAttachmentDownloadUrl,
+  type QuoteAttachment,
+} from '@/lib/api/quotes';
 import { createInvoiceFromQuote } from '@/lib/api/invoices';
 import type { Quote, QuoteItem } from '@/types/quote';
 import { QUOTE_STATUS_COLORS, QUOTE_STATUS_LABELS } from '@/types/quote';
@@ -35,6 +48,12 @@ export default function QuoteDetailScreen() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Attachments
+  const [attachments, setAttachments] = useState<QuoteAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
+
   const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -43,6 +62,14 @@ export default function QuoteDetailScreen() {
   const sectionTitleColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)';
   const headerBorderColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
   const buttonBg = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+
+  const fetchAttachments = useCallback(async () => {
+    if (!accessToken || !id) return;
+    setAttachmentsLoading(true);
+    const res = await getQuoteAttachments(accessToken, id);
+    if (res.success && res.data) setAttachments(res.data);
+    setAttachmentsLoading(false);
+  }, [accessToken, id]);
 
   useEffect(() => {
     const fetchQuote = async () => {
@@ -53,9 +80,11 @@ export default function QuoteDetailScreen() {
         setQuote(response.data);
       }
       setLoading(false);
+      // Kick off attachments load in parallel — non-blocking
+      fetchAttachments();
     };
     fetchQuote();
-  }, [accessToken, id]);
+  }, [accessToken, id, fetchAttachments]);
 
   const formatAmount = (amount: number | string, symbol?: string) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -68,6 +97,13 @@ export default function QuoteDetailScreen() {
       month: 'short',
       year: 'numeric',
     });
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (!bytes) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const handleSend = async () => {
@@ -139,13 +175,112 @@ export default function QuoteDetailScreen() {
     await WebBrowser.openBrowserAsync(pdfUrl);
   };
 
-  const handleCopyLink = async () => {
-    if (!quote?.accessToken) return;
+  const buildPublicLink = () => {
+    if (!quote?.accessToken) return '';
     const webUrl = process.env.EXPO_PUBLIC_WEB_URL || 'https://crm.salestub.com';
-    const link = `${webUrl}/q/${quote.accessToken}`;
+    return `${webUrl}/q/${quote.accessToken}`;
+  };
+
+  const handleCopyLink = async () => {
+    const link = buildPublicLink();
+    if (!link) return;
     await Clipboard.setStringAsync(link);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Copied', 'Quote link copied to clipboard');
+  };
+
+  const handleShareLink = async () => {
+    const link = buildPublicLink();
+    if (!link || !quote) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await Share.share({
+        message: `Quote #${quote.quoteNumber}: ${link}`,
+        url: link, // iOS only — Android falls back to message
+        title: `Quote #${quote.quoteNumber}`,
+      });
+    } catch {
+      // User dismissed — no-op
+    }
+  };
+
+  // ---------- Attachments ----------
+  const handlePickAttachment = async () => {
+    if (!accessToken || !quote) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const res = await DocumentPicker.getDocumentAsync({
+      type: [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'image/png',
+        'image/jpeg',
+        'image/gif',
+        'text/plain',
+        'text/csv',
+      ],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    const asset = res.assets[0];
+    if (asset.size != null && asset.size > 10 * 1024 * 1024) {
+      Alert.alert('Too large', 'Attachments are capped at 10 MB.');
+      return;
+    }
+    setUploadingAttachment(true);
+    const upRes = await uploadQuoteAttachment(accessToken, quote.id, {
+      uri: asset.uri,
+      name: asset.name,
+      type: asset.mimeType || 'application/octet-stream',
+    });
+    setUploadingAttachment(false);
+    if (upRes.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await fetchAttachments();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Upload failed', upRes.error?.message || 'Could not upload attachment.');
+    }
+  };
+
+  const handleDownloadAttachment = async (att: QuoteAttachment) => {
+    if (!accessToken || !quote) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // The list response may include a stale `downloadUrl`. Re-fetch a fresh signed
+    // URL each time so we don't open an expired one.
+    const res = await getQuoteAttachmentDownloadUrl(accessToken, quote.id, att.id);
+    if (res.success && res.data?.downloadUrl) {
+      WebBrowser.openBrowserAsync(res.data.downloadUrl);
+    } else if (att.downloadUrl) {
+      WebBrowser.openBrowserAsync(att.downloadUrl);
+    } else {
+      Alert.alert('Failed', res.error?.message || 'Could not get download link.');
+    }
+  };
+
+  const handleDeleteAttachment = (att: QuoteAttachment) => {
+    if (!accessToken || !quote) return;
+    Alert.alert('Delete attachment?', `"${att.fileName}" will be removed.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setDeletingAttachmentId(att.id);
+          const res = await deleteQuoteAttachment(accessToken, quote.id, att.id);
+          setDeletingAttachmentId(null);
+          if (res.success) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setAttachments((prev) => prev.filter((a) => a.id !== att.id));
+          } else {
+            Alert.alert('Delete failed', res.error?.message || 'Could not delete attachment.');
+          }
+        },
+      },
+    ]);
   };
 
   const handleCreateInvoice = async () => {
@@ -170,7 +305,7 @@ export default function QuoteDetailScreen() {
 
   const handleEdit = () => {
     if (!quote) return;
-    router.push(`/(tabs)/quotes/create?editId=${quote.id}` as any);
+    router.push(`/quotes/create?editId=${quote.id}` as any);
   };
 
   if (loading) {
@@ -306,6 +441,94 @@ export default function QuoteDetailScreen() {
           </View>
         )}
 
+        {/* Attachments */}
+        <View style={[styles.section, { backgroundColor: sectionBg, borderColor }]}>
+          <View style={styles.attachmentHeaderRow}>
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>
+              Attachments {attachments.length > 0 ? `(${attachments.length})` : ''}
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.attachAddBtn,
+                { backgroundColor: colors.primary },
+                uploadingAttachment && { opacity: 0.6 },
+              ]}
+              onPress={handlePickAttachment}
+              disabled={uploadingAttachment}
+            >
+              {uploadingAttachment ? (
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
+              ) : (
+                <>
+                  <Ionicons name="add" size={14} color={colors.primaryForeground} />
+                  <Text style={[styles.attachAddBtnText, { color: colors.primaryForeground }]}>
+                    Add file
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {attachmentsLoading && attachments.length === 0 ? (
+            <View style={styles.attachLoading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : attachments.length === 0 ? (
+            <Text style={[styles.attachEmpty, { color: subtitleColor }]}>
+              No attachments yet — add a PDF, image, or document (max 10 MB).
+            </Text>
+          ) : (
+            attachments.map((att) => (
+              <View
+                key={att.id}
+                style={[styles.attachRow, { borderTopColor: borderColor }]}
+              >
+                <View style={[styles.attachIconWrap, { backgroundColor: isDark ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.1)' }]}>
+                  <Ionicons
+                    name={
+                      att.fileType.startsWith('image/')
+                        ? 'image-outline'
+                        : att.fileType.includes('pdf')
+                          ? 'document-text-outline'
+                          : 'document-outline'
+                    }
+                    size={18}
+                    color={colors.primary}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.attachName, { color: textColor }]} numberOfLines={1}>
+                    {att.fileName}
+                  </Text>
+                  <Text style={[styles.attachMeta, { color: subtitleColor }]}>
+                    {formatFileSize(att.fileSize)}
+                    {att.uploadedBy
+                      ? ` · ${att.uploadedBy.firstName ?? ''} ${att.uploadedBy.lastName ?? ''}`.trim()
+                      : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.attachIconBtn, { backgroundColor: buttonBg }]}
+                  onPress={() => handleDownloadAttachment(att)}
+                >
+                  <Ionicons name="download-outline" size={16} color={textColor} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.attachIconBtn, { backgroundColor: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)' }]}
+                  onPress={() => handleDeleteAttachment(att)}
+                  disabled={deletingAttachmentId === att.id}
+                >
+                  {deletingAttachmentId === att.id ? (
+                    <ActivityIndicator size="small" color={Palette.red} />
+                  ) : (
+                    <Ionicons name="trash-outline" size={16} color={Palette.red} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+
         {/* Primary Actions */}
         {canSend && (
           <TouchableOpacity style={[styles.actionBtnFull, { backgroundColor: colors.primary }]} onPress={handleSend}>
@@ -329,6 +552,10 @@ export default function QuoteDetailScreen() {
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]} onPress={handleCopyLink}>
             <Ionicons name="link-outline" size={16} color={Palette.purple} />
             <Text style={[styles.actionBtnText, { color: Palette.purple }]}>Copy Link</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isDark ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.1)' }]} onPress={handleShareLink}>
+            <Ionicons name="share-outline" size={16} color={Palette.emerald} />
+            <Text style={[styles.actionBtnText, { color: Palette.emerald }]}>Share</Text>
           </TouchableOpacity>
         </View>
 
@@ -509,4 +736,46 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   backBtnText: { fontWeight: '600' },
+
+  /* Attachments */
+  attachmentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  attachAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  attachAddBtnText: { fontSize: 12, fontWeight: '700' },
+  attachLoading: { paddingVertical: 16, alignItems: 'center' },
+  attachEmpty: { fontSize: 12, paddingVertical: 8 },
+  attachRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  attachIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachName: { fontSize: 13, fontWeight: '600' },
+  attachMeta: { fontSize: 11, marginTop: 1 },
+  attachIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

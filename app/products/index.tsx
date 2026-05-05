@@ -385,11 +385,33 @@ export default function ProductsScreen() {
                 </Text>
               )}
             </View>
-            {rbac.canCreate('products') && (
-              <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleCreate}>
-                <Ionicons name="add" size={24} color={colors.primaryForeground} />
+            <View style={styles.titleActions}>
+              <TouchableOpacity
+                style={[styles.iconActionButton, { backgroundColor: searchBg, borderColor: searchBorder }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/products/categories' as never);
+                }}
+              >
+                <Ionicons name="layers-outline" size={20} color={textColor} />
               </TouchableOpacity>
-            )}
+              {rbac.canCreate('products') && (
+                <TouchableOpacity
+                  style={[styles.iconActionButton, { backgroundColor: searchBg, borderColor: searchBorder }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/products/import' as never);
+                  }}
+                >
+                  <Ionicons name="cloud-upload-outline" size={20} color={textColor} />
+                </TouchableOpacity>
+              )}
+              {rbac.canCreate('products') && (
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.primary }]} onPress={handleCreate}>
+                  <Ionicons name="add" size={24} color={colors.primaryForeground} />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Search Bar */}
@@ -478,6 +500,19 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

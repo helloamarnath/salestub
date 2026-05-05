@@ -274,7 +274,7 @@ export default function QuotesScreen() {
           </View>
           <TouchableOpacity
             style={{ backgroundColor: colors.primary, width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}
-            onPress={() => router.push('/(tabs)/quotes/create' as any)}
+            onPress={() => router.push('/quotes/create' as any)}
           >
             <Ionicons name="add" size={24} color={colors.primaryForeground} />
           </TouchableOpacity>

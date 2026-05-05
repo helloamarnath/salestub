@@ -8,6 +8,7 @@ import type {
   CreateCompanyDto,
   UpdateCompanyDto,
   CompanyStats,
+  CompanyStatsOverview,
 } from '@/types/company';
 import type { Contact, PaginatedContactsResponse } from '@/types/contact';
 
@@ -125,12 +126,21 @@ export async function getCompanyContacts(
 // ============ Statistics ============
 
 /**
- * Get company counts by type
+ * Get company counts by type (used for filter tabs)
  */
 export async function getCompanyStats(
   token: string | null
 ): Promise<ApiResponse<CompanyStats>> {
   return api.get<CompanyStats>(`${COMPANIES_BASE}/stats/counts`, token);
+}
+
+/**
+ * Get company analytics overview — totals + per-industry / per-type / per-owner breakdowns with revenue
+ */
+export async function getCompanyStatsOverview(
+  token: string | null
+): Promise<ApiResponse<CompanyStatsOverview>> {
+  return api.get<CompanyStatsOverview>(`${COMPANIES_BASE}/stats/overview`, token);
 }
 
 // ============ Full Company Data ============

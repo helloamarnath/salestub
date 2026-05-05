@@ -9,18 +9,23 @@ import {
   ActivityIndicator,
   Linking,
   RefreshControl,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScreenLoader } from '@/components/ui/ScreenLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/contexts/theme-context';
 import { useAuth } from '@/contexts/auth-context';
-import { Colors } from '@/constants/theme';
-import { getCompany, getCompanyContacts, deleteCompany } from '@/lib/api/companies';
+import { Colors, Palette } from '@/constants/theme';
+import { getCompany, getCompanyContacts, deleteCompany, updateCompany } from '@/lib/api/companies';
 import { getCompanyActivities } from '@/lib/api/activities';
-import type { Company } from '@/types/company';
+import type { Company, CompanyType } from '@/types/company';
 import type { Contact } from '@/types/contact';
 import type { Activity } from '@/types/activity';
 import {
@@ -87,12 +92,14 @@ function InfoRow({
   value,
   isDark,
   onPress,
+  onEdit,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
   isDark: boolean;
   onPress?: () => void;
+  onEdit?: () => void;
 }) {
   const colors = Colors[isDark ? 'dark' : 'light'];
   const textColor = colors.foreground;
@@ -109,6 +116,18 @@ function InfoRow({
           {displayValue}
         </Text>
       </View>
+      {onEdit && (
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.editIconButton}
+        >
+          <Ionicons name="pencil" size={14} color={iconColor} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -121,6 +140,167 @@ function InfoRow({
   }
 
   return content;
+}
+
+// Inline-edit modal — text/numeric input
+function ValueInputModal({
+  visible,
+  title,
+  initialValue,
+  onSave,
+  onClose,
+  isDark,
+  keyboardType = 'default',
+  multiline = false,
+  placeholder,
+}: {
+  visible: boolean;
+  title: string;
+  initialValue: string;
+  onSave: (next: string) => Promise<void> | void;
+  onClose: () => void;
+  isDark: boolean;
+  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'url';
+  multiline?: boolean;
+  placeholder?: string;
+}) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const [value, setValue] = useState(initialValue);
+  const [saving, setSaving] = useState(false);
+  const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
+  const inputBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+  const placeholderColor = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+
+  useEffect(() => {
+    if (visible) setValue(initialValue);
+  }, [visible, initialValue]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(value.trim());
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: overlayColor }]}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.modalContent, { backgroundColor: colors.card }]}
+          >
+            <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>{title}</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={24} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { backgroundColor: inputBg, color: colors.foreground, borderColor },
+                  multiline && styles.modalInputMultiline,
+                ]}
+                value={value}
+                onChangeText={setValue}
+                keyboardType={keyboardType as 'default'}
+                placeholder={placeholder}
+                placeholderTextColor={placeholderColor}
+                multiline={multiline}
+                autoCapitalize={keyboardType === 'email-address' || keyboardType === 'url' ? 'none' : 'sentences'}
+                autoFocus
+              />
+              <TouchableOpacity
+                style={[
+                  styles.modalSaveButton,
+                  { backgroundColor: colors.primary },
+                  saving && { opacity: 0.6 },
+                ]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color={colors.primaryForeground} />
+                ) : (
+                  <Text style={[styles.modalSaveText, { color: colors.primaryForeground }]}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// Type picker modal — single-select for CompanyType
+function TypePickerModal({
+  visible,
+  current,
+  onSelect,
+  onClose,
+  isDark,
+}: {
+  visible: boolean;
+  current: CompanyType;
+  onSelect: (next: CompanyType) => Promise<void> | void;
+  onClose: () => void;
+  isDark: boolean;
+}) {
+  const colors = Colors[isDark ? 'dark' : 'light'];
+  const overlayColor = isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+  const types: CompanyType[] = ['PROSPECT', 'CUSTOMER', 'PARTNER', 'COMPETITOR', 'RESELLER'];
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity
+        style={[styles.modalOverlay, { backgroundColor: overlayColor }]}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity activeOpacity={1} style={[styles.modalContent, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Select Type</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color={colors.foreground} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ paddingVertical: 4 }}>
+            {types.map((t) => {
+              const active = current === t;
+              const accent = COMPANY_TYPE_COLORS[t] || colors.primary;
+              return (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.typeOption, { borderBottomColor: borderColor }]}
+                  onPress={async () => {
+                    await onSelect(t);
+                    onClose();
+                  }}
+                >
+                  <View style={[styles.typeDot, { backgroundColor: accent }]} />
+                  <Text style={[styles.typeOptionLabel, { color: colors.foreground }]}>
+                    {COMPANY_TYPE_LABELS[t]}
+                  </Text>
+                  {active && <Ionicons name="checkmark" size={20} color={colors.primary} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
 }
 
 // Section Card Component
@@ -345,6 +525,57 @@ export default function OrganizationDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('details');
 
+  // Inline edit state
+  type EditField = {
+    key: keyof Company;
+    label: string;
+    keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' | 'url';
+    multiline?: boolean;
+  };
+  const [editingField, setEditingField] = useState<EditField | null>(null);
+  const [showTypePicker, setShowTypePicker] = useState(false);
+
+  const updateField = useCallback(
+    async (field: keyof Company, nextValueRaw: string | number | null) => {
+      if (!accessToken || !id || !company) return;
+      const nextValue =
+        typeof nextValueRaw === 'string' ? (nextValueRaw.trim() || null) : nextValueRaw;
+      // Optimistic update
+      setCompany((prev) => (prev ? { ...prev, [field]: nextValue ?? undefined } : prev));
+      const res = await updateCompany(accessToken, id as string, {
+        [field]: nextValue,
+      } as Partial<Company> as never);
+      if (res.success && res.data) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setCompany(res.data);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Update failed', res.error?.message || `Could not update ${field}.`);
+        // Refetch to revert
+        const fresh = await getCompany(accessToken, id as string);
+        if (fresh.success && fresh.data) setCompany(fresh.data);
+      }
+    },
+    [accessToken, id, company],
+  );
+
+  const updateNumericField = useCallback(
+    async (field: keyof Company, raw: string) => {
+      const trimmed = raw.trim();
+      if (trimmed === '') {
+        await updateField(field, null);
+        return;
+      }
+      const n = Number(trimmed.replace(/,/g, ''));
+      if (Number.isNaN(n)) {
+        Alert.alert('Invalid number', `${String(field)} must be a number.`);
+        return;
+      }
+      await updateField(field, n);
+    },
+    [updateField],
+  );
+
   const gradientColors: [string, string, string] = [colors.background, colors.card, colors.background] as [string, string, string];
   const textColor = isDark ? 'white' : colors.foreground;
   const subtitleColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
@@ -488,23 +719,60 @@ export default function OrganizationDetailScreen() {
           <View style={styles.tabContentInner}>
             {/* Basic Information */}
             <SectionCard title="Basic Information" isDark={isDark}>
-              <InfoRow icon="business-outline" label="Company Name" value={company.name} isDark={isDark} />
-              <InfoRow icon="layers-outline" label="Industry" value={company.industry} isDark={isDark} />
+              <InfoRow
+                icon="business-outline"
+                label="Company Name"
+                value={company.name}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'name', label: 'Company Name' })}
+              />
+              <InfoRow
+                icon="layers-outline"
+                label="Industry"
+                value={company.industry}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'industry', label: 'Industry' })}
+              />
               {company.type && (
-                <View style={styles.statusRow}>
-                  <View style={styles.infoRow}>
-                    <Ionicons name="flag-outline" size={20} color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'} style={styles.infoIcon} />
-                    <View style={styles.infoContent}>
-                      <Text style={[styles.infoLabel, { color: subtitleColor }]}>Type</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: `${COMPANY_TYPE_COLORS[company.type]}20` }]}>
-                        <View style={[styles.statusDot, { backgroundColor: COMPANY_TYPE_COLORS[company.type] }]} />
-                        <Text style={[styles.statusText, { color: COMPANY_TYPE_COLORS[company.type] }]}>
-                          {COMPANY_TYPE_LABELS[company.type]}
-                        </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowTypePicker(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.statusRow}>
+                    <View style={styles.infoRow}>
+                      <Ionicons
+                        name="flag-outline"
+                        size={20}
+                        color={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'}
+                        style={styles.infoIcon}
+                      />
+                      <View style={styles.infoContent}>
+                        <Text style={[styles.infoLabel, { color: subtitleColor }]}>Type (tap to change)</Text>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            { backgroundColor: `${COMPANY_TYPE_COLORS[company.type]}20` },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.statusDot,
+                              { backgroundColor: COMPANY_TYPE_COLORS[company.type] },
+                            ]}
+                          />
+                          <Text
+                            style={[styles.statusText, { color: COMPANY_TYPE_COLORS[company.type] }]}
+                          >
+                            {COMPANY_TYPE_LABELS[company.type]}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               )}
             </SectionCard>
 
@@ -516,6 +784,9 @@ export default function OrganizationDetailScreen() {
                 value={company.email}
                 isDark={isDark}
                 onPress={company.email ? () => handleEmail(company.email) : undefined}
+                onEdit={() =>
+                  setEditingField({ key: 'email', label: 'Email', keyboardType: 'email-address' })
+                }
               />
               <InfoRow
                 icon="call-outline"
@@ -523,6 +794,9 @@ export default function OrganizationDetailScreen() {
                 value={company.phone}
                 isDark={isDark}
                 onPress={company.phone ? () => handleCall(company.phone) : undefined}
+                onEdit={() =>
+                  setEditingField({ key: 'phone', label: 'Phone', keyboardType: 'phone-pad' })
+                }
               />
               <InfoRow
                 icon="globe-outline"
@@ -530,23 +804,60 @@ export default function OrganizationDetailScreen() {
                 value={company.website}
                 isDark={isDark}
                 onPress={company.website ? () => handleWebsite(company.website) : undefined}
+                onEdit={() =>
+                  setEditingField({ key: 'website', label: 'Website', keyboardType: 'url' })
+                }
               />
             </SectionCard>
 
             {/* Business Information */}
             <SectionCard title="Business Information" isDark={isDark}>
-              <InfoRow icon="cash-outline" label="Annual Revenue" value={company.annualRevenue ? formatRevenue(company.annualRevenue) : undefined} isDark={isDark} />
-              <InfoRow icon="people-outline" label="Employees" value={company.numberOfEmployees ? formatEmployees(company.numberOfEmployees) : undefined} isDark={isDark} />
+              <InfoRow
+                icon="cash-outline"
+                label="Annual Revenue"
+                value={company.annualRevenue ? formatRevenue(company.annualRevenue) : undefined}
+                isDark={isDark}
+                onEdit={() =>
+                  setEditingField({
+                    key: 'annualRevenue',
+                    label: 'Annual Revenue',
+                    keyboardType: 'numeric',
+                  })
+                }
+              />
+              <InfoRow
+                icon="people-outline"
+                label="Employees"
+                value={
+                  company.numberOfEmployees
+                    ? formatEmployees(company.numberOfEmployees)
+                    : undefined
+                }
+                isDark={isDark}
+                onEdit={() =>
+                  setEditingField({
+                    key: 'numberOfEmployees',
+                    label: 'Employees',
+                    keyboardType: 'numeric',
+                  })
+                }
+              />
             </SectionCard>
 
             {/* Description */}
-            {company.description && (
-              <SectionCard title="Description" isDark={isDark}>
-                <View style={styles.notesContainer}>
-                  <Text style={[styles.notesText, { color: textColor }]}>{company.description}</Text>
-                </View>
-              </SectionCard>
-            )}
+            <SectionCard title="Description" isDark={isDark}>
+              <InfoRow
+                icon="document-text-outline"
+                label="Description"
+                value={company.description}
+                isDark={isDark}
+                onEdit={() =>
+                  setEditingField({ key: 'description', label: 'Description', multiline: true })
+                }
+              />
+            </SectionCard>
+
+            {/* (Description card no longer hidden when empty — shows placeholder + edit pencil) */}
 
             {/* Owner & Record Info */}
             <SectionCard title="Record Information" isDark={isDark}>
@@ -665,11 +976,41 @@ export default function OrganizationDetailScreen() {
         return (
           <View style={styles.tabContentInner}>
             <SectionCard title="Address" isDark={isDark}>
-              <InfoRow icon="home-outline" label="Street" value={company.address} isDark={isDark} />
-              <InfoRow icon="business-outline" label="City" value={company.city} isDark={isDark} />
-              <InfoRow icon="map-outline" label="State" value={company.state} isDark={isDark} />
-              <InfoRow icon="globe-outline" label="Country" value={company.country} isDark={isDark} />
-              <InfoRow icon="document-text-outline" label="Postal Code" value={company.postalCode} isDark={isDark} />
+              <InfoRow
+                icon="home-outline"
+                label="Street"
+                value={company.address}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'address', label: 'Street' })}
+              />
+              <InfoRow
+                icon="business-outline"
+                label="City"
+                value={company.city}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'city', label: 'City' })}
+              />
+              <InfoRow
+                icon="map-outline"
+                label="State"
+                value={company.state}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'state', label: 'State' })}
+              />
+              <InfoRow
+                icon="globe-outline"
+                label="Country"
+                value={company.country}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'country', label: 'Country' })}
+              />
+              <InfoRow
+                icon="document-text-outline"
+                label="Postal Code"
+                value={company.postalCode}
+                isDark={isDark}
+                onEdit={() => setEditingField({ key: 'postalCode', label: 'Postal Code' })}
+              />
             </SectionCard>
             {(company.address || company.city) && (
               <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.primary }]} onPress={handleMaps}>
@@ -865,6 +1206,43 @@ export default function OrganizationDetailScreen() {
           {renderTabContent()}
         </View>
       </ScrollView>
+
+      {/* Inline edit text modal */}
+      {editingField && company && (
+        <ValueInputModal
+          visible={!!editingField}
+          title={editingField.label}
+          initialValue={
+            editingField.keyboardType === 'numeric'
+              ? (company[editingField.key] != null ? String(company[editingField.key]) : '')
+              : ((company[editingField.key] as string | undefined) ?? '')
+          }
+          keyboardType={editingField.keyboardType}
+          multiline={editingField.multiline}
+          isDark={isDark}
+          onSave={async (next) => {
+            if (editingField.keyboardType === 'numeric') {
+              await updateNumericField(editingField.key, next);
+            } else {
+              await updateField(editingField.key, next);
+            }
+          }}
+          onClose={() => setEditingField(null)}
+        />
+      )}
+
+      {/* Type picker */}
+      {company && (
+        <TypePickerModal
+          visible={showTypePicker}
+          current={company.type}
+          isDark={isDark}
+          onSelect={async (next) => {
+            await updateField('type', next);
+          }}
+          onClose={() => setShowTypePicker(false)}
+        />
+      )}
     </View>
   );
 }
@@ -1303,5 +1681,76 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontWeight: '600',
     fontSize: 16,
+  },
+  /* Inline edit pencil */
+  editIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  /* ValueInputModal */
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '600' },
+  modalBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 12,
+  },
+  modalInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  modalInputMultiline: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  modalSaveButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  /* TypePickerModal */
+  typeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  typeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  typeOptionLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    flex: 1,
   },
 });
