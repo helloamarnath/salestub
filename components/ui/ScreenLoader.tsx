@@ -1,10 +1,22 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, Animated, Easing, StyleSheet, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
+import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
+import Svg, { G, Polygon } from 'react-native-svg';
 import { useTheme } from '@/contexts/theme-context';
-import { Colors, Palette } from '@/constants/theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+function BrandMark({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 2100 1900">
+      <G fill={color}>
+        <Polygon points="2030 0 1819 362 277 373 0 0 2030 0" />
+        <Polygon points="1714 648 915 648 277 373 1051 368 1714 648" />
+        <Polygon points="327 648 568 958 1590 958 1714 648 327 648" />
+        <Polygon points="1037 1744 1037 1031 599 1031 876 1482 758 1132 971 1132 971 1630 1037 1744" />
+        <Polygon points="1037 1744 1037 1031 1474 1031 1198 1482 1316 1132 1103 1132 1103 1630 1037 1744" />
+      </G>
+    </Svg>
+  );
+}
+
 const BAR_WIDTH = 160;
 
 // ─── Spinning arc ─────────────────────────────────────────────────────────────
@@ -153,7 +165,6 @@ interface ScreenLoaderProps {
 export function ScreenLoader({ message }: ScreenLoaderProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const colors = Colors[resolvedTheme];
 
   const logoScale = useRef(new Animated.Value(0.92)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
@@ -215,12 +226,7 @@ export function ScreenLoader({ message }: ScreenLoaderProps) {
               },
             ]}
           >
-            <Image
-              source={require('@/assets/logos/icon-white.svg')}
-              style={styles.iconImg}
-              contentFit="contain"
-              tintColor={arcColor}
-            />
+            <BrandMark size={28} color={arcColor} />
           </Animated.View>
         </View>
 
