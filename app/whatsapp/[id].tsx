@@ -7,11 +7,11 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Platform,
   Modal,
   Pressable,
 } from 'react-native';
+import { KeyboardScreen } from '@/components/ui/keyboard-screen';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -437,11 +437,7 @@ export default function ConversationDetailScreen() {
   const items = buildItems(conversation.messages);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
+    <KeyboardScreen mode="chat" headerHeight={0} style={styles.container}>
       <LinearGradient
         colors={[colors.background, colors.card, colors.background]}
         style={StyleSheet.absoluteFill}
@@ -552,7 +548,7 @@ export default function ConversationDetailScreen() {
         onSetStatus={handleSetStatus}
         onSnooze={handleSnooze}
       />
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 

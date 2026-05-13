@@ -2,14 +2,7 @@
 // Handles all subscription and payment related API calls
 
 import { api, ApiResponse } from './client';
-import type {
-  SubscriptionPlan,
-  Subscription,
-  CreateCheckoutDto,
-  CheckoutSessionResponse,
-  VerifyPaymentDto,
-  VerifyPaymentResponse,
-} from '@/types/subscription';
+import type { SubscriptionPlan, Subscription } from '@/types/subscription';
 
 const BASE_URL = '/api/v1/subscriptions';
 
@@ -36,29 +29,108 @@ export async function getOrganizationSubscription(
 }
 
 /**
- * Create a checkout session for subscription
- * Returns data needed for Razorpay SDK
+ * Manual-billing: start a subscription in PENDING_PAYMENT and generate the
+ * first unpaid SubscriptionInvoice. User then opens the billing screen and
+ * taps Pay Now to pay via Razorpay one-time order.
  */
-export async function createCheckoutSession(
-  token: string | null,
-  data: CreateCheckoutDto
-): Promise<ApiResponse<CheckoutSessionResponse>> {
-  return api.post<CheckoutSessionResponse>(`${BASE_URL}/checkout`, token, data);
+export interface StartSubscriptionResponse {
+  subscriptionId: string;
+  subscriptionStatus: 'PENDING_PAYMENT' | 'TRIAL';
+  isTrialConversion: boolean;
+  invoice: {
+    id: string;
+    invoiceNumber: string;
+    accessToken: string;
+    amount: string;
+    currency: string;
+    dueDate: string;
+  };
+  redirectTo: string;
 }
 
-/**
- * Verify Razorpay payment after successful checkout
- * Should be called after Razorpay SDK returns success
- * Uses the mobile-specific endpoint for signature verification
- */
-export async function verifyPayment(
+export async function startSubscription(
   token: string | null,
-  data: VerifyPaymentDto
-): Promise<ApiResponse<VerifyPaymentResponse>> {
-  return api.post<VerifyPaymentResponse>(
-    `${BASE_URL}/verify-mobile-payment`,
+  data: {
+    planId: string;
+    orgId?: string;
+    userCount?: number;
+    billingCycle?: 'MONTHLY' | 'ANNUAL';
+  }
+): Promise<ApiResponse<StartSubscriptionResponse>> {
+  return api.post<StartSubscriptionResponse>(`${BASE_URL}/start`, token, data);
+}
+
+// ============ Subscription invoices (manual-billing Pay Now) ============
+
+export interface SubscriptionInvoiceListItem {
+  id: string;
+  invoiceNumber: string;
+  planName: string;
+  currency: string;
+  amount: string;
+  status: 'PENDING' | 'PAID' | 'FAILED' | 'VOID';
+  periodStart: string;
+  periodEnd: string;
+  dueDate: string;
+  paidAt: string | null;
+  isAutoRenewed: boolean;
+  accessToken: string;
+  markedPaidManually: boolean;
+  manualPaymentNote: string | null;
+}
+
+export async function getSubscriptionInvoices(
+  token: string | null
+): Promise<ApiResponse<SubscriptionInvoiceListItem[]>> {
+  return api.get<SubscriptionInvoiceListItem[]>('/api/v1/subscription-invoices', token);
+}
+
+export interface CreateInvoicePaymentOrderResponse {
+  gateway: 'razorpay';
+  orderId: string;
+  amount: number;
+  currency: string;
+  razorpayKeyId: string;
+  invoiceNumber: string;
+  invoiceId: string;
+}
+
+export async function createInvoicePaymentOrder(
+  token: string | null,
+  invoiceId: string,
+  gateway: 'razorpay' = 'razorpay'
+): Promise<ApiResponse<CreateInvoicePaymentOrderResponse>> {
+  return api.post<CreateInvoicePaymentOrderResponse>(
+    `/api/v1/subscription-invoices/${invoiceId}/create-payment-order`,
     token,
-    data
+    { gateway }
+  );
+}
+
+export interface VerifyInvoicePaymentResponse {
+  success: true;
+  subscriptionStatus:
+    | 'TRIAL'
+    | 'ACTIVE'
+    | 'PAST_DUE'
+    | 'CANCELED'
+    | 'EXPIRED'
+    | 'PENDING_PAYMENT';
+}
+
+export async function verifyInvoicePayment(
+  token: string | null,
+  invoiceId: string,
+  payload: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }
+): Promise<ApiResponse<VerifyInvoicePaymentResponse>> {
+  return api.post<VerifyInvoicePaymentResponse>(
+    `/api/v1/subscription-invoices/${invoiceId}/verify-payment`,
+    token,
+    payload
   );
 }
 
@@ -103,22 +175,6 @@ export async function updateUserCount(
     `${BASE_URL}/organization/${orgId}/users`,
     token,
     { userCount }
-  );
-}
-
-/**
- * Change subscription plan
- * May trigger prorated charges or credit
- */
-export async function changePlan(
-  token: string | null,
-  orgId: string,
-  planId: string
-): Promise<ApiResponse<CheckoutSessionResponse>> {
-  return api.post<CheckoutSessionResponse>(
-    `${BASE_URL}/organization/${orgId}/change-plan`,
-    token,
-    { planId }
   );
 }
 

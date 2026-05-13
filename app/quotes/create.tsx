@@ -301,7 +301,7 @@ export default function CreateQuoteScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
           {/* Lead Selection */}

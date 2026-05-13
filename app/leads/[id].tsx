@@ -365,7 +365,7 @@ function ValueInputModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.modalOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableOpacity style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor }]} activeOpacity={1} onPress={onClose} />
         <View style={[styles.modalContent, { backgroundColor: bgColor }]}>
@@ -572,7 +572,7 @@ function ActivityFormModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.modalOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor }]} onPress={onClose} />
         <View style={[styles.activityFormContent, { backgroundColor: bgColor }]}>
@@ -1599,7 +1599,7 @@ function TagPickerModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.modalOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor }]} onPress={onClose} />
         <View style={[styles.tagPickerContent, { backgroundColor: bgColor, paddingBottom: insets.bottom + 20 }]}>
@@ -2628,7 +2628,7 @@ function ConvertLeadModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.modalOverlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor }]} onPress={onClose} />
         <View style={[styles.convertModalContent, { backgroundColor: bgColor }]}>
@@ -4939,7 +4939,7 @@ export default function LeadDetailScreen() {
       <Modal visible={showMarkLostModal} transparent animationType="slide" onRequestClose={() => setShowMarkLostModal(false)}>
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <Pressable
             style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}

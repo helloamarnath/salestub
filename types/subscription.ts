@@ -52,7 +52,7 @@ export interface Subscription {
   cancelAtPeriodEnd: boolean;
 
   // Payment info
-  paymentGateway?: 'razorpay' | 'stripe';
+  paymentGateway?: string;
   lastBillingAmount?: number;
 }
 
@@ -61,52 +61,18 @@ export type SubscriptionStatus =
   | 'ACTIVE'
   | 'PAST_DUE'
   | 'CANCELED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'PENDING_PAYMENT';
 
 export type BillingCycle = 'MONTHLY' | 'ANNUAL';
 
 /**
- * Request to create checkout session
- */
-export interface CreateCheckoutDto {
-  planId: string;
-  orgId: string;
-  userCount: number;
-  billingCycle: BillingCycle;
-}
-
-/**
- * Response from checkout session creation
- */
-export interface CheckoutSessionResponse {
-  // Internal tracking
-  subscriptionId: string; // Our DB subscription ID
-
-  // Razorpay specific
-  razorpayKeyId: string; // Public key for SDK
-  razorpaySubscriptionId: string; // Razorpay subscription ID
-
-  // Payment details
-  amount: number; // In paise (e.g., 100000 = ₹1,000)
-  currency: string; // "INR"
-
-  // Prefill data for checkout form
-  prefill: {
-    name?: string;
-    email?: string;
-    contact?: string;
-  };
-
-  // Metadata
-  notes: Record<string, string>;
-}
-
-/**
- * Razorpay SDK success response
+ * Razorpay SDK success response for one-time order payments
+ * (manual-billing Pay Now flow).
  */
 export interface RazorpaySuccessResponse {
   razorpay_payment_id: string;
-  razorpay_subscription_id: string;
+  razorpay_order_id?: string;
   razorpay_signature: string;
 }
 
@@ -125,31 +91,14 @@ export interface RazorpayErrorResponse {
   };
 }
 
-/**
- * Payment verification request
- */
-export interface VerifyPaymentDto {
-  razorpayPaymentId: string;
-  razorpaySubscriptionId: string;
-  razorpaySignature: string;
-}
-
-/**
- * Payment verification response
- */
-export interface VerifyPaymentResponse {
-  success: boolean;
-  subscription: Subscription;
-  message?: string;
-}
-
 // UI Constants
 export const SUBSCRIPTION_STATUS_COLORS: Record<SubscriptionStatus, string> = {
-  TRIAL: Palette.amber, // Amber
-  ACTIVE: Palette.emerald, // Green
-  PAST_DUE: Palette.red, // Red
-  CANCELED: '#6b7280', // Gray
-  EXPIRED: Palette.redMuted, // Red
+  TRIAL: Palette.amber,
+  ACTIVE: Palette.emerald,
+  PAST_DUE: Palette.red,
+  CANCELED: '#6b7280',
+  EXPIRED: Palette.redMuted,
+  PENDING_PAYMENT: Palette.amber,
 };
 
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
@@ -158,6 +107,7 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   PAST_DUE: 'Past Due',
   CANCELED: 'Canceled',
   EXPIRED: 'Expired',
+  PENDING_PAYMENT: 'Pending Payment',
 };
 
 export const BILLING_CYCLE_LABELS: Record<BillingCycle, string> = {

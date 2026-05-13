@@ -236,7 +236,7 @@ export default function WhatsappSettingsScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <LinearGradient
         colors={[colors.background, colors.card, colors.background]}

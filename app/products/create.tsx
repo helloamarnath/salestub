@@ -623,7 +623,7 @@ export default function CreateProductScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: borderColor }]}>

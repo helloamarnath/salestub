@@ -235,7 +235,7 @@ export default function CreateInvoiceScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
           {/* Contact */}
           <Text style={[styles.sectionLabel, { color: subtitleColor }]}>CONTACT</Text>

@@ -79,7 +79,7 @@ export function StartVisitSheet({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={[styles.overlay, { backgroundColor: overlayColor }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableOpacity style={styles.overlayTouch} activeOpacity={1} onPress={onClose} />
 

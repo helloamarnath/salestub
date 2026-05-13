@@ -11,6 +11,8 @@ import {
   Linking,
   Modal,
   Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -389,10 +391,16 @@ export default function ConversationDetailsScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Customer hero */}
         <View style={styles.hero}>
@@ -647,6 +655,7 @@ export default function ConversationDetailsScreen() {
           )}
         </SectionCard>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Opt-in source picker */}
       <Modal

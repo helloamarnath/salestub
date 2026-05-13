@@ -187,7 +187,7 @@ function ValueInputModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <TouchableOpacity
           style={[styles.modalOverlay, { backgroundColor: overlayColor }]}

@@ -3,20 +3,18 @@
 
 import { useState, useCallback } from 'react';
 import { Palette } from '@/constants/theme';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import type {
-  CheckoutSessionResponse,
   RazorpaySuccessResponse,
   RazorpayErrorResponse,
 } from '@/types/subscription';
 
-// Razorpay SDK types
+// Razorpay SDK types — manual billing model uses one-time orders only.
 interface RazorpayOptions {
   key: string;
-  subscription_id?: string;
-  order_id?: string;
-  amount?: number;
-  currency?: string;
+  order_id: string;
+  amount: number;
+  currency: string;
   name: string;
   description?: string;
   image?: string;
@@ -36,7 +34,6 @@ let RazorpayCheckout: {
   open: (options: RazorpayOptions) => Promise<RazorpaySuccessResponse>;
 } | null = null;
 
-// Try to load Razorpay SDK
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   RazorpayCheckout = require('react-native-razorpay').default;
@@ -49,44 +46,48 @@ export interface UseRazorpayReturn {
   isAvailable: boolean;
   /** Whether payment is in progress */
   isLoading: boolean;
-  /** Open Razorpay checkout */
-  openCheckout: (
-    session: CheckoutSessionResponse,
-    options?: { onSuccess?: (response: RazorpaySuccessResponse) => void; onError?: (error: RazorpayErrorResponse) => void }
+  /**
+   * Open Razorpay checkout for a one-time order (manual-billing Pay Now).
+   * Use this with the response from createInvoicePaymentOrder().
+   */
+  openOrderCheckout: (
+    order: {
+      razorpayKeyId: string;
+      orderId: string;
+      amount: number;
+      currency: string;
+      invoiceNumber: string;
+    },
+    prefill?: { name?: string; email?: string; contact?: string },
+    options?: {
+      onSuccess?: (response: RazorpaySuccessResponse) => void;
+      onError?: (error: RazorpayErrorResponse) => void;
+    }
   ) => Promise<RazorpaySuccessResponse | null>;
 }
 
 /**
- * Hook to interact with Razorpay native SDK
- *
- * Usage:
- * ```tsx
- * const { openCheckout, isLoading, isAvailable } = useRazorpay();
- *
- * const handlePayment = async () => {
- *   const session = await createCheckoutSession(...);
- *   const result = await openCheckout(session.data);
- *   if (result) {
- *     // Payment successful, verify with backend
- *     await verifyPayment({ razorpayPaymentId: result.razorpay_payment_id, ... });
- *   }
- * };
- * ```
+ * Hook to interact with Razorpay native SDK for one-time order payments.
  */
 export function useRazorpay(): UseRazorpayReturn {
   const [isLoading, setIsLoading] = useState(false);
-
   const isAvailable = RazorpayCheckout !== null;
 
-  const openCheckout = useCallback(
+  const openOrderCheckout = useCallback(
     async (
-      session: CheckoutSessionResponse,
+      order: {
+        razorpayKeyId: string;
+        orderId: string;
+        amount: number;
+        currency: string;
+        invoiceNumber: string;
+      },
+      prefill?: { name?: string; email?: string; contact?: string },
       options?: {
         onSuccess?: (response: RazorpaySuccessResponse) => void;
         onError?: (error: RazorpayErrorResponse) => void;
       }
     ): Promise<RazorpaySuccessResponse | null> => {
-      // Check if SDK is available
       if (!RazorpayCheckout) {
         Alert.alert(
           'Development Build Required',
@@ -96,46 +97,33 @@ export function useRazorpay(): UseRazorpayReturn {
         return null;
       }
 
-      // Build Razorpay options
       const razorpayOptions: RazorpayOptions = {
-        key: session.razorpayKeyId,
-        subscription_id: session.razorpaySubscriptionId,
+        key: order.razorpayKeyId,
+        order_id: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
         name: 'SalesTub',
-        description: 'Subscription Payment',
-        prefill: session.prefill,
-        notes: session.notes,
-        theme: {
-          color: Palette.indigo, // Primary indigo color
-        },
+        description: `Subscription invoice ${order.invoiceNumber}`,
+        prefill,
+        theme: { color: Palette.indigo },
       };
 
       setIsLoading(true);
 
       try {
         const response = await RazorpayCheckout.open(razorpayOptions);
-
-        // Success callback
-        if (options?.onSuccess) {
-          options.onSuccess(response);
-        }
-
+        if (options?.onSuccess) options.onSuccess(response);
         return response;
       } catch (error) {
         const razorpayError = error as RazorpayErrorResponse;
 
-        // User cancelled payment
         if (razorpayError.code === 0 || razorpayError.description?.includes('cancelled')) {
-          // Silently handle cancellation - user closed the checkout
           console.log('Payment cancelled by user');
           return null;
         }
 
-        // Error callback
-        if (options?.onError) {
-          options.onError(razorpayError);
-        }
+        if (options?.onError) options.onError(razorpayError);
 
-        // Show error alert
         Alert.alert(
           'Payment Failed',
           razorpayError.description || 'Payment could not be processed. Please try again.',
@@ -150,19 +138,13 @@ export function useRazorpay(): UseRazorpayReturn {
     []
   );
 
-  return {
-    isAvailable,
-    isLoading,
-    openCheckout,
-  };
+  return { isAvailable, isLoading, openOrderCheckout };
 }
 
 /**
  * Check if running in Expo Go (for showing appropriate warnings)
  */
 export function isExpoGo(): boolean {
-  // In Expo Go, Constants.executionEnvironment is 'storeClient'
-  // In development builds, it's 'standalone'
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const Constants = require('expo-constants').default;

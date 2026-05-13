@@ -652,7 +652,7 @@ export default function InvoiceDetailScreen() {
       >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <Pressable style={styles.modalOverlay} onPress={() => setRefundOpen(false)}>
             <Pressable
