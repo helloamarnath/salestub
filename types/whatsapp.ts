@@ -62,6 +62,10 @@ export interface WaMessage {
   filename?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  /** Short-lived signed URL for the template's header media (TEMPLATE only). */
+  headerMediaUrl?: string | null;
+  /** "IMAGE" / "VIDEO" / "DOCUMENT" — tells the renderer which component to use. */
+  headerMediaType?: 'IMAGE' | 'VIDEO' | 'DOCUMENT' | null;
   msgId?: string | null;
   replyToMsgId?: string | null;
   status: WaMsgStatus;

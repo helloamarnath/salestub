@@ -123,6 +123,59 @@ export function MessageBubble({
         );
       }
 
+      case 'TEMPLATE':
+        // OUTBOUND template messages may have a media header (image / video /
+        // document). Renders the header above the body so the chat matches
+        // what the recipient saw in WhatsApp.
+        return (
+          <View>
+            {message.headerMediaType === 'IMAGE' && message.headerMediaUrl && (
+              <Image
+                source={{ uri: message.headerMediaUrl }}
+                style={styles.media}
+                resizeMode="cover"
+              />
+            )}
+            {message.headerMediaType === 'VIDEO' && message.headerMediaUrl && (
+              <TouchableOpacity
+                style={styles.docRow}
+                onPress={() =>
+                  message.headerMediaUrl && Linking.openURL(message.headerMediaUrl)
+                }
+              >
+                <Ionicons name="videocam-outline" size={20} color={textColor} />
+                <Text style={[styles.body, { color: textColor }]}>Video</Text>
+              </TouchableOpacity>
+            )}
+            {message.headerMediaType === 'DOCUMENT' && message.headerMediaUrl && (
+              <TouchableOpacity
+                style={styles.docRow}
+                onPress={() =>
+                  message.headerMediaUrl && Linking.openURL(message.headerMediaUrl)
+                }
+              >
+                <Ionicons name="document-outline" size={20} color={textColor} />
+                <Text style={[styles.body, { color: textColor, flex: 1 }]} numberOfLines={2}>
+                  Document attachment
+                </Text>
+              </TouchableOpacity>
+            )}
+            {message.body && (
+              <Text
+                style={[
+                  styles.body,
+                  {
+                    color: textColor,
+                    marginTop: message.headerMediaUrl ? 6 : 0,
+                  },
+                ]}
+              >
+                {message.body}
+              </Text>
+            )}
+          </View>
+        );
+
       case 'TEXT':
       default:
         return (
