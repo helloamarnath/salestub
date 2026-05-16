@@ -9,6 +9,11 @@ import {
   RefreshControl,
   ActivityIndicator,
   ScrollView,
+  Modal,
+  Pressable,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +23,11 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
 import { Colors, Palette } from '@/constants/theme';
-import { listConversations, getAnalytics } from '@/lib/api/whatsapp';
+import {
+  listConversations,
+  getAnalytics,
+  startConversation,
+} from '@/lib/api/whatsapp';
 import type {
   WaConversation,
   WaListFilter,
@@ -551,8 +560,51 @@ export default function WhatsappPage() {
   const isDark = resolvedTheme === 'dark';
   const colors = Colors[resolvedTheme];
   const insets = useSafeAreaInsets();
+  const { accessToken } = useAuth();
   const [module, setModule] = useState<Module>('inbox');
   const [search, setSearch] = useState('');
+
+  // ---- New-chat dialog state ----
+  const [newChatOpen, setNewChatOpen] = useState(false);
+  const [newChatPhone, setNewChatPhone] = useState('');
+  const [newChatName, setNewChatName] = useState('');
+  const [startingChat, setStartingChat] = useState(false);
+
+  const phoneClean = newChatPhone.replace(/\s|-/g, '');
+  const phoneValid = /^\+?\d{8,15}$/.test(phoneClean);
+
+  const handleStartNewChat = async () => {
+    if (!accessToken || !phoneValid || startingChat) return;
+    setStartingChat(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const res = await startConversation(accessToken, {
+      phone: phoneClean,
+      customerName: newChatName.trim() || undefined,
+    });
+    setStartingChat(false);
+    if (res.success && res.data) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const convId = res.data.id;
+      setNewChatOpen(false);
+      setNewChatPhone('');
+      setNewChatName('');
+      router.push(`/whatsapp/${convId}` as never);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const message = res.error?.message || 'Could not start chat';
+      const lower = message.toLowerCase();
+      if (lower.includes('403') || lower.includes('forbidden')) {
+        Alert.alert('Not available', "WhatsApp CRM isn't enabled for your plan.");
+      } else if (lower.includes('404') || lower.includes('not connected')) {
+        Alert.alert(
+          'WhatsApp not connected',
+          'Connect WhatsApp in Settings → Integrations first.',
+        );
+      } else {
+        Alert.alert('Failed', message);
+      }
+    }
+  };
 
   // Plan-feature gate — mirrors web. Backend's FeatureFlagGuard also enforces,
   // but checking here lets us show a clean upsell instead of a broken inbox.
@@ -602,6 +654,16 @@ export default function WhatsappPage() {
               {module === 'inbox' ? 'Inbox' : 'Analytics'}
             </Text>
           </View>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: '#25D366' }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setNewChatOpen(true);
+            }}
+            accessibilityLabel="Start new chat"
+          >
+            <Ionicons name="chatbubble-ellipses" size={20} color="white" />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: colors.secondary }]}
             onPress={() => router.push('/whatsapp/templates' as never)}
@@ -686,9 +748,249 @@ export default function WhatsappPage() {
       ) : (
         <AnalyticsView isDark={isDark} />
       )}
+
+      {/* ---- New chat dialog ---------------------------------------- */}
+      <Modal
+        visible={newChatOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNewChatOpen(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Pressable
+            style={newChatStyles.overlay}
+            onPress={() => !startingChat && setNewChatOpen(false)}
+          >
+            <Pressable
+              style={[
+                newChatStyles.sheet,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={newChatStyles.header}>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[newChatStyles.title, { color: colors.foreground }]}
+                  >
+                    New WhatsApp chat
+                  </Text>
+                  <Text
+                    style={[
+                      newChatStyles.subtitle,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    Start a conversation with any WhatsApp number. If a chat
+                    already exists for this number, you&apos;ll be taken to it.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => !startingChat && setNewChatOpen(false)}
+                  hitSlop={10}
+                >
+                  <Ionicons name="close" size={24} color={colors.foreground} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <Text
+                  style={[newChatStyles.label, { color: colors.foreground }]}
+                >
+                  Phone number
+                </Text>
+                <TextInput
+                  autoFocus
+                  keyboardType="phone-pad"
+                  value={newChatPhone}
+                  onChangeText={setNewChatPhone}
+                  placeholder="+919876543210"
+                  placeholderTextColor={
+                    isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'
+                  }
+                  style={[
+                    newChatStyles.input,
+                    {
+                      color: colors.foreground,
+                      backgroundColor: isDark
+                        ? 'rgba(255,255,255,0.06)'
+                        : 'rgba(0,0,0,0.04)',
+                      borderColor:
+                        newChatPhone === '' || phoneValid
+                          ? colors.border
+                          : Palette.red,
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    newChatStyles.hint,
+                    {
+                      color:
+                        newChatPhone === '' || phoneValid
+                          ? colors.mutedForeground
+                          : Palette.red,
+                    },
+                  ]}
+                >
+                  {newChatPhone === '' || phoneValid
+                    ? 'Include country code. Spaces and dashes are OK.'
+                    : 'Enter 8–15 digits with country code (e.g. +91 for India).'}
+                </Text>
+              </View>
+
+              <View style={{ marginTop: 12 }}>
+                <Text
+                  style={[newChatStyles.label, { color: colors.foreground }]}
+                >
+                  Name <Text style={{ color: colors.mutedForeground, fontWeight: '400' }}>(optional)</Text>
+                </Text>
+                <TextInput
+                  value={newChatName}
+                  onChangeText={setNewChatName}
+                  placeholder="Customer name"
+                  placeholderTextColor={
+                    isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)'
+                  }
+                  maxLength={120}
+                  style={[
+                    newChatStyles.input,
+                    {
+                      color: colors.foreground,
+                      backgroundColor: isDark
+                        ? 'rgba(255,255,255,0.06)'
+                        : 'rgba(0,0,0,0.04)',
+                      borderColor: colors.border,
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    newChatStyles.hint,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  Used only if no contact / lead matches this number yet.
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  newChatStyles.notice,
+                  { borderColor: colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' },
+                ]}
+              >
+                <Text style={[newChatStyles.noticeText, { color: colors.mutedForeground }]}>
+                  New conversations start outside the 24-hour customer service
+                  window. You&apos;ll need to send an approved template first.
+                </Text>
+              </View>
+
+              <View style={newChatStyles.actions}>
+                <TouchableOpacity
+                  style={[newChatStyles.cancelBtn, { borderColor: colors.border }]}
+                  onPress={() => setNewChatOpen(false)}
+                  disabled={startingChat}
+                >
+                  <Text style={{ color: colors.foreground, fontWeight: '600' }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    newChatStyles.submitBtn,
+                    {
+                      backgroundColor: phoneValid && !startingChat
+                        ? Palette.emerald
+                        : isDark
+                          ? 'rgba(255,255,255,0.08)'
+                          : 'rgba(0,0,0,0.06)',
+                    },
+                  ]}
+                  onPress={handleStartNewChat}
+                  disabled={!phoneValid || startingChat}
+                >
+                  {startingChat ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text
+                      style={{
+                        color: phoneValid ? 'white' : colors.mutedForeground,
+                        fontWeight: '600',
+                      }}
+                    >
+                      Start chat
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
+
+const newChatStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 32,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  title: { fontSize: 18, fontWeight: '700' },
+  subtitle: { fontSize: 12, marginTop: 4, lineHeight: 16 },
+  label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  hint: { fontSize: 11, marginTop: 6 },
+  notice: {
+    marginTop: 16,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  noticeText: { fontSize: 11, lineHeight: 16 },
+  actions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  submitBtn: {
+    flex: 2,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 const styles = StyleSheet.create({
   header: {

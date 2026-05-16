@@ -12,6 +12,10 @@ import type {
   WaContactContext,
   WaAnalytics,
   WhatsappTemplate,
+  WhatsappTemplateCategory,
+  WhatsappTemplateStatus,
+  WhatsappTemplateButton,
+  WhatsappTemplateListResponse,
   WhatsappStatus,
 } from '@/types/whatsapp';
 
@@ -101,10 +105,18 @@ export async function updateConversation(
 
 // ============ Messages ============
 
+/**
+ * Send a message to a conversation.
+ *
+ * Inside the 24-hour customer-service window: pass `body` for free-form text.
+ * Outside the window (or to initiate a new chat): pass `templateId` + the
+ * positional `variables` for the template. The server validates that the
+ * template is `APPROVED` and that variable count matches the body.
+ */
 export async function sendMessage(
   token: string | null,
   conversationId: string,
-  data: { body?: string; templateId?: string },
+  data: { body?: string; templateId?: string; variables?: string[] },
 ): Promise<ApiResponse<WaMessage>> {
   return api.post<WaMessage>(`${BASE}/conversations/${conversationId}/send`, token, data);
 }
@@ -273,15 +285,54 @@ export async function updatePolicy(
 
 // ============ Templates ============
 
+export interface ListTemplatesQuery {
+  search?: string;
+  category?: WhatsappTemplateCategory;
+  status?: WhatsappTemplateStatus;
+  language?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateTemplatePayload {
+  name: string;
+  body: string;
+  category?: WhatsappTemplateCategory;
+  language?: string;
+  headerText?: string;
+  footerText?: string;
+  buttons?: WhatsappTemplateButton[];
+  variableLabels?: string[];
+  status?: WhatsappTemplateStatus;
+}
+
+export type UpdateTemplatePayload = Partial<CreateTemplatePayload>;
+
 export async function listTemplates(
   token: string | null,
-): Promise<ApiResponse<WhatsappTemplate[]>> {
-  return api.get<WhatsappTemplate[]>(TEMPLATES_BASE, token);
+  query: ListTemplatesQuery = {},
+): Promise<ApiResponse<WhatsappTemplateListResponse>> {
+  const params: Record<string, string | number | undefined> = {
+    search: query.search,
+    category: query.category,
+    status: query.status,
+    language: query.language,
+    page: query.page,
+    pageSize: query.pageSize,
+  };
+  return api.get<WhatsappTemplateListResponse>(TEMPLATES_BASE, token, params);
+}
+
+export async function getTemplate(
+  token: string | null,
+  templateId: string,
+): Promise<ApiResponse<WhatsappTemplate>> {
+  return api.get<WhatsappTemplate>(`${TEMPLATES_BASE}/${templateId}`, token);
 }
 
 export async function createTemplate(
   token: string | null,
-  data: { name: string; body: string },
+  data: CreateTemplatePayload,
 ): Promise<ApiResponse<WhatsappTemplate>> {
   return api.post<WhatsappTemplate>(TEMPLATES_BASE, token, data);
 }
@@ -289,7 +340,7 @@ export async function createTemplate(
 export async function updateTemplate(
   token: string | null,
   templateId: string,
-  data: { name?: string; body?: string },
+  data: UpdateTemplatePayload,
 ): Promise<ApiResponse<WhatsappTemplate>> {
   return api.patch<WhatsappTemplate>(`${TEMPLATES_BASE}/${templateId}`, token, data);
 }
@@ -299,4 +350,81 @@ export async function deleteTemplate(
   templateId: string,
 ): Promise<ApiResponse<WhatsappTemplate>> {
   return api.delete<WhatsappTemplate>(`${TEMPLATES_BASE}/${templateId}`, token);
+}
+
+export async function submitTemplateForApproval(
+  token: string | null,
+  templateId: string,
+): Promise<ApiResponse<WhatsappTemplate>> {
+  return api.post<WhatsappTemplate>(
+    `${TEMPLATES_BASE}/${templateId}/submit`,
+    token,
+    {},
+  );
+}
+
+export async function syncTemplatesFromProvider(
+  token: string | null,
+): Promise<
+  ApiResponse<{ imported: number; updated: number; namespaceSet: boolean }>
+> {
+  return api.post(`${TEMPLATES_BASE}/sync`, token, {});
+}
+
+export async function refreshPendingTemplateStatuses(
+  token: string | null,
+): Promise<ApiResponse<{ checked: number; updated: number }>> {
+  return api.post(`${TEMPLATES_BASE}/sync-status`, token, {});
+}
+
+/**
+ * Upload a sample image / video / document to use as a template HEADER.
+ * Multipart upload via raw fetch since `api.post` is JSON-only.
+ */
+export async function uploadTemplateHeaderMedia(
+  token: string | null,
+  file: { uri: string; name: string; type: string },
+): Promise<
+  ApiResponse<{ providerHandle: string; storageKey: string; mimeType: string }>
+> {
+  if (!token) {
+    return { success: false, error: { message: 'Not authenticated', statusCode: 401 } };
+  }
+  try {
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL || '';
+    const form = new FormData();
+    // React Native FormData accepts the {uri, name, type} shape; cast to any
+    // for the global FormData typing.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.append('file', { uri: file.uri, name: file.name, type: file.type } as any);
+    const res = await fetch(`${baseUrl}${TEMPLATES_BASE}/upload-header-media`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        error: {
+          message: errBody.message || `Upload failed (${res.status})`,
+          statusCode: res.status,
+        },
+      };
+    }
+    const data = (await res.json()) as {
+      providerHandle: string;
+      storageKey: string;
+      mimeType: string;
+    };
+    return { success: true, data };
+  } catch (e) {
+    return {
+      success: false,
+      error: {
+        message: e instanceof Error ? e.message : 'Upload failed',
+        statusCode: 0,
+      },
+    };
+  }
 }

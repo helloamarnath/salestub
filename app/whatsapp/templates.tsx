@@ -27,11 +27,37 @@ import {
   createTemplate,
   updateTemplate,
   deleteTemplate,
+  submitTemplateForApproval,
+  syncTemplatesFromProvider,
 } from '@/lib/api/whatsapp';
-import type { WhatsappTemplate } from '@/types/whatsapp';
+import type {
+  WhatsappTemplate,
+  WhatsappTemplateStatus,
+} from '@/types/whatsapp';
+
+const STATUS_LABELS: Record<WhatsappTemplateStatus, string> = {
+  DRAFT: 'Draft',
+  PENDING: 'Pending',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  PAUSED: 'Paused',
+  DISABLED: 'Disabled',
+  ARCHIVED: 'Archived',
+};
+
+const STATUS_COLORS: Record<WhatsappTemplateStatus, string> = {
+  DRAFT: '#64748b',
+  PENDING: '#d97706',
+  APPROVED: '#059669',
+  REJECTED: '#dc2626',
+  PAUSED: '#ca8a04',
+  DISABLED: '#52525b',
+  ARCHIVED: '#94a3b8',
+};
 
 const NAME_MAX = 100;
-const BODY_MAX = 2000;
+// Matches backend DTO @MaxLength(1024). Provider hard limit on body is 1024.
+const BODY_MAX = 1024;
 
 export default function WhatsappTemplatesScreen() {
   const { resolvedTheme } = useTheme();
@@ -56,16 +82,22 @@ export default function WhatsappTemplatesScreen() {
   const [pendingDelete, setPendingDelete] = useState<WhatsappTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Provider sync actions
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
   const fetchTemplates = useCallback(
     async (isRefresh = false) => {
       if (!accessToken) return;
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
-      const res = await listTemplates(accessToken);
+      const res = await listTemplates(accessToken, { pageSize: 200 });
       if (res.success && res.data) {
         // Sort alphabetically (matches web)
-        const sorted = [...res.data].sort((a, b) => a.name.localeCompare(b.name));
+        const sorted = [...res.data.items].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
         setTemplates(sorted);
       } else {
         setError(res.error?.message || 'Failed to load templates');
@@ -125,6 +157,49 @@ export default function WhatsappTemplatesScreen() {
     }
   };
 
+  const handleSubmitForApproval = async (tpl: WhatsappTemplate) => {
+    if (!accessToken) return;
+    setSubmittingId(tpl.id);
+    const res = await submitTemplateForApproval(accessToken, tpl.id);
+    setSubmittingId(null);
+    if (res.success && res.data) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === tpl.id ? res.data! : t)),
+      );
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        'Submit failed',
+        res.error?.message || 'Could not submit template for approval.',
+      );
+    }
+  };
+
+  const handleSyncFromProvider = async () => {
+    if (!accessToken) return;
+    setSyncing(true);
+    const res = await syncTemplatesFromProvider(accessToken);
+    setSyncing(false);
+    if (res.success && res.data) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const detail = [
+        res.data.imported && `${res.data.imported} imported`,
+        res.data.updated && `${res.data.updated} updated`,
+      ]
+        .filter(Boolean)
+        .join(', ');
+      Alert.alert(
+        'Sync complete',
+        detail || 'Already in sync — no changes',
+      );
+      fetchTemplates(true);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Sync failed', res.error?.message || 'Could not sync.');
+    }
+  };
+
   const handleConfirmDelete = async () => {
     if (!accessToken || !pendingDelete) return;
     setDeleting(true);
@@ -163,6 +238,18 @@ export default function WhatsappTemplatesScreen() {
             {templates.length} saved
           </Text>
         </View>
+        <TouchableOpacity
+          style={[styles.headerIcon, { backgroundColor: inputBg, marginRight: 8 }]}
+          onPress={handleSyncFromProvider}
+          disabled={syncing}
+          accessibilityLabel="Sync from provider"
+        >
+          {syncing ? (
+            <ActivityIndicator size="small" color={colors.foreground} />
+          ) : (
+            <Ionicons name="cloud-download-outline" size={20} color={colors.foreground} />
+          )}
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.headerIcon, { backgroundColor: '#25D366' }]}
           onPress={openCreate}
@@ -222,10 +309,35 @@ export default function WhatsappTemplatesScreen() {
               ]}
             >
               <View style={styles.tplHeader}>
-                <Text style={[styles.tplName, { color: colors.foreground }]} numberOfLines={1}>
-                  {tpl.name}
-                </Text>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.tplName, { color: colors.foreground, flexShrink: 1 }]} numberOfLines={1}>
+                    {tpl.name}
+                  </Text>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      { backgroundColor: `${STATUS_COLORS[tpl.status]}1A`, borderColor: STATUS_COLORS[tpl.status] },
+                    ]}
+                  >
+                    <Text style={[styles.statusPillText, { color: STATUS_COLORS[tpl.status] }]}>
+                      {STATUS_LABELS[tpl.status]}
+                    </Text>
+                  </View>
+                </View>
                 <View style={styles.tplActions}>
+                  {tpl.status === 'DRAFT' && (
+                    <TouchableOpacity
+                      style={[styles.tplIconBtn, { backgroundColor: '#25D36620' }]}
+                      onPress={() => handleSubmitForApproval(tpl)}
+                      disabled={submittingId === tpl.id}
+                    >
+                      {submittingId === tpl.id ? (
+                        <ActivityIndicator size="small" color="#25D366" />
+                      ) : (
+                        <Ionicons name="send" size={14} color="#25D366" />
+                      )}
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     style={[styles.tplIconBtn, { backgroundColor: inputBg }]}
                     onPress={() => openEdit(tpl)}
@@ -246,6 +358,11 @@ export default function WhatsappTemplatesScreen() {
               <Text style={[styles.tplBody, { color: colors.mutedForeground }]} numberOfLines={3}>
                 {tpl.body}
               </Text>
+              {tpl.status === 'REJECTED' && tpl.rejectionReason && (
+                <Text style={[styles.rejectionText, { color: Palette.red }]} numberOfLines={2}>
+                  Rejection: {tpl.rejectionReason}
+                </Text>
+              )}
             </View>
           ))}
         </ScrollView>
@@ -356,7 +473,7 @@ export default function WhatsappTemplatesScreen() {
               Delete template?
             </Text>
             <Text style={[styles.confirmBody, { color: colors.mutedForeground }]}>
-              "{pendingDelete?.name}" will be removed permanently.
+              &ldquo;{pendingDelete?.name}&rdquo; will be removed permanently.
             </Text>
             <View style={styles.confirmRow}>
               <TouchableOpacity
@@ -442,6 +559,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tplBody: { fontSize: 13, lineHeight: 18 },
+  statusPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  statusPillText: { fontSize: 10, fontWeight: '600' },
+  rejectionText: { marginTop: 6, fontSize: 12 },
 
   /* Modal — editor */
   modalOverlay: {

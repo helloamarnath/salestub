@@ -286,8 +286,8 @@ export default function ConversationDetailScreen() {
   const fetchTemplates = useCallback(async () => {
     if (!accessToken) return;
     setTemplatesLoading(true);
-    const res = await listTemplates(accessToken);
-    if (res.success && res.data) setTemplates(res.data);
+    const res = await listTemplates(accessToken, { pageSize: 200 });
+    if (res.success && res.data) setTemplates(res.data.items);
     setTemplatesLoading(false);
   }, [accessToken]);
 
@@ -302,11 +302,15 @@ export default function ConversationDetailScreen() {
     return () => clearInterval(t);
   }, [fetchConversation]);
 
-  const handleSend = async (body: string) => {
+  const handleSend = async (payload: {
+    body?: string;
+    templateId?: string;
+    variables?: string[];
+  }) => {
     if (!accessToken || !conversation) return;
     setSending(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const res = await sendMessage(accessToken, conversation.id, { body });
+    const res = await sendMessage(accessToken, conversation.id, payload);
     if (res.success && res.data) {
       // Optimistic-ish: append the returned message
       setConversation((prev) =>
@@ -315,7 +319,13 @@ export default function ConversationDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Send failed', res.error?.message || 'Could not send message.');
+      // Backend returns 400 with an actionable message for:
+      //   - CSW closed + plain text send
+      //   - non-APPROVED template send
+      //   - missing variables
+      // Surface that message directly so the rep knows what to fix.
+      const message = res.error?.message || 'Could not send message.';
+      Alert.alert('Send failed', message);
     }
     setSending(false);
   };

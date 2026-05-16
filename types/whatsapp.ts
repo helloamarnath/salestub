@@ -140,12 +140,67 @@ export interface WaAnalytics {
   conversionRate?: number; // 0..1
 }
 
+export type WhatsappTemplateCategory =
+  | 'UTILITY'
+  | 'MARKETING'
+  | 'AUTHENTICATION';
+
+export type WhatsappTemplateHeaderType =
+  | 'NONE'
+  | 'TEXT'
+  | 'IMAGE'
+  | 'VIDEO'
+  | 'DOCUMENT';
+
+export type WhatsappTemplateStatus =
+  | 'DRAFT'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'PAUSED'
+  | 'DISABLED'
+  | 'ARCHIVED';
+
+export type WhatsappTemplateButtonType = 'QUICK_REPLY' | 'URL' | 'PHONE';
+
+export interface WhatsappTemplateButton {
+  type: WhatsappTemplateButtonType;
+  text: string;
+  url?: string;
+  phoneNumber?: string;
+}
+
 export interface WhatsappTemplate {
   id: string;
   name: string;
   body: string;
+  category: WhatsappTemplateCategory;
+  language: string;
+  status: WhatsappTemplateStatus;
+  headerType: WhatsappTemplateHeaderType;
+  headerText: string | null;
+  /** Provider's upload-session handle (used at template approval). */
+  headerMediaUrl: string | null;
+  /** R2 storage key — backend signs a fresh URL at every send. */
+  headerMediaStorageKey: string | null;
+  headerMediaMimeType: string | null;
+  footerText: string | null;
+  buttons: WhatsappTemplateButton[] | null;
+  variableLabels: string[];
+  providerTemplateId: string | null;
+  rejectionReason: string | null;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  lastSyncedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WhatsappTemplateListResponse {
+  items: WhatsappTemplate[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface WhatsappStatus {
