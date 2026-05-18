@@ -12,6 +12,7 @@ import 'react-native-reanimated';
 import { ThemeProvider, useTheme } from '@/contexts/theme-context';
 import { AuthProvider } from '@/contexts/auth-context';
 import { NotificationProvider } from '@/contexts/notification-context';
+import { RealtimeProvider } from '@/contexts/realtime-context';
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -59,7 +60,9 @@ export default function RootLayout() {
       <AuthProvider>
         <ThemeProvider defaultTheme="system">
           <NotificationProvider>
-            <RootLayoutNav />
+            <RealtimeProvider>
+              <RootLayoutNav />
+            </RealtimeProvider>
           </NotificationProvider>
         </ThemeProvider>
       </AuthProvider>

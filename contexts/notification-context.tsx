@@ -255,6 +255,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             } else {
               router.push('/(tabs)/contacts' as any);
             }
+          } else if (url.includes('/whatsapp/')) {
+            // Open the specific WhatsApp conversation when the FCM payload
+            // carries one. The actionUrl may be the web form
+            // (/whatsapp/conversation/<id>) or just /whatsapp/<id>.
+            const convMatch =
+              url.match(/\/whatsapp\/conversation\/([^/?]+)/) ||
+              url.match(/\/whatsapp\/([^/?]+)/);
+            if (convMatch && convMatch[1] !== 'conversation') {
+              router.push(`/whatsapp/${convMatch[1]}` as any);
+            } else {
+              router.push('/(tabs)/whatsapp' as any);
+            }
           } else if (url.includes('/activities')) {
             // Activity notifications - show in notifications screen for now
             // TODO: Add activities tab/screen when implemented

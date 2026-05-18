@@ -22,6 +22,10 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
+import {
+  useRealtime,
+  useRealtimeConnected,
+} from '@/contexts/realtime-context';
 import { Colors, Palette } from '@/constants/theme';
 import {
   listConversations,
@@ -53,7 +57,8 @@ const STATUS_TABS: { id: WaConvStatus | 'ALL'; label: string }[] = [
   { id: 'CLOSED', label: 'Closed' },
 ];
 
-const POLL_INTERVAL_MS = 15_000;
+const POLL_INTERVAL_MS = 5_000;
+const REALTIME_FALLBACK_POLL_MS = 30_000;
 
 // ============ Analytics tab ============
 
@@ -382,13 +387,67 @@ function InboxView({
     fetchPage(1);
   }, [filter, statusFilter, debouncedSearch, fetchPage]);
 
-  // 15s polling — silent refresh of page 1
+  // Polling cadence depends on realtime state:
+  //  - WS connected → slow 30s safety net (catches missed events).
+  //  - WS disconnected → fast 5s (Phase-1 cadence).
+  const realtimeConnected = useRealtimeConnected();
   useEffect(() => {
+    const ms = realtimeConnected ? REALTIME_FALLBACK_POLL_MS : POLL_INTERVAL_MS;
     const id = setInterval(() => {
       fetchPage(1, { silent: true });
-    }, POLL_INTERVAL_MS);
+    }, ms);
     return () => clearInterval(id);
-  }, [fetchPage]);
+  }, [fetchPage, realtimeConnected]);
+
+  // Realtime event hookups — patch local list state on push events.
+  const { subscribe, onReconnect } = useRealtime();
+  useEffect(() => {
+    const patchById = (
+      id: string,
+      patch: Partial<WaConversation>,
+    ): void => {
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      );
+    };
+    const unsubs = [
+      subscribe('message.new', (raw) => {
+        const e = raw as {
+          conversationId: string;
+          conversationDelta?: { lastMessageAt?: string; unreadCount?: number };
+        };
+        const patch: Partial<WaConversation> = {};
+        if (e.conversationDelta?.lastMessageAt) {
+          patch.lastMessageAt = e.conversationDelta.lastMessageAt;
+        }
+        if (typeof e.conversationDelta?.unreadCount === 'number') {
+          patch.unreadCount = e.conversationDelta.unreadCount;
+        }
+        patchById(e.conversationId, patch);
+      }),
+      subscribe('conversation.updated', (raw) => {
+        const e = raw as { conversation: { id: string } & Partial<WaConversation> };
+        const { id, ...rest } = e.conversation;
+        patchById(id, rest as Partial<WaConversation>);
+      }),
+      subscribe('conversation.created', () => {
+        // Cheapest path: refetch page 1 so the new row appears at the top.
+        void fetchPage(1, { silent: true });
+      }),
+      subscribe('conversation.deleted', (raw) => {
+        const e = raw as { conversationId: string };
+        setConversations((prev) => prev.filter((c) => c.id !== e.conversationId));
+      }),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [subscribe, fetchPage]);
+
+  // On reconnect, refetch the visible page to catch missed events.
+  useEffect(() => {
+    return onReconnect(() => {
+      void fetchPage(1, { silent: true });
+    });
+  }, [onReconnect, fetchPage]);
 
   const handleLoadMore = () => {
     if (!hasMore || loading || refreshing) return;

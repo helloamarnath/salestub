@@ -19,6 +19,10 @@ import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from '@/contexts/theme-context';
+import {
+  useRealtime,
+  useRealtimeConnected,
+} from '@/contexts/realtime-context';
 import { Colors, Palette } from '@/constants/theme';
 import {
   getConversation,
@@ -44,7 +48,8 @@ import { getAvatarColor } from '@/types/contact';
 import { MessageBubble, DateSeparator } from '@/components/whatsapp/MessageBubble';
 import { Composer, type PickedMedia } from '@/components/whatsapp/Composer';
 
-const POLL_INTERVAL_MS = 8_000;
+const POLL_INTERVAL_MS = 3_000;
+const REALTIME_FALLBACK_POLL_MS = 30_000;
 
 const STATUS_BADGE_COLOR: Record<WaConvStatus, string> = {
   OPEN: Palette.emerald,
@@ -296,11 +301,81 @@ export default function ConversationDetailScreen() {
     fetchTemplates();
   }, [fetchConversation, fetchTemplates]);
 
-  // Poll for new messages every 8s while screen is mounted (silent)
+  // Polling cadence depends on realtime state:
+  //  - WS connected → slow 30s safety net (calling getConversation also marks
+  //    the thread read, so a tighter cadence prematurely clears unread state
+  //    on the OTHER device viewing the same conversation).
+  //  - WS disconnected → fast 3s (Phase-1 cadence).
+  const realtimeConnected = useRealtimeConnected();
   useEffect(() => {
-    const t = setInterval(() => fetchConversation({ silent: true }), POLL_INTERVAL_MS);
+    const ms = realtimeConnected ? REALTIME_FALLBACK_POLL_MS : POLL_INTERVAL_MS;
+    const t = setInterval(() => fetchConversation({ silent: true }), ms);
     return () => clearInterval(t);
-  }, [fetchConversation]);
+  }, [fetchConversation, realtimeConnected]);
+
+  // Realtime event hookups for the open thread.
+  const { subscribe, onReconnect } = useRealtime();
+  useEffect(() => {
+    if (!id) return;
+    const unsubs = [
+      subscribe('message.new', (raw) => {
+        const e = raw as { conversationId: string; message: WaMessage };
+        if (e.conversationId !== id) return;
+        setConversation((prev) => {
+          if (!prev) return prev;
+          if (prev.messages.some((m) => m.id === e.message.id)) return prev;
+          return { ...prev, messages: [...prev.messages, e.message] };
+        });
+      }),
+      subscribe('message.status', (raw) => {
+        const e = raw as {
+          conversationId: string;
+          messageId: string;
+          status: WaMessage['status'];
+          failureReason?: string | null;
+        };
+        if (e.conversationId !== id) return;
+        setConversation((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.map((m) =>
+                  m.id === e.messageId
+                    ? {
+                        ...m,
+                        status: e.status,
+                        ...(e.failureReason != null && {
+                          failureReason: e.failureReason,
+                        }),
+                      }
+                    : m,
+                ),
+              }
+            : prev,
+        );
+      }),
+      subscribe('conversation.updated', (raw) => {
+        const e = raw as {
+          conversation: { id: string } & Partial<WaConversationDetail>;
+        };
+        if (e.conversation.id !== id) return;
+        const { id: _ignore, ...rest } = e.conversation;
+        setConversation((prev) => (prev ? { ...prev, ...rest } : prev));
+      }),
+      subscribe('conversation.deleted', (raw) => {
+        const e = raw as { conversationId: string };
+        if (e.conversationId === id) router.back();
+      }),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [id, subscribe]);
+
+  // On reconnect, refetch the thread so we don't miss anything during the gap.
+  useEffect(() => {
+    return onReconnect(() => {
+      void fetchConversation({ silent: true });
+    });
+  }, [onReconnect, fetchConversation]);
 
   const handleSend = async (payload: {
     body?: string;
