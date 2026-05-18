@@ -2,7 +2,7 @@
 
 ## Overview
 
-React Native **mobile app** for **SalesTub CRM** — iOS & Android app for sales teams to manage leads, deals, contacts, activities, invoices, products, and quotes on the go.
+React Native **mobile app** for **SalesTub CRM** — iOS & Android app for sales teams to manage leads, contacts (customers/organizations), activities, invoices, products, quotes, WhatsApp conversations, field visits, and subscription/billing on the go.
 
 Part of a monorepo with: `crm-backend` (API), `crm-admin` (admin portal), `crm-user` (user portal).
 
@@ -12,81 +12,83 @@ Part of a monorepo with: `crm-backend` (API), `crm-admin` (admin portal), `crm-u
 
 ## Tech Stack
 
-- **Framework:** React Native 0.81 with Expo SDK 54
-- **Router:** Expo Router (file-based routing)
-- **UI:** Gluestack UI + NativeWind 4 (Tailwind CSS)
-- **Styling:** class-variance-authority (CVA) for component variants
+- **Framework:** React Native 0.81.5 with Expo SDK 54 (New Architecture enabled, React Compiler experiment on)
+- **Router:** Expo Router 6 (file-based routing, typed routes)
+- **UI:** NativeWind 4 + Tailwind CSS 3 (hsl CSS-variable theme tokens, dark mode via class)
+- **Tabs:** iOS uses `expo-router/unstable-native-tabs` (NativeTabs / liquid glass + SF Symbols); Android uses standard `<Tabs>` from expo-router with Ionicons
 - **State:** React Context API (auth, notifications, theme)
-- **Auth:** expo-secure-store for token storage (Bearer tokens)
+- **Auth:** expo-secure-store for token storage (Bearer tokens); token refresh + logout callbacks wired via `setAuthCallbacks`
 - **Payments:** react-native-razorpay
-- **Push:** Firebase Cloud Messaging (FCM)
-- **Icons:** Lucide React Native
+- **Push:** Firebase Cloud Messaging via `@react-native-firebase/app` + `@react-native-firebase/auth` + expo-notifications
+- **Location:** expo-location + expo-task-manager (background visit tracking)
+- **Icons:** `@expo/vector-icons` (Ionicons), `expo-symbols` (SF Symbols on iOS)
+- **Other:** @gorhom/bottom-sheet, expo-image-picker, expo-document-picker, expo-file-system, expo-clipboard, expo-haptics, react-native-mmkv, react-native-reanimated 4, react-native-big-calendar
 
 ## Commands
 
 ```bash
 npm install
 
-# Development
+# Development (scripts from package.json)
+npm run start                  # expo start
+npm run ios                    # expo run:ios (local build + iOS simulator)
+npm run android                # expo run:android (local build + Android emulator)
+npm run web                    # expo start --web
+npm run lint                   # expo lint
+
+# Raw expo (all valid)
 npx expo start                 # Start dev server
 npx expo start --ios           # iOS simulator
 npx expo start --android       # Android emulator
-npx expo start -c              # Clear cache and start
+npx expo start -c              # Clear Metro cache and start
 
-# Build (EAS)
-eas build --platform ios
-eas build --platform android
-eas build --platform all
+# Build (EAS — profiles: development, preview, production — see eas.json)
+eas build --profile development --platform ios
+eas build --profile preview --platform android
+eas build --profile production --platform all
 
 # Submit to stores
 eas submit --platform ios
 eas submit --platform android
-
-# Local builds
-npx expo run:ios
-npx expo run:android
-
-# Lint
-npm run lint
 ```
 
 ## App Structure
 
 ```
 app/
-├── _layout.tsx                # Root layout (AuthProvider, ThemeProvider, NotificationProvider)
-├── index.tsx                  # Entry redirect
+├── _layout.tsx                # Root layout (SafeAreaProvider > AuthProvider > ThemeProvider > NotificationProvider > Stack)
+├── index.tsx                  # Entry / home dashboard screen
 │
-├── (auth)/                    # Auth group (unauthenticated users)
+├── (auth)/                    # Auth group (unauthenticated)
 │   ├── _layout.tsx            # Stack navigator
 │   └── login.tsx              # Login screen
 │
-├── (tabs)/                    # Tab group (authenticated users)
-│   ├── _layout.tsx            # Tab navigator (5 tabs)
-│   ├── index.tsx              # Home/Dashboard tab
-│   ├── contacts/              # Contacts tab
-│   │   ├── index.tsx          # Contact list
-│   │   ├── customer/create.tsx    # Create customer
-│   │   └── organization/create.tsx # Create organization
+├── (tabs)/                    # Tab group (authenticated) — 5 tabs
+│   ├── _layout.tsx            # NativeTabs on iOS, Tabs+Ionicons on Android
+│   ├── index.tsx              # Home / Dashboard tab
+│   ├── whatsapp/              # WhatsApp tab
+│   │   ├── _layout.tsx
+│   │   └── index.tsx          # Conversations list
 │   ├── leads/                 # Leads tab
+│   │   ├── _layout.tsx
 │   │   ├── index.tsx          # Lead list
 │   │   └── create.tsx         # Create lead
-│   ├── quotes/                # Quotes tab
-│   │   ├── index.tsx          # Quote list
-│   │   └── create.tsx         # Create quote
+│   ├── contacts/              # Contacts tab
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx          # Contact list
+│   │   ├── customer/create.tsx       # Create customer
+│   │   └── organization/create.tsx   # Create organization
 │   └── more.tsx               # More menu
 │
-│  # --- Detail/CRUD Screens (stack) ---
+│  # --- Detail / CRUD stack screens ---
 ├── leads/
 │   ├── _layout.tsx
-│   └── [id].tsx               # Lead detail
-├── deals/
-│   ├── _layout.tsx
-│   ├── index.tsx              # Deal list
-│   ├── [id].tsx               # Deal detail
-│   └── create.tsx             # Create deal
+│   ├── [id].tsx               # Lead detail
+│   └── analytics.tsx          # Lead analytics
 ├── contacts/
 │   ├── _layout.tsx
+│   ├── analytics.tsx          # Customer analytics
+│   ├── organization-analytics.tsx    # Organization analytics
 │   ├── customer/[id].tsx      # Customer detail
 │   └── organization/[id].tsx  # Organization detail
 ├── activities/
@@ -103,19 +105,38 @@ app/
 │   ├── _layout.tsx
 │   ├── index.tsx              # Product list
 │   ├── [id].tsx               # Product detail
-│   └── create.tsx             # Create product
+│   ├── create.tsx             # Create product
+│   ├── categories.tsx         # Product categories
+│   └── import.tsx             # Bulk product import
+├── quotes/                    # Quote list & create (stack, not a tab)
+│   ├── _layout.tsx
+│   ├── index.tsx              # Quote list
+│   └── create.tsx             # Create quote
 ├── quotes-detail/
 │   ├── _layout.tsx
 │   └── [id].tsx               # Quote detail
+├── whatsapp/                  # WhatsApp stack screens (outside the tab)
+│   ├── _layout.tsx
+│   ├── [id].tsx               # Conversation view
+│   ├── details/[id].tsx       # Contact/conversation details
+│   ├── settings.tsx           # WhatsApp settings
+│   └── templates.tsx          # Message templates
+├── profile/
+│   ├── _layout.tsx
+│   └── index.tsx              # User profile
+├── subscription/
+│   ├── _layout.tsx
+│   └── billing.tsx            # Plans, billing, manage subscription
 │
-│  # --- Other Screens ---
-├── profile/                   # User profile
-├── subscription/              # Plans & subscription management
-├── notifications.tsx          # Notifications
+│  # --- Standalone screens ---
+├── gallery.tsx                # Org-wide file gallery (uses OrgFile API)
+├── notifications.tsx          # In-app notifications
 ├── notification-settings.tsx  # Notification preferences
 ├── export-import.tsx          # Data export/import
 └── modal.tsx                  # Modal screen
 ```
+
+> No `deals/` route exists on mobile — deal CRUD lives in the web portals only.
 
 ## Project Structure
 
@@ -123,76 +144,101 @@ app/
 salestub/
 ├── app/                       # Screens (see above)
 ├── components/
-│   ├── ui/                    # Gluestack UI (Button, Text, Input, etc.)
-│   ├── dashboard/             # Dashboard widgets
-│   ├── leads/                 # Lead components
-│   ├── quotes/                # Quote components
-│   ├── filters/               # Filter components
-│   ├── export/                # Export components
-│   └── visits/                # Visit components
+│   ├── ui/                    # Local UI primitives — ScreenLoader, collapsible,
+│   │                          #   icon-symbol (iOS SF + Android fallback),
+│   │                          #   keyboard-screen. (Folders button/, text/, input/,
+│   │                          #   gluestack-ui-provider/ exist but are currently empty —
+│   │                          #   no Gluestack dependency is installed.)
+│   ├── dashboard/             # ActivityFeed, InvoicingTile, LifecycleCard, OverdueBanner,
+│   │                          #   PerformanceTile, PipelineProgress, QuickActions,
+│   │                          #   RevenueChart, StatCard, TodaysAgenda
+│   ├── leads/                 # LeadCard, LeadStatusBadge
+│   ├── quotes/                # QuoteItemEditor
+│   ├── filters/               # ContactFilterModal, LeadFilterModal
+│   ├── export/                # ExportFilterModal
+│   ├── visits/                # ActiveVisitBanner, StartVisitSheet, VisitCard,
+│   │                          #   VisitPhotoCapture, VisitStatusBadge
+│   ├── whatsapp/              # Composer, ConversationCard, MessageBubble
+│   ├── AccessDenied.tsx       # RBAC fallback
+│   ├── UpgradeCard.tsx        # Subscription upsell card
+│   └── (themed-text, themed-view, haptic-tab, parallax-scroll-view, external-link, hello-wave)
 ├── contexts/
-│   ├── auth-context.tsx       # Auth state, session refresh
-│   ├── notification-context.tsx # Push notification management
-│   └── theme-context.tsx      # Theme management
+│   ├── auth-context.tsx       # Auth state, token storage, refresh, AppState rehydrate
+│   ├── notification-context.tsx # FCM + expo-notifications wiring
+│   └── theme-context.tsx      # Theme (system/light/dark)
 ├── lib/
-│   ├── api/                   # API clients (15 service files)
-│   │   ├── client.ts          # Base client with Bearer auth
-│   │   ├── leads.ts
-│   │   ├── contacts.ts
-│   │   ├── deals.ts
+│   ├── api/                   # API clients — Bearer auth via lib/api/client.ts
+│   │   ├── client.ts          # apiRequest + api.{get,post,put,patch,delete} + uploadFile
 │   │   ├── activities.ts
-│   │   ├── invoices.ts
-│   │   ├── products.ts
-│   │   ├── quotes.ts
-│   │   ├── dashboard.ts
 │   │   ├── companies.ts
-│   │   ├── pipelines.ts
+│   │   ├── contacts.ts
+│   │   ├── dashboard.ts
+│   │   ├── gallery.ts         # OrgFile gallery
+│   │   ├── google-auth.ts     # Google sign-in helper
+│   │   ├── invoices.ts
+│   │   ├── leads.ts
 │   │   ├── organization.ts
+│   │   ├── pipelines.ts
+│   │   ├── products.ts
 │   │   ├── profile.ts
+│   │   ├── quotes.ts
 │   │   ├── subscription.ts
-│   │   └── visits.ts
-│   ├── firebase/              # Firebase configuration
-│   ├── notification-service.ts
-│   ├── storage.ts
-│   └── utils.ts
+│   │   ├── visits.ts
+│   │   └── whatsapp.ts
+│   ├── firebase/              # background-task.ts, location-tracker.ts (visit tracking)
+│   ├── notification-service.ts # Push registration + handlers
+│   ├── storage.ts             # MMKV/secure-store helpers
+│   └── utils.ts               # cn() etc.
 ├── hooks/
+│   ├── use-plan-features.ts   # Plan-gated feature flags
 │   ├── use-razorpay.ts        # Payment hook
 │   ├── use-rbac.ts            # Permission checking
-│   └── use-theme-color.ts     # Theme hook
-└── constants/                 # Theme colors, config
+│   └── use-theme-color.ts     # Theme color hook
+├── constants/
+│   └── theme.ts               # Color tokens (light/dark)
+├── types/                     # Shared TypeScript types
+└── android/                   # Native Android project (Gradle)
 ```
+
+> No `lib/api/deals.ts` — there is no deals module on mobile.
 
 ## Key Patterns
 
 ### Authentication (Bearer tokens, NOT cookies)
 
-```typescript
-// lib/api/client.ts
-import * as SecureStore from 'expo-secure-store';
+`lib/api/client.ts` exposes `apiRequest(endpoint, accessToken, opts)` and the
+`api.{get,post,put,patch,delete}` helpers. The access token is passed in as an
+argument (read from secure storage in the calling layer, typically via
+`useAuth()`), not pulled from SecureStore inside `client.ts`.
 
-async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const accessToken = await SecureStore.getItemAsync('access_token');
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-      'Authorization': `Bearer ${accessToken}`,
-    },
-  });
-}
+```typescript
+// On 401 the client auto-calls a refresh callback registered by AuthProvider
+// via setAuthCallbacks(refreshFn, logoutFn). If refresh fails, it logs out.
+import { api, setAuthCallbacks, uploadFile } from '@/lib/api/client';
+
+const { data, error, success } = await api.get<Lead[]>('/api/v1/leads', accessToken);
 ```
+
+`API_URL` falls back to `https://api.salestub.com` if `EXPO_PUBLIC_API_URL` is
+unset — set it in `.env` for local dev.
 
 ### Route Protection
 
+Each protected group does its own auth check rather than a single global
+redirect. `app/(tabs)/_layout.tsx` uses `useAuth()` and `router.replace('/')`
+when unauthenticated, showing `<ScreenLoader />` while resolving. The (auth)
+group is shown by Expo Router when no session exists.
+
+### Tab Bar (platform split)
+
 ```typescript
-// app/_layout.tsx
-const { isAuthenticated, loading } = useAuth();
-useEffect(() => {
-  if (loading) return;
-  const inAuthGroup = segments[0] === '(auth)';
-  if (!isAuthenticated && !inAuthGroup) router.replace('/(auth)/login');
-  else if (isAuthenticated && inAuthGroup) router.replace('/(tabs)');
-}, [isAuthenticated, loading]);
+// app/(tabs)/_layout.tsx — iOS uses NativeTabs (liquid glass + SF Symbols),
+// Android uses standard <Tabs> with Ionicons. Tabs: index, whatsapp, leads,
+// contacts, more.
+if (Platform.OS === 'ios') {
+  return <NativeTabs>{/* NativeTabs.Trigger w/ SF symbols */}</NativeTabs>;
+}
+return <Tabs>{/* Tabs.Screen w/ Ionicons */}</Tabs>;
 ```
 
 ### Cross-Platform UI
@@ -206,17 +252,14 @@ import { Platform, KeyboardAvoidingView } from 'react-native';
 >
 ```
 
-### Component Variants (CVA)
+### Styling (NativeWind + Tailwind v3)
 
-```typescript
-const buttonVariants = cva('items-center justify-center rounded-lg', {
-  variants: {
-    variant: { solid: 'bg-primary-500', outline: 'border border-primary-500' },
-    size: { sm: 'h-9 px-3', md: 'h-11 px-4', lg: 'h-12 px-6' },
-  },
-  defaultVariants: { variant: 'solid', size: 'md' },
-});
-```
+Tokens come from `global.css` CSS variables (`--background`, `--foreground`,
+`--primary`, etc.) consumed via `tailwind.config.js` (`hsl(var(--token))`).
+Dark mode is class-based and driven by `ThemeProvider`. Use `cn()` from
+`lib/utils.ts` to merge classes. No Gluestack UI / CVA dependency is installed;
+prefer plain Tailwind classes on RN primitives or build local components in
+`components/ui/`.
 
 ## Platform-Specific Rules
 
@@ -228,15 +271,20 @@ const buttonVariants = cva('items-center justify-center rounded-lg', {
 
 ## Key Files
 
-- **`app/_layout.tsx`** — Root layout with all providers
-- **`app/(tabs)/_layout.tsx`** — Tab navigator (5 tabs)
-- **`contexts/auth-context.tsx`** — Auth state management
-- **`contexts/notification-context.tsx`** — Push notifications
-- **`lib/api/client.ts`** — Base API client
-- **`app.json`** — Expo config (bundle IDs, icons, splash)
-- **`eas.json`** — EAS Build profiles
-- **`tailwind.config.js`** — NativeWind config
-- **`metro.config.js`** — Metro bundler with CSS
+- **`app/_layout.tsx`** — Root layout (SafeAreaProvider → AuthProvider → ThemeProvider → NotificationProvider → Stack), imports `global.css` and `lib/firebase/background-task`
+- **`app/(tabs)/_layout.tsx`** — Tab navigator (5 tabs); iOS NativeTabs, Android Tabs+Ionicons
+- **`contexts/auth-context.tsx`** — Auth state, secure-store tokens, refresh, AppState rehydration, registers callbacks with `setAuthCallbacks`
+- **`contexts/notification-context.tsx`** — FCM + expo-notifications
+- **`contexts/theme-context.tsx`** — system/light/dark
+- **`lib/api/client.ts`** — Base API client (Bearer, refresh-on-401, `uploadFile` for multipart)
+- **`lib/firebase/background-task.ts`** — Background task registration (imported in root layout)
+- **`lib/firebase/location-tracker.ts`** — expo-location/expo-task-manager visit tracking
+- **`global.css`** — Tailwind base + CSS-variable theme tokens
+- **`app.json`** — Expo config: bundle id `com.salestub.crm`, package `com.salestub.crm`, plugins (expo-router, expo-splash-screen, expo-secure-store, expo-notifications, expo-location with background location, @react-native-firebase/app+auth, expo-font, datetimepicker), `newArchEnabled: true`, `experiments.reactCompiler: true`, `experiments.typedRoutes: true`
+- **`eas.json`** — Profiles: `development` (dev client, dev-api.salestub.com), `preview` (dev-api), `production` (api.salestub.com, autoIncrement)
+- **`tailwind.config.js`** — NativeWind v4 preset, Tailwind v3, class-based dark mode, hsl-var tokens
+- **`metro.config.js`** — Metro + `withNativeWind` (input `./global.css`)
+- **`babel.config.js`** — `babel-preset-expo` with `jsxImportSource: 'nativewind'` + `nativewind/babel`
 
 ## Environment
 
