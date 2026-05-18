@@ -306,7 +306,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       if (!response.ok) {
-        // Refresh token is invalid - log out
+        // Refresh token is invalid - log out. Before clearing state, peek
+        // at the response body for a structured `code` (SESSION_DISPLACED
+        // / TOKEN_REUSE_DETECTED) and stash it so the login screen can
+        // tell the user *why* they got booted instead of a generic
+        // "session expired" message.
+        try {
+          const errBody = await response.json();
+          if (
+            errBody &&
+            typeof errBody === 'object' &&
+            typeof errBody.code === 'string' &&
+            (errBody.code === 'SESSION_DISPLACED' ||
+              errBody.code === 'TOKEN_REUSE_DETECTED')
+          ) {
+            await secureStorage.setItem(
+              STORAGE_KEYS.SESSION_LOST_REASON,
+              errBody.code,
+            );
+          }
+        } catch {
+          // Body wasn't JSON or already consumed — fall through to
+          // generic logout. No reason flag set; login screen will show
+          // its default "please log in" state.
+        }
         console.log('Refresh token invalid, logging out');
         await clearAuthState();
         return false;

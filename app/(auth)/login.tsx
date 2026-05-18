@@ -24,6 +24,7 @@ import { useTheme } from '@/contexts/theme-context';
 import { Colors, Palette } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGoogleAuth, type GoogleAuthResult } from '@/lib/api/google-auth';
+import { secureStorage, STORAGE_KEYS } from '@/lib/storage';
 
 const { width } = Dimensions.get('window');
 
@@ -376,6 +377,32 @@ export default function LoginScreen() {
   useEffect(() => {
     if (isAuthenticated && user?.orgId) router.replace('/(tabs)' as Href);
   }, [isAuthenticated, user]);
+
+  // If the user landed here because the api client bounced them after a
+  // displaced / reused session, show the right banner once and clear the
+  // stashed reason so it doesn't re-display on later navigations.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const reason = await secureStorage.getItem(
+        STORAGE_KEYS.SESSION_LOST_REASON,
+      );
+      if (cancelled || !reason) return;
+      await secureStorage.deleteItem(STORAGE_KEYS.SESSION_LOST_REASON);
+      if (reason === 'TOKEN_REUSE_DETECTED') {
+        setError(
+          'We detected a security issue with your session and signed you out. Please sign in again to continue.',
+        );
+      } else if (reason === 'SESSION_DISPLACED') {
+        setError(
+          'You signed in on another device, so this session ended. Sign in again to continue working here.',
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleGoogleResult = useCallback(
     async (result: GoogleAuthResult) => {

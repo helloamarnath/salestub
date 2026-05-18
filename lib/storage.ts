@@ -7,6 +7,11 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: 'refreshToken',
   USER: 'user_core',
   TOKEN_EXPIRY: 'tokenExpiry',
+  /// Ephemeral flag set right before clearAuthState() so the login screen
+  /// can surface the right "you were signed out because…" banner. Stable
+  /// values: 'SESSION_DISPLACED', 'TOKEN_REUSE_DETECTED'. Cleared on
+  /// successful login OR on read by the login screen.
+  SESSION_LOST_REASON: 'sessionLostReason',
 } as const;
 
 // SecureStore has a 2048 byte limit per item
